@@ -15,6 +15,7 @@ end
 
 pcall(loadScript, "init-hw")
 
+print "Starting fairyNode"
 print "INIT: Waiting before entering bootstrap..."
 tmr.create():alarm(1000, tmr.ALARM_SINGLE, function(t)
     if abort then

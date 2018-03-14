@@ -46,6 +46,7 @@ local function InitService()
   end)
 
   print "INIT: Ready"
+  print "Welcome to fairyNode"
 end
 
 print "SRV: Waiting before services initialization..."
