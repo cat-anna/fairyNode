@@ -1,25 +1,29 @@
 
-local M = { }
+sensor = sensor or {}
 
-function M.read()
-    local mod = loadScript("sensor-read", true)
-    if not mod then
-        print("SENSOR: cannot load module sensor-read")
-        return 
+return {
+    Init = function()
+        if cron and not sensor.schedule then
+            sensor.schedule = cron.schedule(
+                "*/10 * * * *",
+                function()
+                    require("srv-sensor").Read()
+                end
+            )
+        end
+    end,
+    Read = function()
+        MQTTPublish("/status/uptime", tmr.time())
+        MQTTPublish("/status/heap", node.heap())
+
+        local s, lst = pcall(require, "lfs-sensors")
+        if s then
+            for _,v in ipairs(lst) do
+                pcall(function()
+                    local m = require(v)
+                    m.Read(sensor)
+                end)
+            end
+        end
     end
-    print("SENSOR: reading sensors...")
-    pcall(mod.read, sensor, t)
-end
-
-function M.readInit(t)
-    M.read()
-    sensor.cron = cron.schedule("*/5 * * * *", M.read)
-end
-
-function M.Init()
-    print("SENSOR: starting")
-    tmr.create():alarm(30 * 1000, tmr.ALARM_SINGLE, M.readInit)
-    sensor =  { }   
-end
-
-return M
+}
