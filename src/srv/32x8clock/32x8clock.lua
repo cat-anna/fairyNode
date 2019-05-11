@@ -159,28 +159,26 @@ function CLK:Pause()
     end
 end
 
-local M = {}
+return {
+    StartClock = function (timer)
+        local clk = {}
 
-function M.StartClock(timer)
-    local clk = {}
+        clk.timer = timer
+        clk.display = require("max7219").Setup()
 
-    clk.timer = timer
-    clk.display = require("max7219").Setup()
+        clk.q = {
+            {f = function(self, c, d) return "Node" end, duration = 2 * 1000, refresh = 2000, single = true},
+            {f = function(self, c, d) return "MCU", 32 - 17 + 1 end, duration = 2 * 1000, refresh = 2000, single = true},
+            {f = function(self, c, d) return self:TextSwing(c, d, wifi.sta.gethostname()) end, refresh = 100, single = true},        
+            {f = function(self, c, d) return self:TextSwing(c, d, "Welcome") end, refresh = 100, single = true},
+            {f = CLK.PrintTime, duration = 30 * 1000, refresh = 1000},
+            {f = CLK.PrintDate, duration = 5 * 1000, refresh = 1000}
+        }
 
-    clk.q = {
-        {f = function(self, c, d) return "Node" end, duration = 2 * 1000, refresh = 2000, single = true},
-        {f = function(self, c, d) return "MCU", 32 - 17 + 1 end, duration = 2 * 1000, refresh = 2000, single = true},
-        {f = function(self, c, d) return self:TextSwing(c, d, wifi.sta.gethostname()) end, refresh = 100, single = true},        
-        {f = function(self, c, d) return self:TextSwing(c, d, "Welcome") end, refresh = 100, single = true},
-        {f = CLK.PrintTime, duration = 30 * 1000, refresh = 1000},
-        {f = CLK.PrintDate, duration = 5 * 1000, refresh = 1000}
-    }
+        if timer then
+            timer:alarm(10 * 1000, tmr.ALARM_AUTO, function(t) clk:Refresh(t) end)
+        end
 
-    if timer then
-        timer:alarm(10 * 1000, tmr.ALARM_AUTO, function(t) clk:Refresh(t) end)
-    end
-
-    return setmetatable(clk, {__index = CLK})
-end
-
-return M
+        return setmetatable(clk, {__index = CLK})
+    end,
+}

@@ -1,6 +1,4 @@
 
-local m = { }
-
 local function ApplyEvent(id, evid, args, module)
     local mod = require(module)
     local f = mod[id]
@@ -13,7 +11,7 @@ local function ApplyEvent(id, evid, args, module)
     end
 end
 
-function m.ProcessEvent(id, args)
+local function ProcessEvent(id, args)
     local evid, subid = id:match("([^%.]*)%.?(.*)")
     print("EVENT:", id, unpack(args))
 
@@ -37,13 +35,14 @@ function m.ProcessEvent(id, args)
     end
 end
 
-function m.Send(id, ...)
-    local args = { ... }
-    node.task.post(
-        function()
-            m.ProcessEvent(id, args)
-        end
-    )
-end
-
-return m
+return {
+    Send = function (id, ...)
+        local args = { ... }
+        node.task.post(
+            function()
+               ProcessEvent(id, args)
+            end
+        )
+    end,
+    ProcessEvent = ProcessEvent,
+}

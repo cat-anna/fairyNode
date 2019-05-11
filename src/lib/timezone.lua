@@ -1,7 +1,5 @@
 -- tz -- A simple timezone module for interpreting zone files
 
-local M = {}
-
 local tstart = 0
 local tend = 0
 local toffset = 0
@@ -42,18 +40,16 @@ local function load(t)
   end
 end
 
-function M.getoffset(t)
-  if t < tstart or t >= tend then
-    -- Ignore errors
-    local ok, msg = pcall(function ()
-        load(t)
-    end)
-    if not ok then
-      print (msg)
+return {
+  getoffset = function (t)
+    if t < tstart or t >= tend then
+      -- Ignore errors
+      local ok, msg = pcall(function () load(t) end)
+      if not ok then
+        print (msg)
+      end
     end
-  end
-
-  return toffset, tstart, tend
-end
-
-return M
+  
+    return toffset, tstart, tend
+  end,
+}

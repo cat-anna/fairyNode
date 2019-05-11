@@ -6,8 +6,7 @@ local font = dofile(arg[1])
 out = io.open(arg[1] .. ".out", "w")
 
 out:write([[
-local
-font = {    
+return {    
 ]])
 
 
@@ -29,8 +28,5 @@ end
 
 out:write([[
 }
-
-return font
-
 ]])
 out:close()

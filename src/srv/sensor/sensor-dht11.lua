@@ -12,5 +12,5 @@ return {
         else
             output.dht = { errorCode = status }
         end
-    end
+    end,
 }

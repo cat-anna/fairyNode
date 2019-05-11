@@ -6,7 +6,7 @@ return {
             return
         end
         if subcmd == "check" then
-            node.task.post(function() pcall(dofile("sys-ota.lua").Check) end)
+            node.task.post(function() pcall(require("sys-ota").Check) end)
             out("OTA: ok")
             return
         end

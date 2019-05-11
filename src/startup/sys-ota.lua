@@ -5,7 +5,7 @@
 -- the image file is a valid and complete LFS image before loading.
 --
 
-local ota_cfg = require("sys-config").JSON("ota.cfg")
+local ota_cfg = require("sys-config").JSON("rest.cfg")
 if not ota_cfg then
   print "OTA: No config file"
   return
@@ -144,7 +144,7 @@ local function querryResult(sck, rec)
   end
   
   if not stamp then
-    print("OTA: Timestamp error!")
+    print("OTA: Timestamp error! (" .. tostring(payload) .. ")")
     return
   end
 

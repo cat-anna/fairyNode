@@ -71,12 +71,42 @@ local function lfs_loader(module) -- loader_flash
   return ba and " Module not in LFS " or fn 
 end
 
-if file.exists("debug.cfg") then
+local debugMode = file.exists("debug.cfg")
+if debugMode then
   package.loaders[3] = lfs_loader
   print("LFS: Debug mode: files on flash has higher priority")
 else
   table.insert(package.loaders, 1, lfs_loader)
   print("LFS: Normal mode: files on LFS has higher priority")
+end
+
+local function require_cleanup(mod)
+  local t = mod:match("(%w-)%-%w+")
+  if t and (t == "sensor" or t == "event" or t == "cmd" or t == "init" or t == "sys" or t == "lfs" ) then
+    package.loaded[mod] = nil
+  end
+end
+
+local require_x = require
+if debugMode then
+  function require(mod)
+    collectgarbage()
+    local startHeap = node.heap()
+
+    local r = require_x(mod)
+
+    collectgarbage()
+    local endHeap = node.heap()
+    print("REQUIRE: " .. mod .. " mem:" .. tostring(startHeap - endHeap))
+    require_cleanup(mod)
+    return r
+  end
+else
+  function require(mod)
+    local r = require_x(mod)
+    require_cleanup(mod)
+    return r
+  end
 end
  
 --[[-------------------------------------------------------------------------------

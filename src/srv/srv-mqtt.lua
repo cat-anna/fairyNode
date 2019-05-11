@@ -58,7 +58,7 @@ local function MqttConnected(client)
     MQTTPublish("/status/lfs/timestamp", string.format("%d", require "lfs-timestamp"), 0, 1)
     MQTTPublish("/status/bootreason", sjson.encode({node.bootreason()}))
     MQTTPublish("/status/ip", wifi.sta.getip() or "", 0, 1)
-    MQTTPublish("/chipid", string.format("%X", node.chipid()), 0, 1)
+    MQTTPublish("/chipid", string.format("%06X", node.chipid()), 0, 1)
 
     node.task.post(function() MQTTRestoreSubscriptions(client) end)
 
@@ -92,10 +92,13 @@ end
 function m.Publish(topic, payload, qos, retain)
     local t = "/" .. wifi.sta.gethostname() .. topic
     print("MQTT: " .. t .. " <- " .. (payload or "<NIL>"))
-    local r = m.mqttClient:publish(t, payload, qos or 0, retain and 1 or 0)
+    local r
+    pcall(function()
+        r = m.mqttClient:publish(t, payload, qos or 0, retain and 1 or 0)
+    end)
     if not r then
-        print("MQTT: publish failed")
-    end
+        print("MQTT: Publish failed")
+    end    
     return r
 end
 
