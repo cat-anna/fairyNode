@@ -3,8 +3,9 @@
 local path = require "pl.path"
 local dir = require "pl.dir"
 local json = require("json")
-local baseDir = path.dirname(arg[0])
-package.path = package.path .. ";" .. baseDir .. "/?.lua"
+local baseDir = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
+print(baseDir)
+package.path = package.path .. ";" .. baseDir .. "/host/?.lua"
 
 cfg = {
    baseDir = baseDir .. "/"

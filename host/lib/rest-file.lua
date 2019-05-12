@@ -6,7 +6,7 @@ server:add_resource("file", {
        produces = "text/plain",
        handler = function(_, file)
          print("REST", "FILE", tostring(file))
-         return InvokeFile("lib/file-service.lua", "GetFile", file)
+         return InvokeFile("host/lib/file-service.lua", "GetFile", file)
        end,
     },
  })

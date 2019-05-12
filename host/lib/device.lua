@@ -47,6 +47,7 @@ function device.GetChipConfig(chipid)
 
    local r = config.chipid[chipid]
    r.id = chipid
+   r.projectDir = config.projectDir .. "/" .. r.project
    return setmetatable(r, {__index = chip})
 end
 
@@ -75,13 +76,10 @@ end
 function device:GenerateConfigFiles(storage)
    local function store(f, content)
       storage:AddFile(f, content)
-      print("---GENERATE---")
-      print("FILE: " .. f)
-      print("CONTENT: \n" .. content)
-      print("---END---")
+      print("GENERATE:", f, #content)
    end
 
-   store("hostname.cfg", self.chip.Name)
+   store("hostname.cfg", self.chip.name)
 
    for k, v in pairs(self.chip.config) do
       print(k, v)
@@ -96,11 +94,7 @@ function device:CompileLFS(out_storage)
 
    local function store(f, content)
       storage:AddFile(f, content)
-      print("---GENERATE---")
-      print("FILE: " .. f)
-      print("SIZE: " .. tostring(#content))
-      print("CONTENT: \n" .. content)
-      print("---END---")
+      print("GENERATE:", f, #content)
 
       local base = path.basename(f)
       local name = base:gsub(".lua", "")      
@@ -177,7 +171,7 @@ function chip:GetDeviceConfig()
    setmetatable(cfg, {__index = device})
 
    local global = dofile(FirmwareConfigFile)
-   local device = dofile(self.Project .. "/" .. FirmwareConfigFile)
+   local device = dofile(self.projectDir .. "/" .. FirmwareConfigFile)
 
    local function addPrefix(lst, prefix)
       local r = {}
@@ -187,8 +181,8 @@ function chip:GetDeviceConfig()
       return r
    end
 
-   local chip_prefix = self.Project .. "/files/"
-   local fw_prefix = _G.cfg.baseDir .. "../src/"
+   local chip_prefix = self.projectDir .. "/files/"
+   local fw_prefix = _G.cfg.baseDir .. "/src/"
    local common_prefix = "common/"
 
    device.lfs = addPrefix(device.lfs, chip_prefix)

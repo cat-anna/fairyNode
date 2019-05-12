@@ -1,7 +1,7 @@
 local restserver = require("restserver")
 local json = require("json")
 
-local ota_file = "lib/ota-service.lua"
+local ota_file = "host/lib/ota-service.lua"
 
 server:add_resource("ota", {
    {
