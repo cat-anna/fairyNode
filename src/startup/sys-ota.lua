@@ -22,6 +22,8 @@ local function EndOta()
     node.task.post(node.restart)
   else
     print "OTA: Invalid save of image file"
+    file.remove(image_file)
+    node.restart()
   end
 end
 
@@ -91,7 +93,7 @@ local function makeRequest(uri, host)
     }, "\r\n")
 end
 
-local function doRequest(sk, hostIP)
+local function DoUpdate(sk, hostIP)
   if hostIP then
     local con = net.createConnection(net.TCP, 0)
     con:connect(ota_cfg.port, hostIP)
@@ -119,7 +121,11 @@ local function BeginOta()
 
   tmr.create():alarm(5000, tmr.ALARM_SINGLE, function()
     print("OTA: Starting download...")
-    doRequest(nil, ota_cfg.hostIP)
+    if ota_cfg.hostIP then
+      DoUpdate(nil, ota_cfg.hostIP)
+    else
+      net.dns.resolve(ota_cfg.host, DoUpdate)
+    end
   end)
 end
 
@@ -171,10 +177,11 @@ local function doQuerry(sk, hostIP)
   end
 end
 
-local m = {}
-
-function m.Check()
-  net.dns.resolve(ota_cfg.host, doQuerry)
-end
-
-return m
+return  {
+  Check = function()
+    net.dns.resolve(ota_cfg.host, doQuerry)
+  end,
+  Update = function()
+    node.task.post(BeginOta)
+  end,  
+}

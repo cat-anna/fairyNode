@@ -10,9 +10,15 @@ return {
             out("OTA: ok")
             return
         end
+        if subcmd == "update" then
+            node.task.post(function() pcall(require("sys-ota").Update) end)
+            out("OTA: ok")
+            return
+        end        
         if subcmd == "help" then
             out("OTA: help:")
-            out("OTA: check - check for update ")
+            out("OTA: check - check for update")
+            out("OTA: update - force update")
             return
         end        
         out("OTA: Unknown command")

@@ -1,7 +1,7 @@
 
 local m = { }
 
-function NTPCheck(t)
+local function NTPCheck(t)
     local unix, usec = rtctime.get()
     if unix < 946684800 then  -- 01/01/2000 @ 12:00am (UTC)
         print("NTP: ERROR: not synced")

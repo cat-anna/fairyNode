@@ -7,7 +7,8 @@ local function StopStream(state)
     pcall(state.conn.close, state.conn)
   end
   if state.cb then
-    node.task.post(function() pcall(state.cb, "stop", 1)  end)
+    pcall(state.cb, "stop", 1)
+    state.cb = nil
   end  
   for k,_ in pairs(state) do
     state[k] = nil
@@ -15,7 +16,7 @@ local function StopStream(state)
 end
   
 local function DeviceStreamDrained(state)
-  -- print("Drained. Played bytes", state.bytes)
+  print("PCM: Drained. Played bytes ", state.bytes)
   StopStream(state)
 end
 
@@ -54,9 +55,6 @@ local function DeviceNeedData(state)
     print("PCM: No more data!")
     state.conn:unhold()
     return string.rep("\0\0", 512)
-  else
-    state.drv:stop()
-    return ""
   end
 end
 
@@ -124,14 +122,22 @@ end
 
 local stream = { }
 
+local function KillStream()
+  if stream then
+    if stream.drv then
+      StopStream(stream)
+    end
+    if stream.cb then
+      pcall(stream.cb, "stop", 1)
+      stream.cb = nil
+    end      
+    stream.buf = { }
+  end
+end
+
 return {
   Play = function(path, cb)
-    if stream then
-      if stream.drv then
-        StopStream(stream)
-      end
-      stream.buf = { }
-    end
+    KillStream()
 
     local cfg = require("sys-config").JSON("rest.cfg")
     if not cfg then
@@ -144,7 +150,7 @@ return {
     stream.buffering = true
     stream.buf = {}
     stream.rate = DetectRate(path)
-    stream. cb = cb
+    stream.cb = cb
     stream.bytes = 0
     stream.size = 0
     stream.refresh = tmr.time()
@@ -158,17 +164,17 @@ return {
     
     conn:on("receive", function(c, data) return DataReceived(c, data, stream) end)
     conn:on("disconnection", function() return StreamDisconnected(stream) end)
-    conn:connect(cfg.port, cfg.ip)
+    conn:connect(cfg.port, cfg.host)
     conn:on("connection", function(c)
       stream.conn = c
       local msg =
-      string.format("GET /file/%s HTTP/1.0", node.chipid(), path) ..
-        -- "\r\nHost: iot.nix.nix"
+      string.format("GET /file/%s HTTP/1.0", path) ..
         "\r\n" .. "Connection: close\r\nAccept: /\r\n\r\n"
       c:send(msg)
     end)
     return stream
   end,
+  Stop = KillStream,
 }
 
 --[[

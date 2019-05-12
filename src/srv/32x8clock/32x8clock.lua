@@ -8,6 +8,7 @@ function CLK:AddScreen(data)
         duration = data.duration,
         refresh = data.refresh or data.duration,
         single = data.singleTime,
+        speed = data.speed,
     }
     if data.front then
         table.insert(self.q, 1, entry)
@@ -44,15 +45,16 @@ function CLK:TextSwing(curr, diff, txt)
         local mat = self:PrintText({}, 1, txt)
         local str = string.char(unpack(mat))
         mat = nil
-        self.swingBuffer = string.rep("\0", 33) .. str .. string.rep("\0", 33)
+        self.swingBuffer = string.rep("\0", self.w+1) .. str .. string.rep("\0", self.w+1)
     end
-    local pos = math.floor((diff / 1000) * 15)
-    local done = pos > (self.swingBuffer:len() - 32)
+    local speed = curr.speed or 15
+    local pos = math.floor((diff / 1000) * speed)
+    local done = pos > (self.swingBuffer:len() - self.w)
     if done then
         self.swingBuffer = nil
         return "", nil, true
     end
-    local buf = {self.swingBuffer:byte(pos, pos + 32)}
+    local buf = {self.swingBuffer:byte(pos, pos + self.w)}
     return nil, nil, false, buf
 end
 
@@ -140,7 +142,7 @@ function CLK:Refresh(t)
     -- local s = tmr.now()
 
     pcall(function()
-        self.display:WriteColumns(self:MakeBuffer(t))
+        self.display:WriteColumns(self:MakeBuffer(t or self.timer))
     end)
 
     -- local e = tmr.now()
@@ -165,12 +167,12 @@ return {
 
         clk.timer = timer
         clk.display = require("max7219").Setup()
+        clk.w = 32
 
         clk.q = {
             {f = function(self, c, d) return "Node" end, duration = 2 * 1000, refresh = 2000, single = true},
-            {f = function(self, c, d) return "MCU", 32 - 17 + 1 end, duration = 2 * 1000, refresh = 2000, single = true},
-            {f = function(self, c, d) return self:TextSwing(c, d, wifi.sta.gethostname()) end, refresh = 100, single = true},        
-            {f = function(self, c, d) return self:TextSwing(c, d, "Welcome") end, refresh = 100, single = true},
+            {f = function(self, c, d) return "MCU", self.w - 17 + 1 end, duration = 2 * 1000, refresh = 2000, single = true},
+            {f = function(self, c, d) return self:TextSwing(c, d, wifi.sta.gethostname() .. " Welcome") end, speed = 15, refresh = 100, single = true},        
             {f = CLK.PrintTime, duration = 30 * 1000, refresh = 1000},
             {f = CLK.PrintDate, duration = 5 * 1000, refresh = 1000}
         }
