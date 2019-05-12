@@ -12,7 +12,7 @@ cfg = {
 }
 
 local restserver = require("restserver")
-server = restserver:new():port(8080)
+server = restserver:new():port(8000)
 
 function InvokeFile(file, method, ...)
    local succ, lib = pcall(dofile, cfg.baseDir .. file)
