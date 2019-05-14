@@ -82,7 +82,6 @@ function device:GenerateConfigFiles(storage)
    store("hostname.cfg", self.chip.name)
 
    for k, v in pairs(self.chip.config) do
-      print(k, v)
       store(k .. ".cfg", JSON.encode(v))
    end
 end
