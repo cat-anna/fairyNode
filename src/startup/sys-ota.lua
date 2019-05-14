@@ -70,7 +70,7 @@ local function HandleOtaDownload(sck, rec, state)
   else
     sck:on("receive", nil)
     pcall(sck.close, sck)
-    print("OTA: download failed")
+    print("OTA: Download failed")
   end
   state.buf = nil
 end
@@ -163,23 +163,23 @@ local function HandleOtaStatusResponse(sck, rec, state)
     my_stamp = 0
   end
 
-  print("OTA: timestamp my:" .. tostring(my_stamp) .. " remote:" .. tostring(status.timestamp))
+  print("OTA: Timestamp my:" .. tostring(my_stamp) .. " remote:" .. tostring(status.timestamp))
 
   if my_stamp < status.timestamp then
     print("OTA: Update is needed")
     if status.enabled or my_stamp == 0 then
       node.task.post(BeginOtaDownload)
     else
-      print("OTA: update is disabled")
+      print("OTA: Update is disabled")
     end
   else
-    print("OTA: lfs is up to date")
+    print("OTA: LFS is up to date")
   end
 end
 
 local function QuerryStatus(sk, hostIP)
  ota_cfg.hostIP = hostIP
-  print("OTA: querrying " .. hostIP)
+  print("OTA: Querrying " .. hostIP)
   local con = net.createConnection(net.TCP, 0)
   con:connect(ota_cfg.port, hostIP)
   con:on(
