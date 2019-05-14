@@ -23,11 +23,7 @@ else
     function(T)
       print("WiFi: got IP address: " .. T.IP)
       if event then event("wifi.gotip", T) end 
-      node.task.post(
-        function()
-          pcall(dofile("sys-ota.lua").Check)
-        end
-      )
+      node.task.post(function() pcall(function() require("sys-ota").Check() end) end)
     end
   )
   wifi.eventmon.register(

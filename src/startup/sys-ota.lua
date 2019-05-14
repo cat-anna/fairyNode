@@ -1,10 +1,3 @@
---
--- If you have the LFS _init loaded then you invoke the provision by
--- executing LFS.HTTP_OTA('your server','directory','image name').  Note
--- that is unencrypted and unsigned. But the loader does validate that
--- the image file is a valid and complete LFS image before loading.
---
-
 local ota_cfg = require("sys-config").JSON("rest.cfg")
 if not ota_cfg then
   print "OTA: No config file"
@@ -47,6 +40,7 @@ local function OtaDownloadContinue(sck, rec)
       function()
         file.close()
         sck:on("receive", nil)
+        pcall(sck.close, sck)
         print("OTA: Download completed")
         EndOta()
       end

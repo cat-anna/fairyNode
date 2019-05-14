@@ -19,6 +19,7 @@ Upload software using serial
     --no-config                             do not uplad configuration
     --no-lfs                                do not write lfs
 ]]
+--compile                               compile files after upload
 
 for k,v in pairs(args) do
 print(k,v)
@@ -27,6 +28,7 @@ end
 local nodemcu_tool_cfg = {
     port = args.port
 }
+
 
 cfg = {
     baseDir = baseDir .. "/"
@@ -84,7 +86,12 @@ if #file_list == 0 then
     os.exit(1)
 end
 
+
 table.insert(file_list, 1, "upload")
+-- if args.compile then
+-- table.insert(file_list, 2, "--compile")
+-- end
+
 shell.Start(args.nodemcu_tool, nodemcu_tool_cfg, file_list)
 
 storage:Clear()
