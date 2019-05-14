@@ -131,6 +131,7 @@ end
 
 local postHeader_querryResult = false
 local function querryResult(sck, rec)
+print("|" .. rec .. "|")
   if rec == "\r\n" then
     postHeader_querryResult = true
     return
@@ -142,40 +143,42 @@ local function querryResult(sck, rec)
   pcall(sck.close, sck)
 
   local payload = rec
-  local stamp = tonumber(payload)
+  local succ, status = pcall(sjson.decode,data)
+  if not succ then
+    print("Cannot parse ota status", status)
+    return
+  end
 
   local err, my_stamp = pcall(require, "lfs-timestamp")
   if not err or type(my_stamp) ~= "number" then
     my_stamp = 0
   end
-  
-  if not stamp then
-    print("OTA: Timestamp error! (" .. tostring(payload) .. ")")
-    return
-  end
 
-  print("OTA: timestamp my:" .. tostring(my_stamp) .. " remote:" .. tostring(stamp))
+  print("OTA: timestamp my:" .. tostring(my_stamp) .. " remote:" .. tostring(status.timestamp))
 
-  if my_stamp < stamp then
+  if my_stamp < status.timestamp then
     print("OTA: Update is needed")
-    node.task.post(BeginOta)
+    if status.enabled or my_stamp == 0 then
+      node.task.post(BeginOta)
+    else
+      print("OTA: update is disabled")
+    end
   else
     print("OTA: lfs is up to date")
   end
 end
 
 local function doQuerry(sk, hostIP)
-  if hostIP then
     ota_cfg.hostIP = hostIP
+    print("OTA: querrying " .. hostIP)
     local con = net.createConnection(net.TCP, 0)
     con:connect(ota_cfg.port, hostIP)
     con:on( "connection", function(sck)
-        local request = makeRequest("timestamp", ota_cfg.host)
+        local request = makeRequest("status", ota_cfg.host)
         sck:send(request)
         sck:on("receive", querryResult)
       end)
-  end
-end
+end 
 
 return  {
   Check = function()

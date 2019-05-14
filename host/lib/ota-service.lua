@@ -5,20 +5,18 @@ local file = require "pl.file"
 
 local ota = {}
 
-function ota.Timestamp(id) 
+function ota.Status(id) 
    local chip = Device.GetChipConfig(id)
    print(id .. " is " .. chip.name)
-
-   if chip.Ota and chip.ota.disabled then
-      print("OTA is disabled for chip " .. id)
-      return 0
-   end
 
    local device = chip:GetDeviceConfig()
    device:UpdateLFSStamp()
    print("OTA stamp: ", device.lfsStamp)
 
-   return device.lfsStamp 
+   return {
+      timestamp = device.lfsStamp,
+      enable = not (chip.Ota and chip.ota.disable)
+   }
 end
 
 function ota.Image(id) 

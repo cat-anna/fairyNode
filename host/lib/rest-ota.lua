@@ -6,11 +6,11 @@ local ota_file = "host/lib/ota-service.lua"
 server:add_resource( "ota",{
         {
             method = "GET",
-            path = "{[A-Z0-9]+}/timestamp",
+            path = "{[A-Z0-9]+}/status",
             produces = "application/json",
             handler = function(_, id)
-                print("OTA", id .. "/timestamp")
-                return InvokeFile(ota_file, "Timestamp", id)
+                print("OTA", id .. "/status")
+                return InvokeFile(ota_file, "Status", id)
             end
         },
         {

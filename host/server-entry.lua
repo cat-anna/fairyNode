@@ -26,12 +26,12 @@ function InvokeFile(file, method, ...)
       return restserver.response():status(500):entity("500: " .. result)
    end
 
-   if type(result) == "table" then
-      result = json.encode(result)
-   end
+   -- if type(result) == "table" then
+   --    result = json.encode(result)
+   -- end
 
    local str = tostring(result)
-   print("RESULT: " .. tostring(#str) .. "bytes")
+   print("RESULT: " .. tostring(#str) .. " bytes")
    print(str:sub(1,256))
    return restserver.response():status(200):entity(result)
 end
