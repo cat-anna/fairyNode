@@ -30,7 +30,9 @@ function InvokeFile(file, method, ...)
       result = json.encode(result)
    end
 
-   print("RESULT: ", tostring(result))
+   local str = tostring(result)
+   print("RESULT: " .. tostring(#str) .. "bytes")
+   print(str:sub(1,256))
    return restserver.response():status(200):entity(result)
 end
 
