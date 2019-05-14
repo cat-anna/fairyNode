@@ -11,7 +11,7 @@ if not ota_cfg then
   return
 end
 
-local n, total, size = 0,0,0
+local n, total, size = 0, 0, 0
 local image_file = "lfs.img.pending"
 
 local function EndOta()
@@ -19,7 +19,12 @@ local function EndOta()
   if (s and size == s.size) then
     print "OTA: Preparing to reboot..."
     wifi.setmode(wifi.NULLMODE)
-    node.task.post(node.restart)
+    if abort then
+    print "OTA: Aborted"
+    file.remove(image_file)
+    else
+      node.task.post(node.restart)
+    end
   else
     print "OTA: Invalid save of image file"
     file.remove(image_file)
@@ -27,16 +32,11 @@ local function EndOta()
   end
 end
 
-local function subsRec(sck, rec)
+local function OtaDownloadContinue(sck, rec)
   total, n = total + #rec, n + 1
-  if n % 4 == 1 then
+  if n % 2 == 1 then
     sck:hold()
-    node.task.post(
-      0,
-      function()
-        sck:unhold()
-      end
-    )
+    node.task.post(0, function() sck:unhold() end)
   end
   uart.write(0, ("OTA: %u of %u\n"):format(total, size))
   file.write(rec)
@@ -47,41 +47,44 @@ local function subsRec(sck, rec)
       function()
         file.close()
         sck:on("receive", nil)
-        pcall(sck.close, sck)
-        print("OTA: download completed")
+        print("OTA: Download completed")
         EndOta()
       end
     )
   end
 end
 
-local postHeader_firstRec = false
-local function firstRec(sck, rec)
-  if rec == "\r\n" then
-    postHeader_firstRec = true
-    return
-  end
-  if not postHeader_firstRec then
-    if size == 0 then
-      size = tonumber(rec:lower():match("content%-length: (%d+)") or 0)
+local function HandleOtaDownload(sck, rec, state)
+  state.buf = state.buf .. rec
+
+  if not state.gotHeaders then
+    local pos      = state.buf:find('\r\n\r\n',1,true) 
+    if pos then
+      state.gotHeaders = true
+      local header = state.buf:sub(1,pos + 1):lower()
+      size = tonumber(header:match("content%-length: (%d+)"))
+      state.buf = state.buf:sub(pos + 4)
+    else
+      return
     end
-    return
   end
 
   if size > 0 then
     file.open(image_file, "w")
-    sck:on("receive", subsRec)
-    subsRec(sck, rec)
+    sck:on("receive", OtaDownloadContinue)
+    OtaDownloadContinue(sck, state.buf)
   else
     sck:on("receive", nil)
-    sck:close()
+    pcall(sck.close, sck)
     print("OTA: download failed")
   end
+  state.buf = nil
 end
 
 local function makeRequest(uri, host)
   local url = string.format("/ota/%06X/%s", node.chipid(), uri)
-  return table.concat( {
+  return table.concat(
+    {
       "GET " .. url .. " HTTP/1.1",
       "User-Agent: ESP8266 app (linux-gnu)",
       "Accept: application/octet-stream",
@@ -90,27 +93,33 @@ local function makeRequest(uri, host)
       "Connection: close",
       "",
       ""
-    }, "\r\n")
+    },
+    "\r\n"
+  )
 end
 
-local function DoUpdate(sk, hostIP)
-  if hostIP then
-    local con = net.createConnection(net.TCP, 0)
-    con:connect(ota_cfg.port, hostIP)
-    -- Note that the current dev version can only accept uncompressed LFS images
-    con:on(
-      "connection",
-      function(sck)
-        local request = makeRequest("image", ota_cfg.host)
-        sck:send(request)
-        sck:on("receive", firstRec)
-      end
-    )
+local function BeginDownload(sk, hostIP)
+  local con = net.createConnection(net.TCP, 0)
+  con:connect(ota_cfg.port, hostIP)
+  -- Note that the current dev version can only accept uncompressed LFS images
+  con:on(
+    "connection",
+    function(sck)
+      local request = makeRequest("image", ota_cfg.host)
+      sck:send(request)
+      local state = {buf = ""}
+      sck:on("disconnection", function() 
+          pcall(sck.on,sck,"receive", nil)
+        end)
+      sck:on("receive", function(a,b) return HandleOtaDownload(a,b,state) end)
+    end
+  )
+end
+
+local function BeginOtaDownload()
+  if event then
+    event("ota.start")
   end
-end
-
-local function BeginOta()
-  if event then event("ota.start") end 
   if cron then
     cron.reset()
   end
@@ -119,35 +128,41 @@ local function BeginOta()
     file.remove(image_file)
   end
 
-  tmr.create():alarm(5000, tmr.ALARM_SINGLE, function()
-    print("OTA: Starting download...")
-    if ota_cfg.hostIP then
-      DoUpdate(nil, ota_cfg.hostIP)
-    else
-      net.dns.resolve(ota_cfg.host, DoUpdate)
+  tmr.create():alarm(
+    5000,
+    tmr.ALARM_SINGLE,
+    function()
+      print("OTA: Starting download...")
+      if ota_cfg.hostIP then
+        BeginDownload(nil, ota_cfg.hostIP)
+      else
+        net.dns.resolve(ota_cfg.host, BeginDownload)
+      end
     end
-  end)
+  )
 end
 
-local postHeader_querryResult = false
-local function querryResult(sck, rec)
-print("|" .. rec .. "|")
-  if rec == "\r\n" then
-    postHeader_querryResult = true
-    return
-  end
-  if not postHeader_querryResult then
-    return
+local function HandleOtaStatusResponse(sck, rec, state)
+  state.buf = state.buf .. rec
+
+  if not state.gotHeaders then
+    local pos      = state.buf:find('\r\n\r\n',1,true) 
+    if pos then
+      state.gotHeaders = true
+      local header = state.buf:sub(1,pos + 1):lower()
+      state.buf = state.buf:sub(pos + 4)
+    else
+      return
+    end
   end
   
-  pcall(sck.close, sck)
-
-  local payload = rec
-  local succ, status = pcall(sjson.decode,data)
+  local succ, status = pcall(sjson.decode, state.buf)
   if not succ then
-    print("Cannot parse ota status", status)
+    --not all data may have been received
     return
   end
+
+  state.buf = nil
 
   local err, my_stamp = pcall(require, "lfs-timestamp")
   if not err or type(my_stamp) ~= "number" then
@@ -159,7 +174,7 @@ print("|" .. rec .. "|")
   if my_stamp < status.timestamp then
     print("OTA: Update is needed")
     if status.enabled or my_stamp == 0 then
-      node.task.post(BeginOta)
+      node.task.post(BeginOtaDownload)
     else
       print("OTA: update is disabled")
     end
@@ -168,23 +183,30 @@ print("|" .. rec .. "|")
   end
 end
 
-local function doQuerry(sk, hostIP)
-    ota_cfg.hostIP = hostIP
-    print("OTA: querrying " .. hostIP)
-    local con = net.createConnection(net.TCP, 0)
-    con:connect(ota_cfg.port, hostIP)
-    con:on( "connection", function(sck)
-        local request = makeRequest("status", ota_cfg.host)
-        sck:send(request)
-        sck:on("receive", querryResult)
-      end)
-end 
-
-return  {
+local function QuerryStatus(sk, hostIP)
+ ota_cfg.hostIP = hostIP
+  print("OTA: querrying " .. hostIP)
+  local con = net.createConnection(net.TCP, 0)
+  con:connect(ota_cfg.port, hostIP)
+  con:on(
+    "connection",
+    function(sck)
+      local request = makeRequest("status", ota_cfg.host)
+      sck:send(request)
+      local state = {buf = ""}
+      sck:on("disconnection", function() 
+          pcall(sck.on,sck,"receive", nil)
+        end)
+      sck:on("receive", function(a,b) return HandleOtaStatusResponse(a,b,state) end)
+    end
+  )
+end
+    
+return {
   Check = function()
-    net.dns.resolve(ota_cfg.host, doQuerry)
+    net.dns.resolve(ota_cfg.host, QuerryStatus)
   end,
   Update = function()
-    node.task.post(BeginOta)
-  end,  
+    node.task.post(BeginOtaDownload)
+  end
 }
