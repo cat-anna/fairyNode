@@ -6,15 +6,19 @@ local json = require("json")
 local baseDir = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
 package.path = package.path .. ";" .. baseDir .. "/host/?.lua"
 
-cfg = {
+firmware = {
    baseDir = baseDir .. "/"
 }
+
+function LoadScript(name)
+   return dofile(path.normpath(firmware.baseDir .. name))
+end
 
 local restserver = require("restserver")
 server = restserver:new():port(8000)
 
 function InvokeFile(file, method, ...)
-   local succ, lib = pcall(dofile, cfg.baseDir .. file)
+   local succ, lib = pcall(dofile, firmware.baseDir .. file)
    if not succ then
       print("ERROR: " .. lib)
       return restserver.response():status(500):entity("500: " .. lib)

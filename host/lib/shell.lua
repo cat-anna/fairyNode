@@ -1,22 +1,25 @@
 local shell = { }
 
 function shell.Buildcmd(cmd, argsdict, argtable, ...)
-	local t = { cmd }
-	
-	for k,v in pairs(argsdict or {}) do
-		if k:len() == 1 then
-			t[#t + 1] = "-" .. k;
-		else
-			t[#t + 1] = "--" .. k;
-		end
-		t[#t + 1] = "'" .. v .. "'"
+	local t = { }
+	if cmd then
+		table.insert(t, tostring(cmd))
 	end
 	
-	for k,v in ipairs(argsdict or {}) do
-		if k:len() == 1 then
-			t[#t + 1] = "-" .. k;
+	for k,v in pairs(argsdict or {}) do
+		if type(k) == "number" then
+			if v:len() == 1 then
+				t[#t + 1] = "-" .. v;
+			else
+				t[#t + 1] = "--" .. v;
+			end
 		else
-			t[#t + 1] = "--" .. k;
+			if k:len() == 1 then
+				t[#t + 1] = "-" .. k;
+			else
+				t[#t + 1] = "--" .. k;
+			end
+			t[#t + 1] = "'" .. v .. "'"
 		end
 	end
 	
@@ -65,12 +68,18 @@ function shell.ForEachLineOf(...)
 end
 
 function shell.LinesOf(...)
-	local r = { }
-	local l
-	for l in shell.ForEachLineOf(...) do
-		r[#r + 1] = l
+	local c = shell.Buildcmd(...)
+	print("OS: ".. c)
+	
+	local h = io.popen(c)
+	local lines = { }
+	while true do
+		local line = h:read "*l"
+		if not line then
+			return lines, h:close()
+		end
+		table.insert(lines, line)
 	end
-	return r
 end
 
 function shell.FileSize(fn)

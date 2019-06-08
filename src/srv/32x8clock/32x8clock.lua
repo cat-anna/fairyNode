@@ -98,15 +98,17 @@ function CLK:MakeBuffer(t)
 end
 
 function CLK:PrintText(mat, x, txt, neg)
+    local lookup = self.fontLookUp
     local font = self.font
-    if not font then
+    if not font or not lookup then
         collectgarbage()
         local hbeg = node.heap()
-        self.font = require "font-5x7"
+        lookup, font = unpack(require "font-5x7")
         collectgarbage()
         local hend = node.heap()
         print("CLOCK: font uses " .. tostring(hbeg - hend) .. " bytes")
-        font = self.font
+        self.font = font
+        self.fontLookUp = lookup
     end
     
     local limit = #mat
@@ -120,12 +122,15 @@ function CLK:PrintText(mat, x, txt, neg)
     end
     for i = 1, txt:len() do
         local char = txt:byte(i)
-        local glyph = font[char]
-        if not glyph then
+        local index = 1 + char*2
+        if index + 1 > #lookup then
             print("no glyph: ", char, string.char(char))
         else
-            for n = 1, #glyph do
-                put(x, glyph:byte(n))
+            local pos = struct.unpack("H", lookup:sub(index, index+1))
+            local len = font:byte(1 + pos)
+            pos = pos + 1
+            for n = 1,len do
+                put(x, font:byte(pos + n))
                 x = x + 1
             end
             put(x, 0x00)

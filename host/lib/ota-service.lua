@@ -1,37 +1,51 @@
 
-local Device = dofile(cfg.baseDir .. "host/lib/device.lua")
+local Chip = LoadScript("/host/lib/chip.lua")
 
 local file = require "pl.file"
 
 local ota = {}
 
+function ota.ListDevices()
+   local conf = Chip.LoadConfig(id)
+
+   local r = { }
+
+   for k,v in pairs(conf.chipid) do
+      local cfg = { }
+      r[k] = cfg
+      cfg.ota = not v.ota.disabled
+      cfg.name = v.name
+      cfg.project = v.project
+   end
+
+   return r
+end
+
 function ota.Status(id) 
-   local chip = Device.GetChipConfig(id)
+   local chip = Chip.GetChipConfig(id)
    print(id .. " is " .. chip.name)
 
-   local device = chip:GetDeviceConfig()
-   device:UpdateLFSStamp()
-   print("OTA stamp: ", device.lfsStamp)
+   local project = chip:LoadProjectConfig()
+   print("OTA stamp: ", project.lfsStamp)
 
    return {
-      timestamp = device.lfsStamp,
-      enable = not (chip.Ota and chip.ota.disable)
+      timestamp = project.lfsStamp,
+      enable = not chip.ota.disabled
    }
 end
 
 function ota.Image(id) 
-   local chip = Device.GetChipConfig(id)
+   local chip = Chip.GetChipConfig(id)
    print(id .. " is " .. chip.name)
 
-   local device = chip:GetDeviceConfig()
-   device:UpdateLFSStamp()
-   print("OTA stamp: ", device.lfsStamp)
+   local project = chip:LoadProjectConfig()
+   print("OTA stamp: ", project.lfsStamp)
 
-   local storage = require("lib/tmp_storage").new()
-   device:CompileLFS(storage)
+   local storage = require("lib/file_storage").new()
+   project:BuildLFS(storage)
 
    if #storage.list ~= 1 then
-      error "CompileLFS produced more than one file"
+      error "CompileLFS produced incorrect count of files"
    end
 
    local data = file.read(storage.list[1])

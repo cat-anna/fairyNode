@@ -29,10 +29,17 @@ local nodemcu_tool_cfg = {
     port = args.port
 }
 
-
-cfg = {
+firmware = {
+    baseDir = baseDir .. "/"
+ }
+ 
+local cfg = {
     baseDir = baseDir .. "/"
 }
+
+function LoadScript(name)
+    return dofile(cfg.baseDir .. name)
+ end
 
 cfg.upload_config = ((not args.no_config) or (args.only_config)) and (not args.only_lfs)
 cfg.upload_files = (not args.only_config) and (not args.only_lfs)
@@ -54,27 +61,23 @@ for line in shell.ForEachLineOf(args.nodemcu_tool, nodemcu_tool_cfg, {"fsinfo"})
 end
 
 
-local storage = require("lib/tmp_storage").new()
-local Device = require("lib/device")
-local chip = Device.GetChipConfig(cfg.chipid)
-local device = chip:GetDeviceConfig()
-device:UpdateLFSStamp()
+local storage = require("lib/file_storage").new()
+local Chip = require("lib/chip")
+local chip = Chip.GetChipConfig(cfg.chipid)
+local project = chip:LoadProjectConfig()
 
--- print(JSON:encode_pretty(device))
-
- 
 if cfg.upload_lfs then
-    device:CompileLFS(storage)
+    project:BuildLFS(storage)
 end
 
 if cfg.upload_config then
-    device:GenerateConfigFiles(storage)
+    project:GenerateConfigFiles(storage)
 end
 
 local file_list = { }
 
 if cfg.upload_files then
-    table.insert(file_list, table.concat(device.files, " "))
+    table.insert(file_list, table.concat(project.files, " "))
 end
 
 if #storage.list > 0 then
