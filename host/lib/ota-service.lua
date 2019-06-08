@@ -30,7 +30,7 @@ function ota.Status(id)
 
    return {
       timestamp = project.lfsStamp,
-      enable = not chip.ota.disabled
+      enabled = not chip.ota.disabled
    }
 end
 
