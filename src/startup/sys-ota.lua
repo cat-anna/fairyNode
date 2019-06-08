@@ -178,7 +178,11 @@ local function HandleOtaStatusResponse(sck, rec, state)
 end
 
 local function QuerryStatus(sk, hostIP)
- ota_cfg.hostIP = hostIP
+  if not hostIP then
+    print("OTA: error got invalid ip")
+    return
+  end
+  ota_cfg.hostIP = hostIP
   print("OTA: Querrying " .. hostIP)
   local con = net.createConnection(net.TCP, 0)
   con:connect(ota_cfg.port, hostIP)

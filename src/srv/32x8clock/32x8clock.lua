@@ -68,6 +68,9 @@ function CLK:MakeBuffer(t)
         diff = 0
      
         curr = self.q[1]
+        if not curr then
+            return
+        end
         curr = table.remove(self.q, 1)
         if not curr.single then
             table.insert(self.q, curr)
@@ -147,7 +150,10 @@ function CLK:Refresh(t)
     -- local s = tmr.now()
 
     pcall(function()
-        self.display:WriteColumns(self:MakeBuffer(t or self.timer))
+        local buf = self:MakeBuffer(t or self.timer)
+        if buf then
+            self.display:WriteColumns(buf)
+        end
     end)
 
     -- local e = tmr.now()

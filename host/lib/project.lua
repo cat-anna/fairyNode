@@ -163,7 +163,7 @@ function project:GenerateDynamicFiles(source, outStorage, list)
          error("Command execution failed!")
       end
       local content = table.concat(lines, "\n")
-      -- print("GENERATE", k, #content, content)
+      print("GENERATE", k, #content)
       table.insert(list, outStorage:AddFile(k, content))
    end
    table.insert(list, outStorage:AddFile("lfs-timestamp.lua", string.format([[
