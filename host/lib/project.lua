@@ -158,7 +158,7 @@ end
 
 function project:GenerateDynamicFiles(source, outStorage, list)
    for k, v in pairs(source) do
-      local lines, code = shell.LinesOf(nil, nil, v)
+      local lines, code = shell.LinesOf("lua", nil, v)
       if not code then
          error("Command execution failed!")
       end
