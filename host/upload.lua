@@ -22,7 +22,7 @@ Upload software using serial
 --compile                               compile files after upload
 
 for k,v in pairs(args) do
-print(k,v)
+    print(k .."=" .. tostring(v or "<NIL>"))
 end
 
 local nodemcu_tool_cfg = {
