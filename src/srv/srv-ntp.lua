@@ -34,7 +34,7 @@ function m.Sync()
 end
 
 function m.Init()
-    tmr.create():alarm(30 * 1000, tmr.ALARM_SINGLE, m.Sync)
+    tmr.create():alarm(20 * 1000, tmr.ALARM_SINGLE, m.Sync)
     tmr.create():alarm(60 * 1000, tmr.ALARM_AUTO, NTPCheck)
 end
 
