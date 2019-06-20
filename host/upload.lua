@@ -43,7 +43,7 @@ function LoadScript(name)
 
 cfg.upload_config = ((not args.no_config) or (args.only_config)) and (not args.only_lfs)
 cfg.upload_files = (not args.only_config) and (not args.only_lfs)
-cfg.upload_lfs = (not args.no_lfs) and (not args.only_config) and (not args.only_lfs)
+cfg.upload_lfs = ((not args.no_lfs) and (not args.only_config)) or args.only_lfs
 
 print("Uplaod config: ", cfg.upload_config)
 print("Uplaod files: ", cfg.upload_files)

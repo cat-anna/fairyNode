@@ -6,22 +6,19 @@ local function NTPCheck(t)
     if unix < 946684800 then  -- 01/01/2000 @ 12:00am (UTC)
         print("NTP: ERROR: not synced")
         pcall(m.Sync)
-        t:interval(10 * 1000)
+        t:interval(30 * 1000)
     else
         t:unregister()
     end 
 end
 
-function m.Callback(...)
-    local arg = { ... }
-    if #arg == 4 then
-        local sec, usec, server, info = unpack(arg)
-        print('NTP: Sync', sec, usec, server)
-    elseif #arg == 2 then
-        local err, msg = unpack(arg)
-        print("NTP: Error ", err, msg) 
-        tmr.create():alarm(10 * 1000, tmr.ALARM_AUTO, NTPCheck)
-    end
+function m.OnSync(sec, usec, server, info)
+    print('NTP: Sync', sec, usec, server, info)
+end
+
+function m.OnError(err, msg)
+    print("NTP: Error ", err, msg) 
+    tmr.create():alarm(10 * 1000, tmr.ALARM_AUTO, NTPCheck)
 end
 
 function m.Sync()
@@ -33,12 +30,12 @@ function m.Sync()
 
     host = ntpcfg.host
     print("NTP: Will use ntp server: " .. host)
-    sntp.sync(host, m.Callback,  m.Callback, 1)
+    sntp.sync(host, m.OnSync,  m.OnError, 1)
 end
 
 function m.Init()
-    m.Sync()
-    tmr.create():alarm(30 * 1000, tmr.ALARM_AUTO, NTPCheck)
+    tmr.create():alarm(30 * 1000, tmr.ALARM_SINGLE, m.Sync)
+    tmr.create():alarm(60 * 1000, tmr.ALARM_AUTO, NTPCheck)
 end
 
 return m

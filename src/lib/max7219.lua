@@ -93,10 +93,6 @@ return {
 --               - slaveSelectPin*, ESP8266 pin which is connected to CS of the MAX7219
 --               - intensitiy, 0x00 - 0x0F (0 - 15)
   Setup = function (config)
-    if not config and hw and hw.max7219 then
-      config = hw.max7219
-      hw.max7219 = nil
-    end
     local config = config or {}
     local device = dev--setmetatable({}, { __index == dev })
 

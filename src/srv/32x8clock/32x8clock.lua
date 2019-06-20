@@ -175,10 +175,11 @@ end
 return {
     StartClock = function (timer)
         local clk = {}
+        local cfg = require("sys-config").JSON("clock32x8.cfg")
 
         clk.timer = timer
-        clk.display = require("max7219").Setup()
-        clk.w = 32
+        clk.display = require("max7219").Setup(cfg)
+        clk.w = cfg.modules * 8
 
         clk.q = {
             {f = function(self, c, d) return "Node" end, duration = 2 * 1000, refresh = 2000, single = true},

@@ -100,6 +100,9 @@ end
 function project:Preprocess()
    self.lfs = table.merge(self.config.firmware.lfs, self.config.project.lfs)
    self.files = table.merge(self.config.firmware.files, self.config.project.files)
+   self.config = table.merge(self.chip.config, self.config.project.config)
+
+   self.config["hostname"] = self.chip.name
 
    local vars = {
       FW = firmware.baseDir .. "/src/",
@@ -140,6 +143,19 @@ function project:UpdateLFSStamp()
    return self.lfsStamp
 end
 
+function project:GetConfigFileContent(name)
+   local v = self.config[name]
+   if not v then
+      print("There is no config " .. name)
+      return nil
+   end
+   if type(v) == "string" then
+      return v
+   else
+      return JSON.encode(v)
+   end 
+end
+
 function project:GenerateConfigFiles(outStorage, list)
    local function store(f, content)
       outStorage:AddFile(f, content)
@@ -149,10 +165,8 @@ function project:GenerateConfigFiles(outStorage, list)
       print("GENERATE:", f, #content)
    end
 
-   store("hostname.cfg", self.chip.name)
-
-   for k, v in pairs(self.chip.config) do
-      store(k .. ".cfg", JSON.encode(v))
+   for k,_ in pairs(self.config) do
+      store(k .. ".cfg",self:GetConfigFileContent(k))
    end
 end
 

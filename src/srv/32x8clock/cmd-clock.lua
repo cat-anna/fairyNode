@@ -6,7 +6,6 @@ return {
             out("CLOCK: Invalid command")
             return
         end
-
         if subcmd == "print" then
             local txt, dur, pos = args[1], (args[2] or 5), args[3]
             clock:AddScreen({ 

@@ -25,6 +25,27 @@ function chip.GetChipConfig(chipid)
     return setmetatable(r, {__index = chip})
 end
 
+function chip.GetChipConfigByName(name)
+    local config = chip.LoadConfig()
+    
+    local r,chipid
+
+    for k,v in pairs(config.chipid) do
+        if v.name == name then
+            r = v
+            chipid = k
+            break
+        end
+    end
+
+    if not r then
+        error("ERROR: Unknown chip " .. name)
+    end
+    r.id = chipid
+    r.projectDir = config.projectDir .. "/" .. r.project
+    return setmetatable(r, {__index = chip})
+end
+
 function chip:LoadProjectConfig()
     local proj = { 
         chip = self,
