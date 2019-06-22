@@ -13,7 +13,7 @@ return {
 
             for addr, temp in pairs(temp) do
                 local addr_str = FormatAddress(addr)
-                print(string.format("ds18b20 %s: %s °C", addr_str, temp))
+                print(string.format("ds18b20 %s = %s C", addr_str, temp))
                 local name = dscfg[addr_str] or addr_str
                 MQTTPublish("/sensor/ds18b20/" .. name, tostring(temp))
             end

@@ -1,15 +1,24 @@
-local function ow_scan(pin)
+local function ow_scan(pin, out)
     ow.setup(pin)
-    local arr = { }
-    local addr = ow.reset_search(pin)
-    repeat
-      addr = ow.search(pin)
-      print("Found ow device: ", ('%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%d'):format(addr:byte(1,9)))
-      table.insert(arr, addr)
-      tmr.wdclr()
-    until (addr ~= nil) or (#arr > 100)
-    ow.depower(pin)
-    return arr
+    ow.reset_search(pin)
+
+    local result = { }
+    local cycle
+    cycle = function()
+        addr = ow.search(pin)
+        if not addr then
+            out("I2C: scan=" .. table.concat(result, ","))
+            ow.depower(pin)
+            return
+        end
+        
+        local str_addr = ('%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X'):format(addr:byte(1,8))
+        print("Found ow device: " .. str_addr)
+        table.insert(result, str_addr)
+        node.task.post(cycle)
+    end
+
+    node.task.post(function() cycle() end)
 end
 
 return {
@@ -21,15 +30,14 @@ return {
         end
         if subcmd == "scan" then
             local pin = tonumber(args[1])
-            for _,v in ipairs(ow_scan(pin or hw.ow)) do
-                out(('OW: device=%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X,%d'):format(addr:byte(1,9)))
-            end
-            out("OW: done")
+            ow_scan(pin or hw.ow, out)
             return
         end
         if subcmd == "help" then
-            out("OW: help:")
-            out("OW: scan[,pin] - scan ow bus [at pin]")
+            out([[
+OW: help:
+OW: scan[,pin] - scan ow bus [at pin]
+]])
             return
         end          
         out("OW: Unknown command")

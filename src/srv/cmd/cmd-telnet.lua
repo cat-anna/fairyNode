@@ -20,9 +20,11 @@ return {
             return
         end
         if subcmd == "help" then
-            out("TELNET: help:")
-            out("TELNET: start[,PORT] - start server")
-            out("TELNET: stop - stop server")
+            out([[
+TELNET: help:
+TELNET: start[,PORT] - start server
+TELNET: stop - stop server
+]]
             return
         end        
         out("TELNET: Unknown command")

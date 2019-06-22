@@ -23,8 +23,4 @@ function m.Init()
     end
 end
 
--- function m.ChannelReady(name)
---     m.Handle("help", name)
--- end
-
 return m

@@ -16,9 +16,11 @@ return {
             return
         end        
         if subcmd == "help" then
-            out("OTA: help:")
-            out("OTA: check - check for update")
-            out("OTA: update - force update")
+            out([[
+OTA: help:
+OTA: check - check for update
+OTA: update - force update
+]])
             return
         end        
         out("OTA: Unknown command")

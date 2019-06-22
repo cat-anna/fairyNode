@@ -21,9 +21,11 @@ return {
             return
         end
         if subcmd == "help" then
-            out("FTPSERVER: help:")
-            out("FTPSERVER: start - start server")
-            out("FTPSERVER: stop - stop server")
+            out([[
+FTPSERVER: help:
+FTPSERVER: start - start server
+FTPSERVER: stop - stop server
+]])            
             return
         end            
         out("FTPSERVER: Unknown command")

@@ -49,11 +49,13 @@ return {
             return
         end        
         if subcmd == "help" then
-            out("CFG: help:")
-            out("CFG: list - list all config files")
-            out("CFG: remove,what - remove what.cfg")
-            out("CFG: set,what,content - write content to what.cfg")
-            out("CFG: get,what - read what.cfg")
+            out([[
+CFG: help:
+CFG: list - list all config files
+CFG: remove,what - remove what.cfg
+CFG: set,what,content - write content to what.cfg
+CFG: get,what - read what.cfg
+]])
             return
         end        
         out("CFG: Unknown command")

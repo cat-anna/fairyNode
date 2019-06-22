@@ -11,8 +11,10 @@ return {
             return
         end
         if subcmd == "help" then
-            out("I2C: help:")
-            out("I2C: scan[,scl,sda] - scan bus [at scl and sda]")
+            out([[
+I2C: help:
+I2C: scan[,scl,sda] - scan bus [at scl and sda]
+]])
             return
         end          
         out("I2C: Unknown command")

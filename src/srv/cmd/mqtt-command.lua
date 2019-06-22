@@ -4,10 +4,9 @@ return {
     end,
     Message = function (topic, payload)
         node.task.post(function()
-            local o = { }
-            local function output(str) table.insert(o, str) end
-            Command(payload, output)
-            MQTTPublish("/cmd/output", table.concat(o, "\n"))
+            Command(payload, function(line)
+                MQTTPublish("/cmd/output", line)
+            end)
         end)
         return true
     end,    

@@ -11,8 +11,10 @@ return {
             return
         end
         if subcmd == "help" then
-            out("SENSOR: help:")
-            out("SENSOR: read - read all sensor values")
+            out([[
+SENSOR: help:
+SENSOR: read - read all sensor values
+]])
             return
         end        
         out("SENSOR: Unknown command")
