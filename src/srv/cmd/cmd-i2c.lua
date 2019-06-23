@@ -7,7 +7,7 @@ return {
         end
         if subcmd == "scan" then
             local scl, sda = tonumber(args[1]), tonumber(args[2])
-            out("I2C: not implemented ", scl, sda)
+            out("I2C: not implemented ")
             return
         end
         if subcmd == "help" then

@@ -24,7 +24,7 @@ return {
 TELNET: help:
 TELNET: start[,PORT] - start server
 TELNET: stop - stop server
-]]
+]])
             return
         end        
         out("TELNET: Unknown command")

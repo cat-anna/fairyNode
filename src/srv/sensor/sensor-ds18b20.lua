@@ -15,7 +15,9 @@ return {
                 local addr_str = FormatAddress(addr)
                 print(string.format("ds18b20 %s = %s C", addr_str, temp))
                 local name = dscfg[addr_str] or addr_str
-                MQTTPublish("/sensor/ds18b20/" .. name, tostring(temp))
+                MQTTPublish("/sensor/" .. tostring(name) .. "/temperature", tostring(temp))
+
+                output[name] = { temp = temp, }                
             end
         end
 
