@@ -172,7 +172,7 @@ function deviceStatus:WriteConfig(action)
     end
 
     local value = self.lastConfigValues[action.name]
-    if  value then
+    if value then
         if value == action.expected then
             return true
         else
