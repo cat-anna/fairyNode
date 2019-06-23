@@ -10,6 +10,14 @@ return {
             return
         end
         if #args == 1 then
+            if args[1] == "help" then
+                out([[
+GPIO: help:
+GPIO: gpio,pin
+GPIO: gpio,pin,value
+]])
+            end
+
             local id = tonumber(args[1])
             if id ~= nil and id >=0 and id <= 12 then
                 out("GPIO: " .. tostring(gpio.read(id)))

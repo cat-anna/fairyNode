@@ -41,6 +41,14 @@ return {
             end
             return
         end
+        if subcmd == "help" then
+            out([[
+CLOCK: help:
+CLOCK: print,text,duration,position
+CLOCK: show,text
+CLOCK: brightness,value
+]])
+        end
         out("CLOCK: Unknown command")
     end,
 }

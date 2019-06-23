@@ -16,9 +16,11 @@ return {
             return
         end        
         if subcmd == "help" then
-            out("PCM: help:")
-            out("PCM: play,FileName - play selected file ")
-            out("PCM: stop - stop playback ")
+            out([[
+PCM: help:
+PCM: play,FileName - play selected file
+PCM: stop - stop playback
+]])
             return
         end        
         out("PCM: Unknown command")
