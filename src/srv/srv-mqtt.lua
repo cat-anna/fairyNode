@@ -54,11 +54,12 @@ end
 local function MqttConnected(client)
     print("MQTT: connected")
 
-    MQTTPublish("/status", "online", 0, 1)
-    MQTTPublish("/status/lfs/timestamp", string.format("%d", require "lfs-timestamp"), 0, 1)
+    MQTTPublish("/status", "online", nil, 1)
+    MQTTPublish("/status/lfs/timestamp", string.format("%d", require "lfs-timestamp"), nil, 1)
     MQTTPublish("/status/bootreason", sjson.encode({node.bootreason()}))
-    MQTTPublish("/status/ip", wifi.sta.getip() or "", 0, 1)
-    MQTTPublish("/chipid", string.format("%06X", node.chipid()), 0, 1)
+    MQTTPublish("/status/ip", wifi.sta.getip() or "", nil, 1)
+    MQTTPublish("/status/mac", wifi.sta.getmac() or "", nil, 1)
+    MQTTPublish("/chipid", string.format("%06X", node.chipid()), nil, 1)
 
     node.task.post(function() MQTTRestoreSubscriptions(client) end)
 

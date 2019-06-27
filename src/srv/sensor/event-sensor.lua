@@ -1,6 +1,9 @@
 
+local function SensorReadout()
+    require("srv-sensor").Read()
+end
+
 return {
-    ["mqtt.connected"] = function(id, T)
-        require("srv-sensor").Read()
-    end,    
+    ["mqtt.connected"] = SensorReadout,
+    ["ntp.sync"] = SensorReadout,
 }

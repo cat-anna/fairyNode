@@ -1,6 +1,7 @@
 -- PCF8591 module for ESP8266 with nodeMCU
 -- Written by Sergey Martynov http://martynov.info
 -- Based on http://www.nxp.com/documents/data_sheet/PCF8591.pdf
+-- modiffied by pgrabas
 
 -- On YL-40 board
 -- 0 = photoresistor
@@ -8,58 +9,45 @@
 -- 2 = thermistor ??
 -- 3 = variable resistor
 
-
 local moduleName = ...
-local M = {}
-_G[moduleName] = M
-
-local id = 0 -- i2c interface ID
-local device = 0x48 -- PCF8591 address, might vary from 0x48 to 0x4F
+_G[moduleName] = nil
 
 -- read data register
 -- reg_addr: address of the register
 -- lenght: bytes to read
-local function read_reg(reg_addr, length)
-  i2c.start(id)
-  i2c.address(id, device, i2c.TRANSMITTER)
-  i2c.write(id, reg_addr)
-  i2c.stop(id)
-  i2c.start(id)
-  i2c.address(id, device, i2c.RECEIVER)
-  c = i2c.read(id, length)
-  i2c.stop(id)
+local function read_reg(reg_addr, length, addr)
+  i2c.start(0)
+  i2c.address(0, addr, i2c.TRANSMITTER)
+  i2c.write(0, reg_addr)
+  i2c.stop(0)
+  i2c.start(0)
+  i2c.address(0, addr, i2c.RECEIVER)
+  local c = i2c.read(0, length)
+  i2c.stop(0)
   return c
 end
 
 -- write data register
 -- reg_addr: address of the register
 -- reg_val: value to write to the register
-local function write_reg(reg_addr, reg_val)
-  i2c.start(id)
-  i2c.address(id, device, i2c.TRANSMITTER)
-  i2c.write(id, reg_addr)
-  i2c.write(id, reg_val)
-  i2c.stop(id)
+local function write_reg(reg_addr, reg_val, addr)
+  i2c.start(0)
+  i2c.address(0, addr, i2c.TRANSMITTER)
+  i2c.write(0, reg_addr)
+  i2c.write(0, reg_val)
+  i2c.stop(0)
 end
 
-
--- initialize module
--- sda: SDA pin
--- scl: SCL pin
-function M.init(sda, scl)
-  i2c.setup(id, sda, scl, i2c.SLOW)
-  init = true
-end
-
+return {
 -- XXX read adc register 0 to 3
-function M.adc(reg)
-  local data = read_reg(0x00 + reg, 2)
-  return string.byte(data, 2)
-end
-
+  adc = function(reg, addr)
+    addr = addr or 0x48
+    local data = read_reg(0x00 + reg, 2, addr)
+    return string.byte(data, 2)
+  end,
 -- XXX write dac register
-function M.dac(val)
-  write_reg(0x40, val)
-end
-
-return M
+  dac = function(val, addr)
+    addr = addr or 0x48
+    return write_reg(0x40, val, addr)
+  end,
+}

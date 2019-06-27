@@ -14,11 +14,13 @@ end
 
 function m.OnSync(sec, usec, server, info)
     print('NTP: Sync', sec, usec, server, info)
+    if event then event("ntp.sync") end
 end
 
 function m.OnError(err, msg)
     print("NTP: Error ", err, msg) 
     tmr.create():alarm(10 * 1000, tmr.ALARM_AUTO, NTPCheck)
+    if event then event("ntp.error") end
 end
 
 function m.Sync()

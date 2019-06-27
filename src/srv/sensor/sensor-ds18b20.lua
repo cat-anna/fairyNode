@@ -4,24 +4,29 @@ local function FormatAddress(addr)
 end
 
 return {
-    Read = function(output)
+    Read = function()
+        local routime = coroutine.running()
         local function readout(temp)
-            local dscfg = require("sys-config").JSON("ds18b20.cfg")
-            if not dscfg then
-                dscfg = {}
-            end
-
-            for addr, temp in pairs(temp) do
-                local addr_str = FormatAddress(addr)
-                print(string.format("ds18b20 %s = %s C", addr_str, temp))
-                local name = dscfg[addr_str] or addr_str
-                MQTTPublish("/sensor/" .. tostring(name) .. "/temperature", tostring(temp))
-
-                output[name] = { temp = temp, }                
-            end
+            coroutine.resume(routime, temp)
         end
 
         local ds18b20 = require "ds18b20"
         ds18b20:read_temp(readout, hw.ow, ds18b20.C)
+
+        local temp = coroutine.yield()
+
+        local dscfg = require("sys-config").JSON("ds18b20.cfg")
+        if not dscfg then
+            dscfg = {}
+        end
+
+        local r = { }
+        for addr, temp in pairs(temp) do
+            local addr_str = FormatAddress(addr)
+            print(string.format("ds18b20 %s = %s C", addr_str, temp))
+            local name = dscfg[addr_str] or addr_str
+            r[name] = { temperature = temp, }                
+        end
+        return r
     end,
 }
