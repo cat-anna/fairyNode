@@ -11,7 +11,7 @@ local function HandlePinChange(state, level, pulse)
         local t = (delta > 1 * 500 * 1000) and 2 or 1
         -- print("GPIO: event", state.pin, t)
         if Event then
-            Eevent("gpio.trig", state.trig, t)
+            Event("gpio.trig", state.trig, t)
         end
     end
     state.pulse = pulse
