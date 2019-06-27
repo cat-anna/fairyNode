@@ -1,5 +1,7 @@
 print "INIT: Initializing network..."
 
+if Event then Event("wifi.disconnected", T) end
+
 local hostname = require("sys-config").Read("hostname.cfg")
 if not hostname then
   print "WiFi: No name config file"
@@ -22,7 +24,7 @@ else
     wifi.eventmon.STA_GOT_IP,
     function(T)
       print("WiFi: got IP address: " .. T.IP)
-      if event then event("wifi.gotip", T) end 
+      if Event then Event("wifi.gotip", T) end 
       node.task.post(function() pcall(function() require("sys-ota").Check() end) end)
     end
   )
@@ -30,14 +32,14 @@ else
     wifi.eventmon.STA_CONNECTED,
     function(T)
       print("WiFi: connected SSID: "..T.SSID.." BSSID: "..T.BSSID.." channel: "..T.channel)
-      if event then event("wifi.connected", T) end
+      if Event then Event("wifi.connected", T) end
     end
   )
   wifi.eventmon.register(
     wifi.eventmon.STA_DISCONNECTED,
     function(T)
       print("WiFi: disconnected SSID: "..T.SSID.." BSSID: "..T.BSSID.." reason: "..T.reason)
-      if event then event("wifi.disconnected", T) end
+      if Event then Event("wifi.disconnected", T) end
     end
   )
 

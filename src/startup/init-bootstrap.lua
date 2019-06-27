@@ -17,7 +17,7 @@ if s then
   print("INIT: lfs-timestamp: ", t)
 end
 
-
+pcall(require, "init-error")
 pcall(require, "init-event")
 require("init-network")
 

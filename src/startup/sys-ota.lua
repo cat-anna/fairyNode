@@ -111,8 +111,8 @@ local function BeginDownload(sk, hostIP)
 end
 
 local function BeginOtaDownload()
-  if event then
-    event("ota.start")
+  if Event then
+    Event("ota.start")
   end
   if cron then
     cron.reset()

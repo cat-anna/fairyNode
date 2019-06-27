@@ -1,2 +1,4 @@
 
-function event(...) return require("event").Send(...) end
+function Event(...) 
+    return require("sys-event").Send(...) 
+end

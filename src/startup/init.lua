@@ -8,6 +8,9 @@ function pcall(f, ...)
   local succ, r, r1, r2, r3 = pcall_x(f, ...)
   if not succ then
     print("ERROR:", r)
+    if SetError then
+      SetError("pcall", r)
+    end
   end
   return succ, r, r1, r2, r3
 end

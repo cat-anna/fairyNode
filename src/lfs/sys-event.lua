@@ -27,7 +27,7 @@ local function ProcessEvent(id, args)
     end
 
     for v,_ in pairs(file.list()) do
-        local match = v:match("(%w+%-event)%.l..?")
+        local match = v:match("(event%-%w+)%.l..?")
         if match then
             -- print("EVENT: found flash handler ", v)
             pcall(ApplyEvent, id, evid, args, match .. "-event")

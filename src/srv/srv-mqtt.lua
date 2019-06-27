@@ -1,4 +1,6 @@
-local m = {}
+local m = {
+    is_connected = false,
+}
 
 local function topic2regexp(topic)
     return topic:gsub("+", "%w*"):gsub("#", ".*")
@@ -53,6 +55,7 @@ end
 
 local function MqttConnected(client)
     print("MQTT: connected")
+    m.is_connected = true
 
     MQTTPublish("/status", "online", nil, 1)
     MQTTPublish("/status/lfs/timestamp", string.format("%d", require "lfs-timestamp"), nil, 1)
@@ -63,13 +66,14 @@ local function MqttConnected(client)
 
     node.task.post(function() MQTTRestoreSubscriptions(client) end)
 
-    if event then event("mqtt.connected") end
+    if Event then Event("mqtt.connected") end
 end
 
 local function MQTTDisconnected(client)
     print("MQTT: offline")
+    m.is_connected = false
     MqttHandleError(client, "?")
-    if event then event("mqtt.disconnected") end
+    if Event then Event("mqtt.disconnected") end
 end
 
 local function MqttProcessMessage(client, topic, payload)
@@ -93,6 +97,10 @@ end
 function m.Publish(topic, payload, qos, retain)
     local t = "/" .. wifi.sta.gethostname() .. topic
     print("MQTT: " .. t .. " <- " .. (payload or "<NIL>"))
+    if not m.is_connected then
+        print("MQTT: not connected")
+        return false
+    end
     local r
     pcall(function()
         r = m.mqttClient:publish(t, payload, qos or 0, retain and 1 or 0)
@@ -105,6 +113,8 @@ end
 
 function m.Init()
     print "MQTT: Initializing..."
+
+    if Event then Event("mqtt.disconnected") end      
 
     local cfg = require("sys-config").JSON("mqtt.cfg")
     if not cfg or not wifi.sta.gethostname() then
