@@ -1,48 +1,50 @@
 
-local function ApplyEvent(id, evid, args, module)
+--TODO: queue events?
+
+local function ApplyEvent(id, evid, arg, module)
     local mod = require(module)
     local f = mod[id]
     if f then
-        return f(id, args)
+        return f(id, arg)
     end
     f = mod[evid]
     if f then
-        return f(id, args)
+        return f(id, arg)
     end
 end
 
-local function ProcessEvent(id, args)
-    local evid, subid = id:match("([^%.]*)%.?(.*)")
-    print("EVENT:", id, unpack(args))
+local function BroadcastEvent(id, arg)
+    local timer = coroutine.yield()
+    timer:interval(100)
 
+    print("EVENT:", id, tostring(arg))
+    local evid, subid = id:match("([^%.]*)%.?(.*)")
     subid = subid or ""
-    local args_t = setmetatable({}, { __index=args })
 
     local s, lst = pcall(require, "lfs-events")
     if s then
         for _,v in pairs(lst) do
-            -- print("EVENT: found lfs handler ", v)
-            pcall(ApplyEvent, id, evid, args, v)
+            if debugMode then print("EVENT: found lfs handler ", v) end
+            pcall(ApplyEvent, id, evid, arg, v)
+            coroutine.yield()
         end
     end
 
     for v,_ in pairs(file.list()) do
         local match = v:match("(event%-%w+)%.l..?")
         if match then
-            -- print("EVENT: found flash handler ", v)
-            pcall(ApplyEvent, id, evid, args, match)
+            if debugMode then print("EVENT: found flash handler ", v) end
+            pcall(ApplyEvent, id, evid, arg, match)
+            coroutine.yield()
         end
     end
+
+    if debugMode then print("EVENT: processed: ", id) end
+    timer:unregister()
 end
 
 return {
-    Send = function (id, ...)
-        local args = { ... }
-        node.task.post(
-            function()
-               ProcessEvent(id, args)
-            end
-        )
+    ProcessEvent = function(id, arg)
+        tmr.create():alarm(200, tmr.ALARM_AUTO, coroutine.wrap(function() BroadcastEvent(id, arg) end))
     end,
-    ProcessEvent = ProcessEvent,
 }

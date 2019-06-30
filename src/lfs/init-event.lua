@@ -1,4 +1,6 @@
 
-function Event(...) 
-    return require("sys-event").Send(...) 
+function Event(id, arg) 
+    node.task.post(function() 
+        require("sys-event").ProcessEvent(id, arg)
+    end)
 end

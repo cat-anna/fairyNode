@@ -140,7 +140,7 @@ local function HandleOtaStatusResponse(sck, rec, state)
   state.buf = state.buf .. rec
 
   if not state.gotHeaders then
-    local pos      = state.buf:find('\r\n\r\n',1,true) 
+    local pos = state.buf:find('\r\n\r\n',1,true) 
     if pos then
       state.gotHeaders = true
       local header = state.buf:sub(1,pos + 1):lower()
@@ -149,7 +149,12 @@ local function HandleOtaStatusResponse(sck, rec, state)
       return
     end
   end
+
+  if state.buf:len() <= 16 then
+    return
+  end
   
+  print("OTA: remote status: [=[" .. state.buf .. "]=]")
   local succ, status = pcall(sjson.decode, state.buf)
   if not succ then
     --not all data may have been received

@@ -11,7 +11,7 @@ local function i2cbustest(sda, scl, id)
     local r = {}
     for i=0,127 do
         if i2ctest(id, i) == true then
-            table.insert(r, table.format("0x%02x", i))
+            table.insert(r, string.format("0x%02x", i))
         end
     end
     return r

@@ -1,5 +1,7 @@
 local m = {
     is_connected = false,
+    homie_initialized = false,
+    nodes = { },
 }
 
 local function topic2regexp(topic)
@@ -32,7 +34,7 @@ end
 local function MQTTRestoreSubscriptions(client)
     local any = false
     local topics = {}
-    local base = "/" .. wifi.sta.gethostname()
+    local base = "homie/" .. wifi.sta.gethostname()
     for _, f in ipairs(findHandlers()) do
         -- print("MQTT: found handler", f)
         local s, m = pcall(require,f)
@@ -53,20 +55,37 @@ local function MQTTRestoreSubscriptions(client)
     end
 end
 
+local function HomeGoToReady()
+    local nodes = table.concat(m.nodes, ",")
+    HomiePublish("/$nodes", nodes)    
+    HomiePublish("/$state", "ready")
+    m.homie_initialized = true
+end
+
 local function MqttConnected(client)
     print("MQTT: connected")
     m.is_connected = true
 
-    MQTTPublish("/status", "online", nil, 1)
-    MQTTPublish("/status/lfs/timestamp", string.format("%d", require "lfs-timestamp"), nil, 1)
-    MQTTPublish("/status/bootreason", sjson.encode({node.bootreason()}))
-    MQTTPublish("/status/ip", wifi.sta.getip() or "", nil, 1)
-    MQTTPublish("/status/mac", wifi.sta.getmac() or "", nil, 1)
-    MQTTPublish("/chipid", string.format("%06X", node.chipid()), nil, 1)
+    HomiePublish("/$homie", "3.0.0")
+    HomiePublish("/$state", "init")
+    HomiePublish("/$name", wifi.sta.gethostname())
+    HomiePublish("/$localip", wifi.sta.getip() or "")
+    HomiePublish("/$mac", wifi.sta.getmac() or "")
+
+    --TODO:
+    HomiePublish("/$fw/name", "fairyNode")
+    HomiePublish("/$fw/version", "0.1")
+    HomiePublish("/$fw/timestamp", require("lfs-timestamp"))
+    HomiePublish("/$implementation", "esp8266")
 
     node.task.post(function() MQTTRestoreSubscriptions(client) end)
-
     if Event then Event("mqtt.connected") end
+
+    if m.homie_initialized then
+        node.task.post(HomeGoToReady)
+    else
+        tmr.create():alarm(20 * 1000, tmr.ALARM_SINGLE, function() pcall(HomeGoToReady) end)
+    end
 end
 
 local function MQTTDisconnected(client)
@@ -77,7 +96,7 @@ local function MQTTDisconnected(client)
 end
 
 local function MqttProcessMessage(client, topic, payload)
-    local base = "/" .. wifi.sta.gethostname()
+    local base = "homie/" .. wifi.sta.gethostname()
     print("MQTT: " .. (topic or "<NIL>") .. " -> " .. (payload or "<NIL>"))
     for _, f in ipairs(findHandlers()) do
         local s, m = pcall(require, f)
@@ -94,13 +113,14 @@ local function MqttProcessMessage(client, topic, payload)
     print("MQTT: cannot find handler for ", topic)
 end
 
-function m.Publish(topic, payload, qos, retain)
-    local t = "/" .. wifi.sta.gethostname() .. topic
+function m.HomiePublish(topic, payload, retain, qos)
+    local t = "homie/" .. wifi.sta.gethostname() .. topic
     print("MQTT: " .. t .. " <- " .. (payload or "<NIL>"))
     if not m.is_connected then
         print("MQTT: not connected")
         return false
     end
+    if retain == nil then retain = true end
     local r
     pcall(function()
         r = m.mqttClient:publish(t, payload, qos or 0, retain and 1 or 0)
@@ -122,23 +142,63 @@ function m.Init()
         return
     end
 
-    if not mqttClient then
-        mqttClient = mqtt.Client(wifi.sta.gethostname(), 10, cfg.user, cfg.password)
-        mqttClient:lwt("/" .. wifi.sta.gethostname() .. "/status", "offline", 0, 1)
-        mqttClient:on("offline", MQTTDisconnected)
-        mqttClient:on("message", MqttProcessMessage)
+    if not  m.mqttClient then
+        m.mqttClient = mqtt.Client(wifi.sta.gethostname(), 10, cfg.user, cfg.password)
+        m.mqttClient:lwt("homie/" .. wifi.sta.gethostname() .. "/$state", "lost", 0, 1)
+        m.mqttClient:on("offline", MQTTDisconnected)
+        m.mqttClient:on("message", MqttProcessMessage)
     end
 
-    mqttClient:connect(cfg.host, cfg.port or 1883, MqttConnected, MqttHandleError)
-    m.mqttClient = mqttClient
-
-    function MQTTPublish(topic, payload, qos, retain)
-        return m.Publish(topic, payload, qos, retain)
-    end
+    m.mqttClient:connect(cfg.host, cfg.port or 1883, MqttConnected, MqttHandleError)
 end
 
 function m.Close()
-    mqttClient:disconnect()
+    if m.mqttClient then
+        m.mqttClient:disconnect()
+    end
 end
+
+function m.HomieAddNode(node_name, node)
+    table.insert(m.nodes, node_name)
+
+--[[
+node = {
+    name = "some prop name",
+    properties = {
+        temperature = {
+            unit = "...",
+            datatype = "...",
+            name = "...",
+        }
+    }
+}
+]]    
+
+    HomiePublish("/" .. node_name .. "/$name", node.name, true)
+    local props = { }
+    for prop_name,values in pairs(node.properties or {}) do
+        table.insert(props, prop_name)
+        for k,v in pairs(values) do
+            HomiePublishNodeProperty(node_name, prop_name .. "/$" .. k, v)
+        end
+    end
+    HomiePublish("/" .. node_name .. "/$properties", table.concat(props, ","), true)
+end
+
+function m.HomiePublishNodeProperty(node_name, property_name, value)
+    return m.HomiePublish(string.format("/%s/%s", node_name, property_name), value, true)
+end
+
+function HomiePublish(...)
+    return m.HomiePublish(...)
+end
+
+function HomiePublishNodeProperty(...)
+    return m.HomiePublishNodeProperty(...)
+end
+
+function HomieAddNode(...)
+    return m.HomieAddNode(...)
+end    
 
 return m

@@ -36,9 +36,9 @@ function m.Sync()
 end
 
 function m.Init()
-    if Event then Event("ntp.error") end
-    tmr.create():alarm(20 * 1000, tmr.ALARM_SINGLE, m.Sync)
-    tmr.create():alarm(60 * 1000, tmr.ALARM_AUTO, NTPCheck)
+    -- if Event then Event("ntp.error") end
+    -- tmr.create():alarm(20 * 1000, tmr.ALARM_SINGLE, m.Sync)
+    -- tmr.create():alarm(60 * 1000, tmr.ALARM_AUTO, NTPCheck)
 end
 
 return m

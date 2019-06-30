@@ -12,7 +12,7 @@ local function ow_scan(pin, out)
             return
         end
         
-        local str_addr = ('%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X'):format(addr:byte(1,8))
+        local str_addr = ('%02X%02X%02X%02X%02X%02X%02X%02X'):format(addr:byte(1,8))
         print("Found ow device: " .. str_addr)
         table.insert(result, str_addr)
         node.task.post(cycle)

@@ -33,5 +33,5 @@ local preload = "?.lc;?.lua", "/\n;\n?\n!\n-", "@init.lua", "_G", "_LOADED",
 "file.obj", "file.vol", "flash", "getstrings", "index", "ipairs", "list", "loaded",
 "loader", "loaders", "loadlib", "module", "net.tcpserver", "net.tcpsocket",
 "net.udpsocket", "newproxy", "package", "pairs", "path", "preload", "reload",
-"require", "seeall", "wdclr", "not enough memory", "sjson.decoder","sjson.encoder", 
+"require", "seeall", "wdclr", "not enough memory", "sjson.decode","sjson.encode", 
 "tmr.timer"

@@ -3,6 +3,7 @@
 -- NODEMCU TEAM
 -- LICENCE: http://opensource.org/licenses/MIT
 -- @voborsky, @devsaurus, TerryE  26 Mar 2017
+-- modiffied by pgrabas
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 local modname = ...
 
@@ -150,12 +151,14 @@ local function _search(self, lcb, lpin, search, save)
   local addr
   if not search and #sens == 0 then
     -- load addreses if available
-    debugPrint ("geting addreses from flash")
-    local s,check,a = pcall(dofile, "ds18b20_save.lc")
-    if s and check == "ds18b20" then
-      for i = 1, #a do sens[i] = a[i] end
+    if file.exists("ds18b20_save.lc") then
+      debugPrint ("geting addreses from flash")
+      local s,check,a = pcall(dofile, "ds18b20_save.lc")
+      if s and check == "ds18b20" then
+        for i = 1, #a do sens[i] = a[i] end
+      end
+      debugPrint (#sens, "addreses found")
     end
-    debugPrint (#sens, "addreses found")
   end
 
   ow_setup(pin)

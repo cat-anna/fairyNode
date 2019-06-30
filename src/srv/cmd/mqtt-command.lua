@@ -1,11 +1,11 @@
 return {
     GetTopic = function()
-        return "/cmd"
+        return "/$cmd"
     end,
     Message = function (topic, payload)
         node.task.post(function()
             Command(payload, function(line)
-                MQTTPublish("/cmd/output", line)
+                HomiePublish("/$cmd/output", line, false)
             end)
         end)
         return true

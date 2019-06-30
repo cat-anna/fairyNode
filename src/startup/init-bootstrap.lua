@@ -23,12 +23,12 @@ require("init-network")
 
 -- require("init-log")
 
-local timeout = 1
+local timeout = 5
 local function bootstrap(t)
   if abort then
     print "INIT: Initialization aborted!"
     abort = nil
-    t:unregister()
+    if t then t:unregister() end
     return
   end
 
@@ -37,18 +37,18 @@ local function bootstrap(t)
   if not wifi.sta.getip() and timeout > 0 then
     return
   end
-  
-  node.task.post(function() pcall(require, "init-service") end)
-  node.task.post(function() pcall(require, "init-user") end)
-  
+
   if t then 
     t:unregister()
-  end
+  end 
+
+  node.task.post(function() pcall(require, "init-service") end)
+  node.task.post(function() pcall(require, "init-user") end)
 end
 
 if wifi.getmode() == wifi.STATION then
   print "INIT: Waiting for network connection..."
-  tmr.create():alarm(1000, tmr.ALARM_AUTO, bootstrap)
+  tmr.create():alarm(10 * 1000, tmr.ALARM_AUTO, bootstrap)
 else
   node.task.post(bootstrap)
 end

@@ -1,9 +1,28 @@
 
 local function FormatAddress(addr)
-    return ('%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X'):format(addr:byte(1,8))
+    return ('%02X%02X%02X%02X%02X%02X%02X%02X'):format(addr:byte(1,8))
 end
 
 return {
+    Init = function()
+        local dscfg = require("sys-config").JSON("ds18b20.cfg")
+        if not dscfg then
+            return
+        end
+
+        for k,name in pairs(dscfg) do 
+            HomieAddNode(name, {
+                name = name,
+                properties = {
+                    temperature = {
+                        datatype = "float",
+                        name = "Temperature",
+                        unit = "°C",
+                    }
+                }
+            })
+        end
+    end,    
     Read = function()
         local routime = coroutine.running()
         local function readout(temp)
@@ -24,8 +43,15 @@ return {
         for addr, temp in pairs(temp) do
             local addr_str = FormatAddress(addr)
             print(string.format("ds18b20 %s = %s C", addr_str, temp))
-            local name = dscfg[addr_str] or addr_str
-            r[name] = { temperature = temp, }                
+            local name = dscfg[addr_str]
+            if not name then
+                if SetError then
+                    SetError("ds18b20." .. addr_str, "Device has no name")
+                end
+            else
+                HomiePublishNodeProperty(nane, "temperature", tostring(temp))
+                r[name] = { temperature = temp, }                
+            end
         end
         return r
     end,

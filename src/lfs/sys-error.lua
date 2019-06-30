@@ -13,7 +13,10 @@ local function IsAnyErrorSet()
 end 
 
 local function DoUpdate()
-    MQTTPublish("/errors", sjson.encode(error_state.errors), nil, 1)
+    if HomiePublishNodeProperty then
+        HomiePublishNodeProperty("devinfo", "errors",  sjson.encode(error_state.errors))
+    end
+
     SetErrorLed(IsAnyErrorSet())
     error_state.update_pending = nil
 end

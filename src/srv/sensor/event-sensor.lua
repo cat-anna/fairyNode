@@ -1,6 +1,6 @@
 
 local function SensorReadout()
-    require("srv-sensor").Read()
+   node.task.post(function() require("srv-sensor").Read() end)
 end
 
 return {

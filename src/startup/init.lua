@@ -3,6 +3,8 @@ wifi.setmode(wifi.NULLMODE)
 
 print "===Starting fairyNode==="
 
+node.setcpufreq(node.CPU160MHZ)
+
 local pcall_x = pcall
 function pcall(f, ...)
   local succ, r, r1, r2, r3 = pcall_x(f, ...)
@@ -20,7 +22,6 @@ if file.exists("debug.cfg") then
   print("INIT: Debug mode is enabled")
 end
 
-node.setcpufreq(node.CPU160MHZ)
 
 if file.exists("lfs.img.pending") then
   print "OTA: Load new lfs..."
