@@ -1,3 +1,4 @@
+
 function table.merge(t1, t2)
     local r = { }
     for k, v in pairs(t1) do
@@ -22,4 +23,15 @@ function string.formatEx(str, vars)
         str = str:gsub("{" .. k .. "}", v)
     end
     return str
+end
+
+function string:split(sep)
+    local sep, fields = sep or ":", {}
+    local pattern = string.format("([^%s]+)", sep)
+    self:gsub(pattern, function(c) fields[#fields+1] = c end)
+    return fields
+ end
+
+function string:trim()
+    return self:match "^%s*(.-)%s*$"
 end

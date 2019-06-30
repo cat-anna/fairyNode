@@ -139,9 +139,6 @@ function deviceStatus:RemoveConfig(action)
 end
 
 function deviceStatus:UpdateConfig(action)
-    -- print("UpdateConfig is not implemented")
-    -- os.exit(1)
-
     local value = self.lastConfigValues[action.name]
     if  value then
         if value == action.expected then
@@ -166,9 +163,11 @@ end
 function deviceStatus:WriteConfig(action)
     if not action.pending then
         self.gotOk = false
-        self:Command{"cfg","set",action.name,action.expected}
         self.lastConfigValues[action.name] = nil
         action.pending = true
+        print("Writting " .. action.name)
+        self:Command{"cfg","set",action.name,action.expected}
+        return false
     end
 
     local value = self.lastConfigValues[action.name]
