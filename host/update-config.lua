@@ -242,7 +242,7 @@ end
 function deviceStatus:Publish(topic, payload)
     copas.addthread(function()
         copas.sleep(0.1)
-        topic = "/" .. self.name .. topic
+        topic = "homie/" .. self.name .. topic
         self.active = self.active + 1
         self.client:publish{
             topic = topic,
@@ -252,7 +252,7 @@ function deviceStatus:Publish(topic, payload)
 end
 
 function deviceStatus:Command(args)
-    self:Publish("/cmd", table.concat(args, ","))
+    self:Publish("/$cmd", table.concat(args, ","))
 end
 
 function deviceStatus:HandleConnect(connack)
@@ -260,7 +260,7 @@ function deviceStatus:HandleConnect(connack)
         error("connection to broker failed: " .. tostring(connack))
     end
     -- print("connected:", connack) -- successful connection
-    assert(client:subscribe{ topic="/" .. self.name .. "/#", qos=0, callback=function(suback)
+    assert(client:subscribe{ topic="homie/" .. self.name .. "/#", qos=0, callback=function(suback)
         -- print("subscribed:", suback)
     end})
 end
@@ -319,12 +319,12 @@ deviceStatus.outputHandlers = {
 }
 
 function deviceStatus:HandleStatus(topic, payload)
-    if payload == "online" then
-        print("Device is online, starting...")
+    if payload == "ready" then
+        print("Device is ready, starting...")
         self.online = true 
         self:Command{"help"}
     else
-        error("Device is not online")
+        error("Device is not ready")
     end
 end
 
@@ -340,16 +340,16 @@ function deviceStatus:HandleOutput(topic, payload)
 end
 
 deviceStatus.topicHandlers = {
-    ["/status"] = deviceStatus.HandleStatus,
-    ["/cmd/output"] = deviceStatus.HandleOutput,
-    ["/cmd"] = false,
-    ["/chipid"] = false,
+    ["/$state"] = deviceStatus.HandleStatus,
+    ["/$cmd/output"] = deviceStatus.HandleOutput,
+    ["/$cmd"] = false,
+    -- ["/chipid"] = false,
 }
 
 function deviceStatus:HandleMessage(msg)
     self.active = self.active + 1
     local topic = msg.topic
-    topic = "/" .. topic:match("/" .. chip.name .. "/(.+)")
+    topic = "/" .. topic:match("homie/" .. chip.name .. "/(.+)")
 
     local handler = self.topicHandlers[topic]
     if type(handler) == "boolean" then

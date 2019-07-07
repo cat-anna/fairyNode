@@ -1,6 +1,5 @@
 local m = {
     is_connected = false,
-    homie_initialized = false,
     nodes = { },
 }
 
@@ -55,11 +54,10 @@ local function MQTTRestoreSubscriptions(client)
     end
 end
 
-local function HomeGoToReady()
+function m.InitDone()
     local nodes = table.concat(m.nodes, ",")
     HomiePublish("/$nodes", nodes)    
     HomiePublish("/$state", "ready")
-    m.homie_initialized = true
 end
 
 local function MqttConnected(client)
@@ -72,20 +70,18 @@ local function MqttConnected(client)
     HomiePublish("/$localip", wifi.sta.getip() or "")
     HomiePublish("/$mac", wifi.sta.getmac() or "")
 
+    local majorVer, minorVer, devVer = node.info()
+    local nodemcu_version =  majorVer .. "." .. minorVer .. "." .. devVer
+
     --TODO:
     HomiePublish("/$fw/name", "fairyNode")
-    HomiePublish("/$fw/version", "0.1")
+    HomiePublish("/$fw/nodemcu", nodemcu_version)
+    HomiePublish("/$fw/fairynode", "0.0.1")
     HomiePublish("/$fw/timestamp", require("lfs-timestamp"))
     HomiePublish("/$implementation", "esp8266")
 
     node.task.post(function() MQTTRestoreSubscriptions(client) end)
     if Event then Event("mqtt.connected") end
-
-    if m.homie_initialized then
-        node.task.post(HomeGoToReady)
-    else
-        tmr.create():alarm(20 * 1000, tmr.ALARM_SINGLE, function() pcall(HomeGoToReady) end)
-    end
 end
 
 local function MQTTDisconnected(client)

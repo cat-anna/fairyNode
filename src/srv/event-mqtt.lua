@@ -7,4 +7,8 @@ return {
         -- mqtt.mqttClient:close()
     -- end,
     -- ["wifi.gotip"] = function(id, T) end,    
+    ["init.done"] = function(id, T) 
+        local m = require "srv-mqtt"
+        m.InitDone()
+    end,    
 }

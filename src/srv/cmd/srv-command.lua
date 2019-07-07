@@ -19,7 +19,9 @@ end
 
 function m.Init()
     function Command(cmdline, out)
-        require("srv-command").Handle(cmdline, out or print)
+        node.task.post(function()
+            require("srv-command").Handle(cmdline, out or print)
+        end)
     end
 end
 

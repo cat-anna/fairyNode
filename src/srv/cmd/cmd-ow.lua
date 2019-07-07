@@ -7,7 +7,7 @@ local function ow_scan(pin, out)
     cycle = function()
         addr = ow.search(pin)
         if not addr then
-            out("I2C: scan=" .. table.concat(result, ","))
+            out("OW: scan=" .. table.concat(result, ","))
             ow.depower(pin)
             return
         end

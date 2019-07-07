@@ -13,51 +13,46 @@ luac_cross = "../nodemcu-firmware/luac.cross"
 local function GenerateFileLists(storage, fileList)
    local function store(f, content)
       storage:AddFile(f, content)
-      print("GENERATE:", f, #content)
+      print("GENERATE:", f, #content, content)
+   end
+
+   local function store_table(f, t)
+      table.sort(t)
+      local content = "return {" .. table.concat( t, ",") .. "}"
+      storage:AddFile(f, content)
+      print("GENERATE:", f, #content, content)
    end
 
    table.insert(fileList, storage.basePath .. "/" .. "lfs-files.lua")
    table.insert(fileList, storage.basePath .. "/" .. "lfs-services.lua")
    table.insert(fileList, storage.basePath .. "/" .. "lfs-events.lua")
    table.insert(fileList, storage.basePath .. "/" .. "lfs-sensors.lua")
-   table.insert(fileList, storage.basePath .. "/" .. "init-service.lua")
 
-   local file_list = [[return { ]]
-   local event_list = [[return { ]]
-   local sensor_list = [[return { ]]
-   local service_list = [[return { ]]
-   local init_service = ""
+   local file_list = { }
+   local event_list = { }
+   local sensor_list = { }
+   local service_list = { }
 
    for _, v in ipairs(fileList) do
       local base = path.basename(v)
       local name = base:gsub(".lua", "")
 
-      file_list = file_list .. string.format([["%s",]], name)
+      table.insert(file_list, string.format([["%s"]], name))
       if name:find("srv%-") then
-         service_list = service_list .. string.format([["%s",]], name)
-         init_service =
-            init_service .. string.format('print("INIT: Loading %s")\npcall(require("%s").Init)\n', name, name)
+         table.insert(service_list, string.format([["%s"]], name))
       end
-
       if name:find("event%-") then
-         event_list = event_list .. string.format([["%s",]], name)
+         table.insert(event_list, string.format([["%s"]], name))
       end
       if name:find("sensor%-") then
-         sensor_list = sensor_list .. string.format([["%s",]], name)
+         table.insert(sensor_list, string.format([["%s"]], name))
       end
    end
 
-   sensor_list = sensor_list .. "}"
-   event_list = event_list .. "}"
-   service_list = service_list .. "}"
-
-   store("lfs-services.lua", service_list)
-   store("lfs-events.lua", event_list)
-   store("lfs-sensors.lua", sensor_list)
-   store("init-service.lua", init_service)
-
-   file_list = file_list .. "}"
-   store("lfs-files.lua", file_list)
+   store_table("lfs-services.lua", service_list)
+   store_table("lfs-events.lua", event_list)
+   store_table("lfs-sensors.lua", sensor_list)
+   store_table("lfs-files.lua", file_list)
 end
 
 local function FilterFiles(source, fileList, generateList)

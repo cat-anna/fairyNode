@@ -1,7 +1,7 @@
 
 sensor = sensor or {}
 
-local cron_schedule = nil
+local readout_timer = nil
 local readout_index = 0
 
 local function ApplySensorReadout(readout)
@@ -18,8 +18,6 @@ local function ApplySensorReadout(readout)
 end
 
 local function load_sensors(timer)
-    timer = coroutine.yield()
-    timer:interval(500)
     local s, lst = pcall(require, "lfs-sensors")
     if s then
         for _,v in ipairs(lst) do
@@ -27,43 +25,41 @@ local function load_sensors(timer)
                 local init = require(v).Init
                 if init then init() end
             end)
-            timer = coroutine.yield()
+            coroutine.yield()
         end
     end
-    timer:unregister()
+end
+
+local function SensorReadout()
+    local s, lst = pcall(require, "lfs-sensors")
+    if s then
+        for _,v in ipairs(lst) do
+            local handle_func = function()
+                local m = require(v)
+                local r = m.Read(readout_index)
+                if r then
+                    pcall(ApplySensorReadout, r)
+                end
+            end
+            local c = coroutine.create(handle_func)
+            coroutine.resume(c)
+        end
+        readout_index = readout_index + 1
+    end
 end
 
 return {
     Init = function()
         local scfg = require("sys-config").JSON("sensor.cfg")
         if not scfg then
-            scfg = { schedule = "*/10 * * * *" }
-        end
-        readout_retain = scfg.retain and 1 or nil
-
-        if cron and not cron_schedule then
-            cron_schedule = cron.schedule(scfg.schedule, function() require("srv-sensor").Read() end)
+            scfg = { }
         end
 
-        tmr.create():alarm(5 * 1000, tmr.ALARM_AUTO, coroutine.wrap(load_sensors))
+        if not readout_timer then
+            readout_timer = tmr.create():alarm(scfg.interval or 5 * 60 * 1000, tmr.ALARM_AUTO, SensorReadout)
+        end
+
+        load_sensors()
     end,
-    Read = function()
-        local s, lst = pcall(require, "lfs-sensors")
-        if s then
-            for _,v in ipairs(lst) do
-                
-                local handle_func = function()
-                    local m = require(v)
-                    local r = m.Read(readout_index)
-                    if r then
-                        pcall(ApplySensorReadout, r)
-                    end
-                end
-                
-                local c = coroutine.create(handle_func)
-                coroutine.resume(c)
-            end
-            readout_index = readout_index + 1
-        end
-    end
+    Read = SensorReadout,
 }
