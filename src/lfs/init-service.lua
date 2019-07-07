@@ -15,6 +15,10 @@ local function InitService()
         end
     end
 
+    coroutine.yield()
+
+    pcall(require, "init-user")
+
     coroutine.yield():unregister()
 
     if Event then Event("init.done") end

@@ -58,27 +58,30 @@ function m.InitDone()
     local nodes = table.concat(m.nodes, ",")
     HomiePublish("/$nodes", nodes)    
     HomiePublish("/$state", "ready")
+    m.init_done = true
 end
 
 local function MqttConnected(client)
     print("MQTT: connected")
     m.is_connected = true
 
-    HomiePublish("/$homie", "3.0.0")
-    HomiePublish("/$state", "init")
-    HomiePublish("/$name", wifi.sta.gethostname())
-    HomiePublish("/$localip", wifi.sta.getip() or "")
-    HomiePublish("/$mac", wifi.sta.getmac() or "")
+    if not m.init_done then
+        HomiePublish("/$homie", "3.0.0")
+        HomiePublish("/$state", "init")
+        HomiePublish("/$name", wifi.sta.gethostname())
+        HomiePublish("/$localip", wifi.sta.getip() or "")
+        HomiePublish("/$mac", wifi.sta.getmac() or "")
 
-    local majorVer, minorVer, devVer = node.info()
-    local nodemcu_version =  majorVer .. "." .. minorVer .. "." .. devVer
+        local majorVer, minorVer, devVer = node.info()
+        local nodemcu_version =  majorVer .. "." .. minorVer .. "." .. devVer
 
-    --TODO:
-    HomiePublish("/$fw/name", "fairyNode")
-    HomiePublish("/$fw/nodemcu", nodemcu_version)
-    HomiePublish("/$fw/fairynode", "0.0.1")
-    HomiePublish("/$fw/timestamp", require("lfs-timestamp"))
-    HomiePublish("/$implementation", "esp8266")
+        --TODO:
+        HomiePublish("/$fw/name", "fairyNode")
+        HomiePublish("/$fw/nodemcu", nodemcu_version)
+        HomiePublish("/$fw/fairynode", "0.0.1")
+        HomiePublish("/$fw/timestamp", require("lfs-timestamp"))
+        HomiePublish("/$implementation", "esp8266")
+    end
 
     node.task.post(function() MQTTRestoreSubscriptions(client) end)
     if Event then Event("mqtt.connected") end
@@ -116,10 +119,11 @@ function m.HomiePublish(topic, payload, retain, qos)
         print("MQTT: not connected")
         return false
     end
-    if retain == nil then retain = true end
+    local retain_value = 1
+    if retain ~= nil and not retain then retain_value = 0 end
     local r
     pcall(function()
-        r = m.mqttClient:publish(t, payload, qos or 0, retain and 1 or 0)
+        r = m.mqttClient:publish(t, payload, qos or 0, retain_value)
     end)
     if not r then
         print("MQTT: Publish failed")
@@ -170,7 +174,7 @@ node = {
 }
 ]]    
 
-    HomiePublish("/" .. node_name .. "/$name", node.name, true)
+    HomiePublish("/" .. node_name .. "/$name", node.name)
     local props = { }
     for prop_name,values in pairs(node.properties or {}) do
         table.insert(props, prop_name)
@@ -178,11 +182,11 @@ node = {
             HomiePublishNodeProperty(node_name, prop_name .. "/$" .. k, v)
         end
     end
-    HomiePublish("/" .. node_name .. "/$properties", table.concat(props, ","), true)
+    HomiePublish("/" .. node_name .. "/$properties", table.concat(props, ","))
 end
 
 function m.HomiePublishNodeProperty(node_name, property_name, value)
-    return m.HomiePublish(string.format("/%s/%s", node_name, property_name), value, true)
+    return m.HomiePublish(string.format("/%s/%s", node_name, property_name), value)
 end
 
 function HomiePublish(...)

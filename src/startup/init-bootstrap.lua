@@ -43,7 +43,6 @@ local function bootstrap(t)
   end 
 
   node.task.post(function() pcall(require, "init-service") end)
-  node.task.post(function() pcall(require, "init-user") end)
 end
 
 if wifi.getmode() == wifi.STATION then

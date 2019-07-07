@@ -180,6 +180,19 @@ function project:GenerateDynamicFiles(source, outStorage, list)
   ]], self:UpdateLFSStamp())))
 end
 
+function AssertFileUniqness(fileList)
+   local arr = { }
+   local succ = true
+   for _,v in ipairs(fileList) do
+         if arr[v] then
+            succ = false
+            print("FILE IS NOT UNIQUE: " .. v)
+         end
+         arr[v] = true
+   end
+   return succ
+end
+
 function project:BuildLFS(outStorage)
    local generated_storage = require("lib/file_storage").new()
 
@@ -188,6 +201,9 @@ function project:BuildLFS(outStorage)
    FilterFiles(self.lfs, fileList, generateList)
    self:GenerateDynamicFiles(generateList, generated_storage, fileList)
    GenerateFileLists(generated_storage, fileList)
+   if not AssertFileUniqness(fileList) then
+      error("Canot generate lfs if not all files are unique!")
+   end
 
    print("Files in lfs: ", #fileList)
    local args = {

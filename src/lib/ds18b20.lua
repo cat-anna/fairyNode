@@ -51,7 +51,35 @@ local function to_string(addr, esc)
   end
 end
 
-local function readout(self)
+local readout
+
+local function conversion(self)
+  local sens = self.sens
+  local powered_only = true
+  for _, s in ipairs(sens) do powered_only = powered_only and s:byte(9) ~= 1 end
+  if powered_only then
+    debugPrint("starting conversion: all sensors")
+    ow_reset(pin)
+    ow_skip(pin)  -- select the sensor
+    ow_write(pin, CONVERT_T, MODE)  -- and start conversion
+    for i, s in ipairs(sens) do status[i] = 1 end
+  else
+    for i, s in ipairs(sens) do
+      if status[i] == 0 then
+        local addr, parasite = s:sub(1,8), s:byte(9)
+        debugPrint("starting conversion:", to_string(addr), parasite == 1 and "parasite" or " ")
+        ow_reset(pin)
+        ow_select(pin, addr)  -- select the sensor
+        ow_write(pin, CONVERT_T, MODE)  -- and start conversion
+        status[i] = 1
+        if parasite == 1 then break end -- parasite sensor blocks bus during conversion
+      end
+    end
+  end
+  tmr_create():alarm(750, tmr_ALARM_SINGLE, function() return readout(self) end)
+end
+
+readout = function(self)
   local next = false
   local sens = self.sens
   local temp = self.temp
@@ -113,32 +141,6 @@ local function readout(self)
       node_task_post(node_task_LOW_PRIORITY, function() return cb(temp) end)
     end
   end
-end
-
-local function conversion(self)
-  local sens = self.sens
-  local powered_only = true
-  for _, s in ipairs(sens) do powered_only = powered_only and s:byte(9) ~= 1 end
-  if powered_only then
-    debugPrint("starting conversion: all sensors")
-    ow_reset(pin)
-    ow_skip(pin)  -- select the sensor
-    ow_write(pin, CONVERT_T, MODE)  -- and start conversion
-    for i, s in ipairs(sens) do status[i] = 1 end
-  else
-    for i, s in ipairs(sens) do
-      if status[i] == 0 then
-        local addr, parasite = s:sub(1,8), s:byte(9)
-        debugPrint("starting conversion:", to_string(addr), parasite == 1 and "parasite" or " ")
-        ow_reset(pin)
-        ow_select(pin, addr)  -- select the sensor
-        ow_write(pin, CONVERT_T, MODE)  -- and start conversion
-        status[i] = 1
-        if parasite == 1 then break end -- parasite sensor blocks bus during conversion
-      end
-    end
-  end
-  tmr_create():alarm(750, tmr_ALARM_SINGLE, function() return readout(self) end)
 end
 
 local function _search(self, lcb, lpin, search, save)

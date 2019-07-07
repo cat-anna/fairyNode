@@ -220,7 +220,7 @@ function deviceStatus:BeginUpdate()
             end
         end)
     end
-    self:Command{"ota", "check"}
+    self:Command{"sys", "ota", "check"}
 end
 
 function deviceStatus:CheckPreconditions()
@@ -315,7 +315,7 @@ end
 deviceStatus.outputHandlers = {
     ["CMD"] = deviceStatus.HandleCommandOutput,
     ["CFG"] = deviceStatus.HandleCfgOutput,
-    ["RESTART"] = function() os.exit(0) end,
+    ["SYS"] = function() end, --TODO?
 }
 
 function deviceStatus:HandleStatus(topic, payload)

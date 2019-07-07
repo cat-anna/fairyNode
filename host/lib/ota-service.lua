@@ -42,7 +42,7 @@ function ota.Image(id)
    print("OTA stamp: ", project.lfsStamp)
 
    local storage = require("lib/file_storage").new()
-   project:BuildLFS(storage)
+   project:BuildLFS(storage) 
 
    if #storage.list ~= 1 then
       error "CompileLFS produced incorrect count of files"

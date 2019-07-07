@@ -14,7 +14,7 @@ end
 
 local function DoUpdate()
     if HomiePublishNodeProperty then
-        HomiePublishNodeProperty("devinfo", "errors",  sjson.encode(error_state.errors))
+        HomiePublishNodeProperty("sysinfo", "errors",  sjson.encode(error_state.errors))
     end
 
     SetErrorLed(IsAnyErrorSet())
