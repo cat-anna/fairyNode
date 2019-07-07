@@ -81,6 +81,8 @@ local function MqttConnected(client)
         HomiePublish("/$fw/fairynode", "0.0.1")
         HomiePublish("/$fw/timestamp", require("lfs-timestamp"))
         HomiePublish("/$implementation", "esp8266")
+    else
+        HomiePublish("/$state", "ready")
     end
 
     node.task.post(function() MQTTRestoreSubscriptions(client) end)
