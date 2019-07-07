@@ -220,7 +220,7 @@ function deviceStatus:BeginUpdate()
             end
         end)
     end
-    self:Command{"restart"}
+    self:Command{"ota", "check"}
 end
 
 function deviceStatus:CheckPreconditions()
@@ -261,7 +261,7 @@ function deviceStatus:HandleConnect(connack)
     end
     -- print("connected:", connack) -- successful connection
     assert(client:subscribe{ topic="homie/" .. self.name .. "/#", qos=0, callback=function(suback)
-        -- print("subscribed:", suback)
+        print("subscribed:", suback)
     end})
 end
 

@@ -189,6 +189,7 @@ function project:BuildLFS(outStorage)
    self:GenerateDynamicFiles(generateList, generated_storage, fileList)
    GenerateFileLists(generated_storage, fileList)
 
+   print("Files in lfs: ", #fileList)
    local args = {
       "f",
       o = outStorage:AddFile("lfs.img.pending"),
