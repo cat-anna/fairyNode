@@ -68,7 +68,7 @@ local function FilterFiles(source, fileList, generateList)
    end
 end
 
-local function PreprocessGeneratedFile(conf, vars)
+local function PreprocessGeneratedFile(self, conf, vars)
    for i, v in ipairs(conf) do
       local arg = path.normpath(v:formatEx(vars))
       -- print("GEN:", i, conf[i], "->", arg)
@@ -76,8 +76,21 @@ local function PreprocessGeneratedFile(conf, vars)
    end
 end
 
-local function PreprocessFileList(fileList, vars)
+local function PreprocessConditionalFile(self, fileList, name, item, vars)
+   if self.config.hw[name] then
+      for i, v in ipairs(item) do
+         local arg = path.normpath(v:formatEx(vars))
+         -- print("COND:", i, item[i], "->", arg)
+         table.insert(fileList, arg)
+      end
+   end
+end
+
+local function PreprocessFileList(self, fileList, vars)
    table.sort(fileList)
+
+   local remove_items = { }
+
    for k, v in pairs(fileList) do
       local t = type(k)
       -- print(t, k, v)
@@ -85,10 +98,21 @@ local function PreprocessFileList(fileList, vars)
          fileList[k] = path.normpath(v:formatEx(vars))
          -- print(k, fileList[k])
       elseif t == "string" then
-         PreprocessGeneratedFile(v, vars)
+         if v.mode == "generated" then
+            PreprocessGeneratedFile(self, v, vars)
+         elseif v.mode == "conditional" then
+            PreprocessConditionalFile(self, fileList, k, v, vars)            
+            table.insert(remove_items, k)
+         else
+            error("Unknown file entry mode: " .. v.mode)
+         end
       else
          error("Unknown file entry type: " .. t)
       end
+   end
+
+   for k,v in ipairs(remove_items) do
+      fileList[v] = nil
    end
 end
 
@@ -106,9 +130,9 @@ function project:Preprocess()
    }
 
    print("LFS:")
-   PreprocessFileList(self.lfs, vars)
+   PreprocessFileList(self, self.lfs, vars)
    print("FILES:")
-   PreprocessFileList(self.files, vars)
+   PreprocessFileList(self, self.files, vars)
 
    self:UpdateLFSStamp()
 end

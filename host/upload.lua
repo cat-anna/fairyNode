@@ -18,6 +18,7 @@ Upload software using serial
     --only-config                           write only configuration
     --no-config                             do not uplad configuration
     --no-lfs                                do not write lfs
+    --dry-run                               do a dry run
 ]]
 --compile                               compile files after upload
 
@@ -89,13 +90,14 @@ if #file_list == 0 then
     os.exit(1)
 end
 
-
-table.insert(file_list, 1, "upload")
+if not args.dry_run then
+    table.insert(file_list, 1, "upload")
 -- if args.compile then
 -- table.insert(file_list, 2, "--compile")
 -- end
 
-shell.Start(args.nodemcu_tool, nodemcu_tool_cfg, file_list)
+    shell.Start(args.nodemcu_tool, nodemcu_tool_cfg, file_list)
+end
 
 storage:Clear()
 print "Done"

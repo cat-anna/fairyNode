@@ -52,7 +52,7 @@ function chip:LoadProjectConfig()
         projectDir = self.projectDir 
     }
     proj.config = {
-        firmware = dofile(FirmwareConfigFile),
+        firmware = dofile(firmware.baseDir .. "/src/" .. FirmwareConfigFile),
         project = dofile(self.projectDir .. "/" .. FirmwareConfigFile)
     }
 

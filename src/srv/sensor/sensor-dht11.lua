@@ -18,7 +18,7 @@ return {
       })
     end,
     Read = function()
-        local status, temp, humi, temp_dec, humi_dec = dht.read11(hw.dht)
+        local status, temp, humi, temp_dec, humi_dec = dht.read11(hw.dht or hw.dht11)
         if status == dht.OK then
             if SetError then
                 SetError("DHT", nil)

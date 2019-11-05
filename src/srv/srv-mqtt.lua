@@ -1,6 +1,7 @@
 local m = {
     is_connected = false,
     nodes = { },
+    settable_nodes = { },
 }
 
 local function topic2regexp(topic)
@@ -31,11 +32,14 @@ local function findHandlers()
 end
 
 local function MQTTRestoreSubscriptions(client)
+    if not m.init_done then
+        return
+    end
+    
     local any = false
     local topics = {}
     local base = "homie/" .. wifi.sta.gethostname()
     for _, f in ipairs(findHandlers()) do
-        -- print("MQTT: found handler", f)
         local s, m = pcall(require,f)
         if not s or not m then
             print("MQTT: Cannot load handler ", f)
@@ -46,6 +50,10 @@ local function MQTTRestoreSubscriptions(client)
             any = true
         end
     end
+    for k,v in pairs(m.settable_nodes) do
+        topics[k] = 0
+        print("MQTT: Subscribe for settable node " .. k)
+    end
 
     if any then
         client:subscribe(topics, function(client) print("MQTT: Subscriptions restored") end)
@@ -54,11 +62,12 @@ local function MQTTRestoreSubscriptions(client)
     end
 end
 
-function m.InitDone()
+function m.PostInit()
     local nodes = table.concat(m.nodes, ",")
     HomiePublish("/$nodes", nodes)    
     HomiePublish("/$state", "ready")
     m.init_done = true
+    node.task.post(function() MQTTRestoreSubscriptions(m.mqttClient) end)
 end
 
 local function MqttConnected(client)
@@ -99,6 +108,14 @@ end
 local function MqttProcessMessage(client, topic, payload)
     local base = "homie/" .. wifi.sta.gethostname()
     print("MQTT: " .. (topic or "<NIL>") .. " -> " .. (payload or "<NIL>"))
+
+    if m.settable_nodes[topic] then
+        local node_info = m.settable_nodes[topic]
+        print("MQTT: " .. (topic or "<NIL>") .. " is a settable property")
+        pcall(node_info.setter, topic, payload)
+        return
+    end
+
     for _, f in ipairs(findHandlers()) do
         local s, m = pcall(require, f)
         if not s or not m then
@@ -114,8 +131,16 @@ local function MqttProcessMessage(client, topic, payload)
     print("MQTT: cannot find handler for ", topic)
 end
 
+local function GetHomieBaseTopic()
+    return "homie/" .. wifi.sta.gethostname() 
+end
+
+local function GetHomiePropertyTopic(node_name, property_name)
+    return GetHomieBaseTopic() .. string.format("/%s/%s", node_name, property_name)
+end
+
 function m.HomiePublish(topic, payload, retain, qos)
-    local t = "homie/" .. wifi.sta.gethostname() .. topic
+    local t = GetHomieBaseTopic() .. topic
     print("MQTT: " .. t .. " <- " .. (payload or "<NIL>"))
     if not m.is_connected then
         print("MQTT: not connected")
@@ -144,7 +169,7 @@ function m.Init()
         return
     end
 
-    if not  m.mqttClient then
+    if not m.mqttClient then
         m.mqttClient = mqtt.Client(wifi.sta.gethostname(), 10, cfg.user, cfg.password)
         m.mqttClient:lwt("homie/" .. wifi.sta.gethostname() .. "/$state", "lost", 0, 1)
         m.mqttClient:on("offline", MQTTDisconnected)
@@ -176,13 +201,26 @@ node = {
 }
 ]]    
 
-    HomiePublish("/" .. node_name .. "/$name", node.name)
+    m.HomiePublish("/" .. node_name .. "/$name", node.name)
     local props = { }
     for prop_name,values in pairs(node.properties or {}) do
         table.insert(props, prop_name)
         for k,v in pairs(values) do
-            HomiePublishNodeProperty(node_name, prop_name .. "/$" .. k, v)
+            if k ~= "setter" then
+                m.HomiePublishNodeProperty(node_name, prop_name .. "/$" .. k, v)
+            end
         end
+        m.HomiePublishNodeProperty(node_name, prop_name .. "/$retained", "true")
+        local settable = "false"
+        if values.setter then
+            settable = "true"
+            local topic_name = GetHomiePropertyTopic(node_name, prop_name)
+            print("MQTT: Homie settable addres:", topic_name)
+            m.settable_nodes[topic_name] = {
+                setter = values.setter,
+            }
+        end
+        m.HomiePublishNodeProperty(node_name, prop_name .. "/$settable", settable)
     end
     HomiePublish("/" .. node_name .. "/$properties", table.concat(props, ","))
 end

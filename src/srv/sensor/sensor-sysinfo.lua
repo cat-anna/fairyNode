@@ -10,6 +10,24 @@ local function GetWifiSignalQuality()
     return v
 end
 
+local VddSensorEnabled = false
+
+local function IsVddSensorEnabled()
+    if adc then 
+        return true --TODO
+    else
+        return false
+    end 
+end
+
+local function GetVddPropConfig()
+    if not IsVddSensorEnabled() then
+        return nil
+    end
+
+    return { name = "Supply voltage", datatype = "float" , unit = "V"}
+end
+
 return {
     Init = function()
         HomieAddNode("sysinfo", {
@@ -21,6 +39,7 @@ return {
                 wifi = { name = "Wifi signal quality", datatype = "float" },
                 bootreason = { name = "Boot reason", datatype = "string" },
                 errors = { name = "Active errors", datatype = "string" },
+                vdd = GetVddPropConfig(),
             }
         })
     end,
@@ -33,7 +52,9 @@ return {
         HomiePublishNodeProperty("sysinfo", "heap", tostring(node.heap()))
         HomiePublishNodeProperty("sysinfo", "uptime", tostring(tmr.time()))
         HomiePublishNodeProperty("sysinfo", "wifi", tostring(GetWifiSignalQuality()))
+        if IsVddSensorEnabled() then
+            local v = string.format("%.3f", adc.readvdd33(0) / 1000)
+            HomiePublishNodeProperty("supplyvoltage", "voltage", v)
+        end
     end,
   }
-  
--- MQTTPublish("/status/lfs/timestamp", string.format("%d", require "lfs-timestamp"), nil, 1)
