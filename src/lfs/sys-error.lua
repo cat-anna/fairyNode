@@ -19,6 +19,7 @@ local function DoUpdate()
 
     SetErrorLed(IsAnyErrorSet())
     error_state.update_pending = nil
+    if Event then Event("app.error", { any = IsAnyErrorSet(), errors = error_state.errors, }) end
 end
 
 return {

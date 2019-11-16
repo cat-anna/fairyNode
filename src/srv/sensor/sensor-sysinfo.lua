@@ -33,7 +33,7 @@ return {
         HomieAddNode("sysinfo", {
             name = "Device state info",
             properties = {
-                chipid = { name = "Chip ID", datatype = "string" },
+                -- chipid = { name = "Chip ID", datatype = "string" },
                 heap = { name = "Free heap", datatype = "integer", unit = "#" },
                 uptime = { name = "Uptime", datatype = "integer" },
                 wifi = { name = "Wifi signal quality", datatype = "float" },
@@ -45,7 +45,7 @@ return {
     end,
     Read = function(readout_index)
         if readout_index == 0 then
-            HomiePublishNodeProperty("sysinfo", "chipid", string.format("%06X", node.chipid()))
+            -- HomiePublishNodeProperty("sysinfo", "chipid", string.format("%06X", node.chipid()))
             HomiePublishNodeProperty("sysinfo", "bootreason",sjson.encode({node.bootreason()}))
         end
 

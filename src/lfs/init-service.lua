@@ -1,27 +1,43 @@
 
+services = nil
+
 local function InitService()
     print("INIT: Initializing services")
 
-    if Event then Event("app.init.services") end
+    if Event then Event("app.init.pre-services") end
+    coroutine.yield()
 
+    local srv_cache = { }
     for _,v in ipairs(require "lfs-services") do
         coroutine.yield()
 
-        print("INIT: Loading " .. v)
+        local name = v:match("srv%-(%w+)")
+        print("INIT: Loading " .. name)
         local mod = require(v)
         if mod.Init then
-            mod.Init()
+            srv_cache[name] = mod.Init()
         end
     end
 
-    coroutine.yield()
+    services = srv_cache
     
+    coroutine.yield()
+    if Event then Event("app.init.post-services") end
+    coroutine.yield()
+    if Event then Event("app.init.pre-user") end
+
     pcall(require, "init-user")
 
-    coroutine.yield():unregister()
-
+    coroutine.yield()
+    if Event then Event("app.init.post-user") end
+    coroutine.yield()
     if Event then Event("app.init.completed") end
-    if Event then Event("app.start") end
+
+    tmr.create():alarm(5000, tmr.ALARM_SINGLE, function()
+        if Event then Event("app.start") end
+    end)  
+    
+    coroutine.yield():unregister()
 end
 
-tmr.create():alarm(500, tmr.ALARM_AUTO, coroutine.wrap(InitService))
+tmr.create():alarm(300, tmr.ALARM_AUTO, coroutine.wrap(InitService))

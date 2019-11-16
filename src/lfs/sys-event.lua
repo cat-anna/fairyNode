@@ -1,7 +1,7 @@
 
 --TODO: queue events?
 
-local function ApplyEvent(id, evid, arg, module)
+local function ApplyEvent(id, arg, module)
     local mod = require(module)
     local f = mod[id]
     if f then
@@ -15,17 +15,25 @@ end
 
 local function BroadcastEvent(id, arg)
     local timer = coroutine.yield()
-    timer:interval(100)
+    timer:interval(20)
 
     print("EVENT:", id, tostring(arg))
-    local evid, subid = id:match("([^%.]*)%.?(.*)")
-    subid = subid or ""
+
+    if services then
+        for k,v in pairs(services) do
+            if v.OnEvent then
+                if debugMode then print("EVENT: Sending event to service ", k) end
+                pcall(v.OnEvent, v, id, arg)
+                coroutine.yield()
+            end
+        end
+    end
 
     local s, lst = pcall(require, "lfs-events")
     if s then
         for _,v in pairs(lst) do
             if debugMode then print("EVENT: found lfs handler ", v) end
-            pcall(ApplyEvent, id, evid, arg, v)
+            pcall(ApplyEvent, id, arg, v)
             coroutine.yield()
         end
     end
@@ -34,7 +42,7 @@ local function BroadcastEvent(id, arg)
         local match = v:match("(event%-%w+)%.l..?")
         if match then
             if debugMode then print("EVENT: found flash handler ", v) end
-            pcall(ApplyEvent, id, evid, arg, match)
+            pcall(ApplyEvent, id, arg, match)
             coroutine.yield()
         end
     end
@@ -45,6 +53,6 @@ end
 
 return {
     ProcessEvent = function(id, arg)
-        tmr.create():alarm(200, tmr.ALARM_AUTO, coroutine.wrap(function() BroadcastEvent(id, arg) end))
+        tmr.create():alarm(50, tmr.ALARM_AUTO, coroutine.wrap(function() BroadcastEvent(id, arg) end))
     end,
 }
