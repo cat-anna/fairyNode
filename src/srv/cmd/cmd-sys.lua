@@ -43,7 +43,7 @@ return {
         if subcmd == "help" then
             out([[
 SYS: help:
-SYS: ota,restart - restart device
+SYS: restart - restart device
 SYS: ota,check - check for update
 SYS: ota,update - force update
 SYS: error,get - get list of all active errors

@@ -1,9 +1,4 @@
 
--- if loadScript("init-compile", true) then
---   print("INIT: Restart is pending. System bootstrap cancelled.")
---   return
--- end
-
 local function PrintHwInfo()
   print("INIT: bootreason: ", node.bootreason())
 

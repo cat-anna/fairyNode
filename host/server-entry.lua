@@ -4,7 +4,7 @@ local path = require "pl.path"
 local dir = require "pl.dir"
 local json = require("json")
 local baseDir = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
-package.path = package.path .. ";" .. baseDir .. "/host/?.lua"
+package.path = package.path .. ";" .. baseDir .. "/host/?.lua" .. ";" .. baseDir .. "/host/?/init.lua"
 
 firmware = {
    baseDir = baseDir .. "/"
@@ -43,5 +43,7 @@ end
 require "lib/rest-ota"
 require "lib/rest-file"
 
--- This loads the restserver.xavante plugin
+require "lib/modules"
+
+require("lib/rest").LoadEndpoints()
 server:enable("restserver.xavante"):start()

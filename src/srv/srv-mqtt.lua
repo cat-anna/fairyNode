@@ -56,7 +56,11 @@ local function MQTTRestoreSubscriptions(client)
     end
 
     if any then
-        client:subscribe(topics, function(client) print("MQTT: Subscriptions restored") end)
+        if client then
+            client:subscribe(topics, function(client) print("MQTT: Subscriptions restored") end)
+        else
+            print("MQTT: Not connected. Cannot restore subscriptions.")
+        end
     else
         print("MQTT: no subscriptions!")
     end
@@ -227,7 +231,7 @@ node = {
     local props = { }
     for prop_name,values in pairs(node.properties or {}) do
         table.insert(props, prop_name)
-        for k,v in pairs(values) do
+        for k,v in pairs(values or {}) do
             if k ~= "setter" then
                 m.HomiePublishNodeProperty(node_name, prop_name .. "/$" .. k, v)
             end

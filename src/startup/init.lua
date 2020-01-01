@@ -22,9 +22,11 @@ if file.exists("debug.cfg") then
   print("INIT: Debug mode is enabled")
 end
 
-
 if file.exists("lfs.img.pending") then
   print "OTA: Load new lfs..."
+  if rtcmem then
+    rtcmem.write32(120, 0)
+  end
   file.remove("lfs.img")
   file.rename("lfs.img.pending", "lfs.img")
   node.flashreload("lfs.img")
@@ -34,7 +36,52 @@ if file.exists("lfs.img.pending") then
   return
 end
 
-pcall(node.flashindex("init-lfs"))
+local function CheckRebootCounter()
+  if not rtcmem then
+    return true
+  end
+
+  local value = rtcmem.read32(120)
+  if value < 0 or value > 10 then
+    rtcmem.write32(120, 1)
+    return true
+  end
+  value = value + 1
+  print("INIT: Current reboot counter:", value)
+
+
+  if value > 8 then
+    print("INIT: Reboot threshoold exceeded.")
+    print("INIT: Starting in failsafe mode.")
+    failsafe = true
+
+    local state = false
+    tmr.create():alarm(500, tmr.ALARM_AUTO, function()
+      state = not state
+      require("sys-led").Set("err", state)
+      if tmr.time() > 10 * 60 then
+        print("INIT: Failsafe timeout! Resuming normal operation.")
+        rtcmem.write32(120, 0)
+        node.restart()
+      end
+    end)
+  
+    return false
+  end
+  
+  rtcmem.write32(120, value)
+
+  tmr.create():alarm(10 * 60 * 1000, tmr.ALARM_SINGLE, function()
+    print("INIT: System is stable for 10min. Clearing reboot counter.")
+    rtcmem.write32(120, 0)
+  end)
+
+  return true
+end
+
+if CheckRebootCounter() then
+  pcall(node.flashindex("init-lfs"))
+end
 pcall(require, "init-hw")
 
 print "INIT: Waiting before entering bootstrap..."
@@ -43,7 +90,7 @@ tmr.create():alarm(
   tmr.ALARM_SINGLE,
   function(t)
     if abort then
-      print "Bootstrap aborted!"
+      print "INIT: Bootstrap aborted!"
       abort = nil
       return
     end

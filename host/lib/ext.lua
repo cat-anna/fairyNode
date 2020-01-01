@@ -1,3 +1,7 @@
+local copas = require "copas"
+local coxpcall = require "coxpcall"
+
+local unpack = table.unpack or unpack
 
 function table.merge(t1, t2)
     local r = { }
@@ -34,4 +38,20 @@ function string:split(sep)
 
 function string:trim()
     return self:match "^%s*(.-)%s*$"
+end
+
+function SafeCall(f, ...)
+    if not f then
+        return false
+    end
+
+    local args = { ... }
+    local function call()
+        return f(unpack(args))
+    end
+    local function errh(msg)
+        print("Call failed: ", msg)
+    end
+
+    return coxpcall.xpcall(call, errh)
 end

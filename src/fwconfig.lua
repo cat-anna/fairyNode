@@ -36,7 +36,7 @@ return {
         
         "{FW}/lfs/init-event.lua",
         "{FW}/lfs/sys-event.lua",
-        "{FW}/srv/event-led.lua",
+        -- "{FW}/srv/event-led.lua",
 
         "{FW}/lfs/event-error.lua",
         "{FW}/lfs/sys-error.lua",
@@ -58,6 +58,10 @@ return {
             mode = "conditional",
             "{FW}/lib/ds18b20.lua",
             "{FW}/srv/sensor/sensor-ds18b20.lua",
+        },
+        gpio = {
+            mode = "conditional",
+            "{FW}/srv/srv-gpio.lua",
         },
 
         -- "{FW}/lib/fifosock.lua",

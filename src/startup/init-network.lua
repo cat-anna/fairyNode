@@ -5,7 +5,7 @@ if Event then Event("wifi.disconnected", T) end
 local hostname = require("sys-config").Read("hostname.cfg")
 if not hostname then
   print "WiFi: No name config file"
-  local majorVer, minorVer, devVer, chipid, flashid, flashsize, flashmode, flashspeed = node.info()
+  local chipid = node.chipid()
   hostname = string.format("ESP-%X", chipid)
 else
   hostname = hostname:match("%w+")
@@ -25,9 +25,8 @@ else
     function(T)
       print("WiFi: got IP address: " .. T.IP)
       node.task.post(function() if Event then Event("wifi.gotip") end end)
-      -- TODO
-      -- node.task.post(function() pcall(function() require("sys-ota").Check() end) end)
-      tmr.create():alarm(30 * 1000, tmr.ALARM_SINGLE,function() pcall(function() require("sys-ota").Check() end) end)
+      node.task.post(function() require("sys-led").Set("wifi", true) end)
+      tmr.create():alarm(30 * 1000, tmr.ALARM_SINGLE, function() pcall(function() require("sys-ota").Check() end) end)
     end
   )
   wifi.eventmon.register(
@@ -42,6 +41,7 @@ else
     function(T)
       print("WiFi: disconnected SSID: "..T.SSID.." BSSID: "..T.BSSID.." reason: "..T.reason)
       node.task.post(function() if Event then Event("wifi.disconnected") end end)
+      node.task.post(function() require("sys-led").Set("wifi", false) end)
     end
   )
 
