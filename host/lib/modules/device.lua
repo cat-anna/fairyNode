@@ -63,7 +63,7 @@ function Device:GetPropertyMT(parent_node)
         value = FormatPropertyValue(property, value)
         local topic = property:GetValueTopic()
         self.mqtt:PublishMessage(topic, value, property.retain)
-        print(self:LogTag() .. string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
+        -- print(self:LogTag() .. string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
     end
     return mt
 end
@@ -95,7 +95,7 @@ function Device:HandlePropertyValue(topic, payload)
 
     property.value = payload
     property.timestamp = os.time()
-    print(self:LogTag() .. string.format("node %s.%s = %s", node_name, prop_name, payload))
+    -- print(self:LogTag() .. string.format("node %s.%s = %s", node_name, prop_name, payload))
 end
 
 function Device:HandlePropertyConfigValue(topic, payload)
@@ -119,7 +119,7 @@ function Device:HandlePropertyConfigValue(topic, payload)
     end
 
     property[config_name] = payload
-    print(self:LogTag() .. string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
+    -- print(self:LogTag() .. string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
 end
 
 function Device:HandleNodeProperties(topic, payload)
@@ -162,7 +162,7 @@ function Device:HandleNodeValue(topic, payload)
     end
 
     node[value] = payload
-    print(self:LogTag() .. string.format("node (%s) %s=%s", node_name, value, payload))
+    -- print(self:LogTag() .. string.format("node (%s) %s=%s", node_name, value, payload))
 end
 
 function Device:HandleNodes(topic, payload)
@@ -190,7 +190,7 @@ function Device:HandleDeviceInfo(topic, payload)
     end
 
     self.variables[variable] = payload
-    print(self:LogTag() .. self.name .. " " .. variable .. "=" .. payload)
+    -- print(self:LogTag() .. self.name .. " " .. variable .. "=" .. payload)
 end
 
 function Device:HandleCommandOutput(topic, payload)
@@ -253,6 +253,9 @@ end
 
 local DevState = {}
 DevState.__index = DevState
+DevState.Deps = {
+    mqtt = "mqtt-provider"
+}
 
 function DevState:BeforeReload()
     self.mqtt:StopWatching("DevState")
@@ -269,11 +272,11 @@ function DevState:AfterReload()
         SafeCall(function () v:AfterReload() end)
     end
 
+    self.mqtt:AddSubscription("DevState", "homie/#")
     self.mqtt:WatchRegex("DevState", function(...) self:AddDevice(...) end, "homie/+/$homie")
 end
 
 function DevState:Init()
-    self.mqtt = modules.GetModule("mqtt-provider")
     self.devices = { }
 end
 

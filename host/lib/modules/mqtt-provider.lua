@@ -40,14 +40,49 @@ function MqttProvider:ResetClient()
     self.mqtt_client = mqtt_client
 end
 
+function MqttProvider:AddSubscription(id, regex)
+    if not self.subscriptions[regex] then
+        print("MQTT-PROVIDER: Adding subscription " .. regex)
+        self.subscriptions[regex] = {
+            subscribed = false,
+            regex = regex,
+            watchers = { }
+        }
+    end
+
+    local sub = self.subscriptions[regex]
+    sub.watchers[id] = true
+
+    self:RestoreSubscription(sub)
+end
+
+function MqttProvider:RestoreSubscription(sub)
+    if not self.connected or sub.subscribed then
+        return
+    end    
+    print("MQTT-PROVIDER: Restoring subscription " .. sub.regex)
+    assert(self.mqtt_client:subscribe{ topic=sub.regex, qos=0, callback=function(suback)
+        print("MQTT-PROVIDER: Scubscribed to " .. sub.regex)
+        sub.subscribed = true
+    end})
+end
+
+function MqttProvider:RestoreSubscriptions()
+    if not self.connected then
+        return
+    end
+    for k,v in pairs(self.subscriptions) do
+        self:RestoreSubscription(v)
+    end
+end
+
 function MqttProvider:HandleConnect(connack)
     if connack.rc ~= 0 then
         error("MQTT-PROVIDER: Connection to broker failed: " .. tostring(connack))
     end
+    print("MQTT-PROVIDER: Connected")
     self.connected = true
-    assert(self.mqtt_client:subscribe{ topic="homie/#", qos=0, callback=function(suback)
-        print("MQTT-PROVIDER: Scubscribed to", suback)
-    end})
+    self:RestoreSubscriptions()
 end
 
 function MqttProvider:HandleMessage(msg)
@@ -62,7 +97,7 @@ function MqttProvider:HandleMessage(msg)
     if entry.content ~= payload then
         entry.content = payload
         entry.timeout = os.time()
-        print("MQTT-PROVIDER: changed:", topic, payload)
+        -- print("MQTT-PROVIDER: changed:", topic, payload)
     end
 
     self:NotifyWatchers(topic, payload)
@@ -88,6 +123,9 @@ end
 function MqttProvider:HandleClose()
     print("MQTT-PROVIDER: Disconnected")
     self.connected = false
+    for _,v in pairs(self.subscriptions) do
+        v.subscribed = false
+    end
 end
 
 function MqttProvider:CallWatchers(watchers, topic, payload)
@@ -195,9 +233,11 @@ function MqttProvider:WatchRegex(id, handler, topics)
     end
 end
 
+
 function MqttProvider:Init()
     self.connected = false
     self.cache = { }
+    self.subscriptions = { }
     self.regex_watchers = { }
 
     copas.addthread(function()

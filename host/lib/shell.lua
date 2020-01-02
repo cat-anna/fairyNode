@@ -63,6 +63,7 @@ function shell.ForEachLineOf(...)
 			h:close()
 			return nil
 		end
+		print("OS: " .. line)
 		return line
 	end
 end
@@ -78,6 +79,7 @@ function shell.LinesOf(...)
 		if not line then
 			return lines, h:close()
 		end
+		print("OS: " .. line)
 		table.insert(lines, line)
 	end
 end
