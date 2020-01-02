@@ -64,7 +64,7 @@ local function ReloadModule(group, name, filename, filetime)
         end)
     end
 
-    setmetatable(module.instance, new_metatable)
+    setmetatable(module.instance or {}, new_metatable)
 
     if not module.init_done then
         if module.instance.Init then
