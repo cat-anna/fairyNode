@@ -52,7 +52,7 @@ function chip:LoadProjectConfig()
         projectDir = self.projectDir 
     }
     proj.config = {
-        firmware = dofile(firmware.baseDir .. "/src/" .. FirmwareConfigFile),
+        firmware = dofile(configuration.fairy_node_base .. "/src/" .. FirmwareConfigFile),
         project = dofile(self.projectDir .. "/" .. FirmwareConfigFile)
     }
 

@@ -1,24 +1,37 @@
 #!/usr/bin/lua
 
+local lapp = require 'pl.lapp'
 local path = require "pl.path"
 local dir = require "pl.dir"
 local json = require("json")
-local baseDir = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
-package.path = package.path .. ";" .. baseDir .. "/host/?.lua" .. ";" .. baseDir .. "/host/?/init.lua"
+local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
+package.path = package.path .. ";" .. fairy_node_base .. "/host/?.lua" .. ";" .. fairy_node_base .. "/host/?/init.lua"
 
-firmware = {
-   baseDir = baseDir .. "/"
-}
+local args = lapp [[
+FairyNode rest server entry
+    --debug                        enter debug mode
+]]
+
+local conf = { }
+conf.__index = conf
+conf.__newindex = function()
+   error("Attempt to change conf at runtime")
+end
+
+conf.debug = args.debug
+conf.fairy_node_base = fairy_node_base
+
+configuration = setmetatable({}, conf)
 
 function LoadScript(name)
-   return dofile(path.normpath(firmware.baseDir .. name))
+   return dofile(path.normpath(configuration.fairy_node_base .. "/" .. name))
 end
 
 local restserver = require("restserver")
 server = restserver:new():port(8000)
 
 function InvokeFile(file, method, ...)
-   local succ, lib = pcall(dofile, firmware.baseDir .. file)
+   local succ, lib = pcall(dofile, configuration.fairy_node_base .. "/" .. file)
    if not succ then
       print("ERROR: " .. lib)
       return restserver.response():status(500):entity("500: " .. lib)

@@ -16,8 +16,8 @@ local lapp = require 'pl.lapp'
 local path = require "pl.path"
 local dir = require "pl.dir"
 local json = require("json")
-local baseDir = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
-package.path = package.path .. ";" .. baseDir .. "/host/?.lua"
+local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
+package.path = package.path .. ";" .. fairy_node_base .. "/host/?.lua" .. ";" .. fairy_node_base .. "/host/?/init.lua"
 
 local shell = require "lib/shell"
 
@@ -26,22 +26,27 @@ local node_tool_exec = "nodemcu-tool"
 local args = lapp [[
 Update device configuration using mqtt
     --device (string)                       device to update
+    --debug                                 enter debug mode
 ]]
 
 for k,v in pairs(args) do
     print(k .."=" .. tostring(v or "<NIL>"))
 end
 
-firmware = {
-    baseDir = baseDir .. "/"
-}
- 
-local cfg = {
-    baseDir = baseDir .. "/"
-}
+local conf = { }
+conf.__index = conf
+conf.__newindex = function()
+   error("Attempt to change conf at runtime")
+end
+
+conf.debug = args.debug
+conf.device = args.device
+conf.fairy_node_base = fairy_node_base
+
+configuration = setmetatable({}, conf)
 
 function LoadScript(name)
-    return dofile(cfg.baseDir .. name)
+    return dofile(configuration.fairy_node_base .. "/" .. file)
 end
 
 local Chip = require("lib/chip")

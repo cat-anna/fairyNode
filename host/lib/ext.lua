@@ -55,3 +55,17 @@ function SafeCall(f, ...)
 
     return coxpcall.xpcall(call, errh)
 end
+
+function table.filter(t, functor)
+    if not t then
+        return nil
+    end
+
+    local r = {}
+    for k,v in pairs(t) do
+        if functor(k,v) then
+            r[k] = v
+        end
+    end
+    return r
+end

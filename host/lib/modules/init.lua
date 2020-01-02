@@ -6,7 +6,7 @@ local copas = require "copas"
 
 local debug = true
 local module_dir = {
-    fw = firmware.baseDir .. "host/lib/modules",
+    fw = configuration.fairy_node_base .. "/host/lib/modules",
     user = "./host/lib/modules",
 }
 local modules = {}

@@ -7,7 +7,7 @@ local lfs = require "lfs"
 local copas = require "copas"
 local JSON = require "json"
 
-local base_dir = firmware.baseDir .. "host/lib/rest"
+local base_dir = configuration.fairy_node_base .. "/host/lib/rest"
 
 local RestPublic = {}
 

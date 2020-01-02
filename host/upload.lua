@@ -3,8 +3,8 @@ local lapp = require 'pl.lapp'
 local path = require "pl.path"
 local dir = require "pl.dir"
 local json = require("json")
-local baseDir = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
-package.path = package.path .. ";" .. baseDir .. "/host/?.lua"
+local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
+package.path = package.path .. ";" .. fairy_node_base .. "/host/?.lua" .. ";" .. fairy_node_base .. "/host/?/init.lua"
 
 local shell = require "lib/shell"
 
@@ -30,18 +30,22 @@ local nodemcu_tool_cfg = {
     port = args.port
 }
 
-firmware = {
-    baseDir = baseDir .. "/"
- }
+local conf = { }
+conf.__index = conf
+conf.__newindex = function()
+   error("Attempt to change conf at runtime")
+end
+
+conf.debug = args.debug
+conf.fairy_node_base = fairy_node_base
+
+configuration = setmetatable({}, conf)
  
-local cfg = {
-    baseDir = baseDir .. "/"
-}
-
 function LoadScript(name)
-    return dofile(cfg.baseDir .. name)
- end
+    return dofile(configuration.fairy_node_base .. "/" .. file)
+end
 
+local cfg = {}
 cfg.upload_config = ((not args.no_config) or (args.only_config)) and (not args.only_lfs)
 cfg.upload_files = (not args.only_config) and (not args.only_lfs)
 cfg.upload_lfs = ((not args.no_lfs) and (not args.only_config)) or args.only_lfs

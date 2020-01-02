@@ -124,7 +124,7 @@ function project:Preprocess()
    self.config["hostname"] = self.chip.name
 
    local vars = {
-      FW = firmware.baseDir .. "/src/",
+      FW = configuration.fairy_node_base .. "/src/",
       PROJECT = self.projectDir .. "/files/",
       COMMON = "common/"
    }
