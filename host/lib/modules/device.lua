@@ -56,12 +56,15 @@ function Device:GetPropertyMT(parent_node)
     function mt.GetValueTopic(property)
         return parent_node:BaseTopic() .. "/" .. property.id
     end
+    function mt.GetValueSetTopic(property)
+        return parent_node:BaseTopic() .. "/" .. property.id .. "/set"
+    end    
     function mt.SetValue(property, value)
         if not property.settable then
             error(self:LogTag() .. string.format(" %s.%s is not settable", parent_node.id, property.id))
         end
         value = FormatPropertyValue(property, value)
-        local topic = property:GetValueTopic()
+        local topic = property:GetValueSetTopic()
         self.mqtt:PublishMessage(topic, value, property.retain)
         -- print(self:LogTag() .. string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
     end
