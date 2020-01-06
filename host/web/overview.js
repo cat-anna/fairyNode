@@ -216,7 +216,7 @@ function refresh() {
     QueryGet("/device", function(data) { HandleDeviceResponse(data) })
 }
 
-function FairyNodeOverviewStart(base_location) {
+function FairyNodeOverviewStart() {
     FairyNode_InitOverview()
 
     refresh();

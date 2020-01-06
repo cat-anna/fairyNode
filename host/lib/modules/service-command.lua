@@ -26,6 +26,7 @@ end
 function ServiceCommand:ExecuteCommand(request, command)
     local cmd = self.commands[command]
     if not cmd then
+        error("ServiceCommand: Command " .. tostring(command) .. " is not registered")
         return http.NotFound, {}
     end
 

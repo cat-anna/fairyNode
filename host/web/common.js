@@ -1,12 +1,13 @@
-var fn_location
+var fn_src_base
+var fn_rest_base
 
-function FairyNodeExecute(page_name, base_location) {
+function FairyNodeExecute(page_name, src_base, rest_base) {
 
-    $.getScript(base_location + "overview.js", function() {
-        FairyNodeOverviewStart(base_location)
+    $.getScript(src_base + "overview.js", function() {
+        FairyNodeOverviewStart()
     });
-    fn_location = base_location
-        // refresh()
+    fn_src_base = src_base
+    fn_rest_base = rest_base
 }
 
 function GetOrCreateDiv(id, parent_id, classes, cfg) {
@@ -40,7 +41,7 @@ function QueryGet(sub_url, on_data) {
         return await response.json(); // parses JSON response into native JavaScript objects
     }
 
-    getData(fn_location + sub_url)
+    getData(fn_rest_base + sub_url)
         .then((data) => {
             on_data(data); // JSON data parsed by `response.json()` call
         });
@@ -57,7 +58,7 @@ function QueryPost(sub_url, body, on_data) {
         return await response.json(); // parses JSON response into native JavaScript objects
     }
 
-    getData(fn_location + sub_url)
+    getData(fn_rest_base + sub_url)
         .then((data) => {
             if (on_data)
                 on_data(data); // JSON data parsed by `response.json()` call

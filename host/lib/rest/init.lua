@@ -33,6 +33,9 @@ function RestPublic.HandlerModule(module, handler_name)
         local args = { ... }
         local code, result
 
+        -- print(tostring(args[1]))
+        local request = table.remove(args, 1)
+
         local invoke_func = function()
             print(string.format("REST-REQUEST: %s.%s(%s)", module, handler_name, ConcatRequest(args, "; ")))
             local dev = modules.GetModule(module)
