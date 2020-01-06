@@ -1,43 +1,17 @@
 <html>
+
 <head>
-        <link rel="stylesheet" type="text/css" href="style.css">
 </head>
+
 <body>
-<div id="outer">
-    <div id="inner">
-        <div id="head">head</div>
-        <div id="content">
-            <div id="app_content">
-
-            <div class="tab">
-                <button id="Overview_button" class="tablinks " onclick="openTab(event, 'Overview')">Overview</button>
-                <button class="tablinks" onclick="openTab(event, 'Paris')">Paris</button>
-                <!-- <button class="tablinks" onclick="openTab(event, 'Tokyo')">Tokyo</button> -->
-            </div>
-              
-              <div id="Overview" class="tabcontent tab_active">
-      test
-              </div>
-              
-              <div id="Paris" class="tabcontent tab_inactive">
-                <h3>Paris</h3>
-                <p>Paris is the capital of France.</p>
-              </div>
-              
-            <!--   <div id="Tokyo" class="tabcontent">
-                <h3>Tokyo</h3>
-                <p>Tokyo is the capital of Japan.</p>
-              </div> -->
-
-            </div>
-        </div>
+    <div id="fairyNode-root">
     </div>
-</div>
     <script src="jquery-3.4.1.min.js"></script>
-    <script src="script.js"></script>
+    <script src="entry.js"></script>
 
     <script>
-        start()
+        FairyNodeStart("", "dark")
     </script>
 </body>
+
 </html>

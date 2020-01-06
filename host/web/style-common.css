@@ -1,0 +1,324 @@
+/* * {box-sizing: border-box} */
+
+.FN_tooltip {
+    position: relative;
+    display: inline-block;
+    box-sizing: border-box;
+}
+
+.FN_tooltip .FN_tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+    box-sizing: border-box;
+}
+
+.FN_tooltip:hover .FN_tooltiptext {
+    visibility: visible;
+}
+
+
+/* Style the tab */
+
+.tab {
+    float: left;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    width: 30%;
+    height: 300px;
+    box-sizing: border-box;
+}
+
+
+/* Style the buttons that are used to open the tab content */
+
+.tab_button {
+    display: block;
+    background-color: inherit;
+    width: 100%;
+    border: none;
+    outline: none;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+
+/* Change background color of buttons on hover */
+
+.tab_button:hover {
+    background-color: rgba(222, 222, 222, 0.5);
+}
+
+
+/* Create an active/current "tab button" class */
+
+.tab_button_active {
+    background-color: rgba(204, 204, 204, 0.2);
+}
+
+
+/* Style the tab content */
+
+.tabcontent {
+    float: left;
+    /* padding: 0px 12px; */
+    /* border: 1px solid #ccc; */
+    width: 100%;
+    /* border-left: none; */
+    /* height: 300px; */
+    display: none;
+    box-sizing: border-box;
+}
+
+.tab_active {
+    display: block;
+}
+
+#OverviewOuter {
+    display: block;
+}
+
+#OverviewInner {
+    width: 1000px;
+    margin: 0 auto;
+    padding: 1px;
+    display: block;
+    box-sizing: border-box;
+}
+
+#OverviewHead {
+    border: 1px red solid;
+    padding: 1px;
+    display: block;
+    box-sizing: border-box;
+}
+
+#OverviewContent {
+    border: 1px blue solid;
+    padding: 1px;
+    display: block;
+    box-sizing: border-box;
+}
+
+#app_content {
+    display: block;
+    border: 1px black solid;
+    padding: 1px;
+    /* overflow: auto; */
+    box-sizing: border-box;
+}
+
+.DeviceListRoot {
+    display: table;
+    box-sizing: border-box;
+}
+
+.DeviceListNodes {
+    width: 15%;
+    display: block;
+    float: left;
+    /* border-right: solid 1px rgba(255, 255, 255, 0.2); */
+    clear: none;
+    box-sizing: border-box;
+}
+
+.DeviceListEntry {
+    padding: 5px;
+    width: 100%;
+    height: 30px;
+    display: block;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.DeviceListContent {
+    width: 85%;
+    display: block;
+    float: right;
+    box-sizing: border-box;
+}
+
+.Header {
+    background-color: rgba(0, 0, 0, 0.5);
+    height: 30px;
+    box-sizing: border-box;
+}
+
+.OverviewTable {
+    display: table;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    box-sizing: border-box;
+}
+
+.OverviewTableHead {
+    width: 100%;
+    display: table-header-group;
+    background-color: rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+}
+
+.OverviewTableEntry {
+    display: table-cell;
+    /* float: left; */
+    padding: 5px;
+    height: 30px;
+    /* border: 1px solid red; */
+    text-align: center;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.OverviewTableNodeIp {
+    /* width: 15%; */
+    width: 100px;
+}
+
+.OverviewTableNodeFWTimestamp {
+    width: 150px;
+    /* width: 25%; */
+}
+
+.OverviewTableNodeRelease {
+    width: 150px;
+    /* width: 25%; */
+}
+
+.OverviewTableNodeState {
+    /* width: 5%; */
+    width: 50px;
+    /* border-radius: 20px; */
+}
+
+.OverviewTableNodeUptime {
+    width: 120px;
+    /* text-align: right; */
+    /* width: 10%; */
+}
+
+.OverviewTableNodeWifi {
+    width: 30px;
+    width: 5%;
+}
+
+.OverviewTableNodeErrors {
+    width: 60px;
+    overflow: visible;
+    /* border-radius: 20px; */
+    /* width: 10%; */
+}
+
+.OverviewTableNodeSpace {}
+
+.NodeState-init {
+    background-color: rgba(171, 211, 28, 0.3);
+}
+
+.NodeState-ready {
+    background-color: rgba(0, 128, 0, 0.3);
+}
+
+.NodeState-lost {
+    background-color: rgba(255, 0, 0, 0.3);
+}
+
+.NodeState-ota {
+    background-color: rgba(60, 11, 194, 0.3);
+}
+
+.NodeError-None {
+    /* background-color: rgba(0, 128, 0, 0.1); */
+}
+
+.NodeError-Active {
+    background-color: rgba(255, 0, 0, 0.3);
+}
+
+.DevicePageHeader {
+    width: 100%;
+    display: block;
+    float: left;
+    padding: 5px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.DevicePageContent {
+    width: 100%;
+    float: left;
+    padding: 5px;
+    display: block;
+    box-sizing: border-box;
+}
+
+.DeviceNode {
+    padding-top: 5px;
+    width: 100%;
+    /* float: left; */
+    /* padding: 5px; */
+    /* display: block; */
+    clear: both;
+    box-sizing: border-box;
+}
+
+.DeviceNodeHeader {
+    font-weight: bold;
+    width: 100%;
+    padding: 5px;
+    height: 30px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    float: left;
+    display: block;
+    box-sizing: border-box;
+}
+
+.DeviceNodePropertyContent {
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    clear: both;
+    padding: 5px;
+    height: 30px;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.DeviceNodePropertyEntry {
+    float: left;
+    display: block;
+    /* padding: 5px; */
+    box-sizing: border-box;
+}
+
+.DeviceNodePropertySpacer {
+    width: 20px;
+}
+
+.DeviceNodePropertyName {
+    margin-left: 20px;
+    width: 200px;
+}
+
+.DeviceNodePropertyValue {
+    width: 200px;
+}
+
+.DeviceNodePropertyTimestamp {
+    width: 150px;
+}
+
+.MissingValue {
+    color: red;
+}
+
+.DeviceNodePropertySetValue {
+    width: 300px;
+}

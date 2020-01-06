@@ -4,7 +4,7 @@ require "lib/ext"
 local lfs = require "lfs"
 local copas = require "copas"
 
-local debug = true
+local debug = configuration.debug
 local module_dir = {
     fw = configuration.fairy_node_base .. "/host/lib/modules",
     user = "./host/lib/modules",
