@@ -1,10 +1,12 @@
+var fn_location
+
 function FairyNodeExecute(page_name, base_location) {
 
     $.getScript(base_location + "overview.js", function() {
         FairyNodeOverviewStart(base_location)
     });
-
-    // refresh()
+    fn_location = base_location
+        // refresh()
 }
 
 function GetOrCreateDiv(id, parent_id, classes, cfg) {
@@ -38,7 +40,7 @@ function QueryGet(sub_url, on_data) {
         return await response.json(); // parses JSON response into native JavaScript objects
     }
 
-    getData('http://localhost:8000' + sub_url)
+    getData(fn_location + sub_url)
         .then((data) => {
             on_data(data); // JSON data parsed by `response.json()` call
         });
@@ -55,13 +57,12 @@ function QueryPost(sub_url, body, on_data) {
         return await response.json(); // parses JSON response into native JavaScript objects
     }
 
-    getData('http://localhost:8000' + sub_url)
+    getData(fn_location + sub_url)
         .then((data) => {
             if (on_data)
                 on_data(data); // JSON data parsed by `response.json()` call
         });
 }
-
 
 function FormatSeconds(duration) {
     var sec_num = parseInt(duration, 10); // don't forget the second param
