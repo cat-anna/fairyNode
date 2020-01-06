@@ -135,7 +135,7 @@ local function wsapi_handler_with_self(self, wsapi_env)
    end
 
    local response_headers = {}
-   response_headers["Content-Type"] = entry.produces or "text/plain"
+   response_headers["Content-Type"] = res.config.content_type or entry.produces or "text/plain"
    for k,v in pairs(self.config.response_headers or {}) do
       response_headers[k] = v
    end
@@ -182,6 +182,7 @@ function restserver.response()
    }
    add_setter(res, "status")
    add_setter(res, "entity")
+   add_setter(res, "content_type")
    return res
 end
 

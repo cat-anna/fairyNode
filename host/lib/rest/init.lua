@@ -1,7 +1,7 @@
 
 require "lib/ext"
 local modules = require("lib/modules")
-local restserver = require "restserver"
+local restserver = require("lib/rest/restserver")
 local http = require "lib/http-code"
 local lfs = require "lfs"
 local copas = require "copas"
@@ -31,7 +31,7 @@ end
 function RestPublic.HandlerModule(module, handler_name)
     local f = function(...)
         local args = { ... }
-        local code, result
+        local code, result, content_type
 
         -- print(tostring(args[1]))
         local request = table.remove(args, 1)
@@ -39,7 +39,7 @@ function RestPublic.HandlerModule(module, handler_name)
         local invoke_func = function()
             print(string.format("REST-REQUEST: %s.%s(%s)", module, handler_name, ConcatRequest(args, "; ")))
             local dev = modules.GetModule(module)
-            code, result = dev[handler_name](dev, unpack(args))
+            code, result, content_type = dev[handler_name](dev, unpack(args))
         end
 
         local s, msg = SafeCall(invoke_func)
@@ -49,7 +49,13 @@ function RestPublic.HandlerModule(module, handler_name)
             result = msg
         end
         print(string.format("REST-RESPONSE: Code:%d body:%s bytes", code, JSON.encode(result):len()))
-        return restserver.response():status(code):entity(result)       
+        local response = restserver.response()
+        response:status(code)
+        response:entity(result)       
+        if content_type then
+            response:content_type(content_type)
+        end
+        return response
     end
     return f
 end
@@ -75,7 +81,6 @@ end
 
 copas.addthread(function()
     copas.sleep(1)
-    local restserver = require("lib/rest/restserver")
     local server = restserver:new()
     server:port(8000)
     server:response_headers({

@@ -180,7 +180,6 @@ function UpdateDevice(entry) {
                     $(checkbox).attr("data-url", url)
                     $(checkbox).prop('checked', prop.value == "true")
                     $(checkbox).change(function() {
-                        var url = url; // j is a copy of i only available to the scope of the inner function
                         body = {}
                         if ($(this).is(":checked")) {
                             body.value = true
@@ -188,6 +187,7 @@ function UpdateDevice(entry) {
                             body.value = false
                         }
                         QueryPost($(this).attr("data-url"), body)
+                        setTimeout(refresh, 3000);
                     });
                 }
             }
