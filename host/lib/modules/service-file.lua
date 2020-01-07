@@ -16,6 +16,7 @@ local FileSearchPaths = {
 local MimeTypes = {
     [".json"] = "application/json",
     [".html"] = "text/html",
+    [".css"] = 	"text/css",
 }
 local function DetectMimeType(fn)
     local base

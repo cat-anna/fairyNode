@@ -26,6 +26,9 @@ function GetOrCreateDiv(id, parent_id, classes, cfg) {
             if (cfg.html != null) {
                 $element.html(cfg.html)
             }
+            if (cfg.data != null) {
+                $element.attr("data", cfg.data)
+            }
         }
     }
 

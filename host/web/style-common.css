@@ -139,6 +139,8 @@
     box-sizing: border-box;
 }
 
+.DeviceListPages {}
+
 .DeviceListContent {
     width: 85%;
     display: block;
@@ -251,11 +253,38 @@
     box-sizing: border-box;
 }
 
+.DevicePage {}
+
+.DevicePageBar {
+    width: 100%;
+    box-sizing: border-box;
+    float: left;
+    clear: both;
+    padding: 5px;
+    text-align: center;
+}
+
+.DevicePageButton {
+    width: 100px;
+    box-sizing: border-box;
+    float: left;
+    clear: none;
+    padding: 5px;
+    text-align: center;
+    display: block;
+    /* border: 1px solid red; */
+    border-radius: 10px;
+    margin-left: 5px;
+    ;
+    margin-right: 5px;
+    ;
+}
+
 .DevicePageContent {
     width: 100%;
     float: left;
     padding: 5px;
-    display: block;
+    /* display: block; */
     box-sizing: border-box;
 }
 

@@ -5,7 +5,7 @@ function FairyNode_InitOverview() {
             <div id="DeviceListRoot" class="OverviewTable">
                 <div id="DeviceList" class="DeviceListNodes"></div>
                 <div id="DeviceListContent" class="DeviceListContent">
-                    <div id="OverviewTable" class="tabcontent tab_active">
+                    <div id="OverviewTable" class="DeviceListPages tabcontent tab_active">
                         <div id="OverviewTable" class="OverviewTable">
                         </div>                    
                     </div>
@@ -40,9 +40,9 @@ function FairyNode_InitOverview() {
     $(device).html("Node name")
 
     $(device).click(function() {
-        $(".tab_active").removeClass("tab_active")
+        $(".DeviceListPages.tab_active").removeClass("tab_active")
         $("#OverviewTable").addClass("tab_active")
-        $(".tab_button_active").removeClass("tab_button_active")
+        $(".DeviceListPages.tab_button_active").removeClass("tab_button_active")
     });
 }
 
@@ -89,60 +89,8 @@ function SetOverviewRow(id, values) {
     return row
 }
 
-function UpdateDevice(entry) {
-    var vars = entry.variables
-
-    var nodes = entry.nodes
-
-    var sysinfo
-    var sysinfo_props
-    if (nodes) {
-        sysinfo = nodes.sysinfo
-        if (sysinfo) {
-            sysinfo_props = sysinfo.properties
-        }
-    }
-
-    var timestamp = new Date(vars["fw/timestamp"] * 1000)
-
-    var err_caption
-    var err_value = null
-    var err_current = sysinfo_props.errors.value
-    if (err_current == "[]") {
-        err_caption = "&nbsp;"
-    } else {
-        err_caption = "Active"
-        err_value = err_current
-    }
-
-    var device = GetOrCreateDiv("DEVICE_" + entry.name, "DeviceList", "DeviceList DeviceListEntry tab_button", { html: entry.name })
-
-    $(device).click(function() {
-        $(".tab_active").removeClass("tab_active")
-        $(".tab_button_active").removeClass("tab_button_active")
-        $("#" + "DEVICE_PAGE_" + entry.name).addClass("tab_active")
-        $(device).addClass("tab_button_active")
-    });
-
-    SetOverviewRow(entry.name, {
-        // ip : vars.localip,
-        state: entry.state,
-        timestamp: timestamp.toLocaleString(),
-        uptime: FormatSeconds(sysinfo_props.uptime.value),
-        wifi: sysinfo_props.wifi.value + "%",
-        // release : vars["fw/nodemcu/git_release"],
-        errors: {
-            caption: err_caption,
-            value: err_value,
-        }
-    })
-
-    var sub_id = "DEVICE_PAGE_" + entry.name
-    GetOrCreateDiv(sub_id, "DeviceListContent", "tabcontent tab_inactive")
-    GetOrCreateDiv("HEADER_" + sub_id, sub_id, "Header DevicePageHeader", { html: entry.name })
-
-    var body_id = "BODY_" + sub_id
-    GetOrCreateDiv(body_id, sub_id, "DevicePageContent")
+function SetDeviceNodesPage(entry, sub_id, body_id) {
+    var page = GetOrCreateDiv(body_id, sub_id, " DevicePageContent DevicePage tabcontent tab_inactive")
 
     function check_value(v, empty) {
         if (v != null) return v;
@@ -150,8 +98,8 @@ function UpdateDevice(entry) {
         return "<span class='MissingValue'>&lt;&nbsp;?&nbsp;&gt;<span>";
     }
 
-    for (var key in nodes) {
-        node = nodes[key]
+    for (var key in entry.nodes) {
+        node = entry.nodes[key]
         var node_id = key + "_NODE_" + sub_id
         GetOrCreateDiv(node_id, body_id, "DeviceNode")
         GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html(node.name)
@@ -192,6 +140,108 @@ function UpdateDevice(entry) {
                 }
             }
         }
+    }
+    return page
+}
+
+function SetDeviceInfoPage(entry, sub_id, body_id) {
+    var page = GetOrCreateDiv(body_id, sub_id, "DevicePageContent DevicePage tabcontent tab_inactive", { html: "info" })
+    return page
+}
+
+function SetDeviceCmdPage(entry, sub_id, body_id) {
+    var page = GetOrCreateDiv(body_id, sub_id, "DevicePageContent DevicePage tabcontent tab_inactive", { html: "cmd" })
+    return page
+}
+
+function UpdateDevice(entry) {
+    var vars = entry.variables
+
+    var nodes = entry.nodes
+
+    var sysinfo
+    var sysinfo_props
+    if (nodes) {
+        sysinfo = nodes.sysinfo
+        if (sysinfo) {
+            sysinfo_props = sysinfo.properties
+        }
+    }
+
+    var timestamp = new Date(vars["fw/timestamp"] * 1000)
+
+    var err_caption
+    var err_value = null
+    var err_current = sysinfo_props.errors.value
+    if (err_current == "[]") {
+        err_caption = "&nbsp;"
+    } else {
+        err_caption = "Active"
+        err_value = err_current
+    }
+
+
+    var my_class = "Device_" + entry.name
+    var $root_elem = $("#DEVICE_" + entry.name)
+    var first = $root_elem.length == 0
+
+    var device = GetOrCreateDiv("DEVICE_" + entry.name, "DeviceList", "DeviceListPages DeviceList DeviceListEntry tab_button", { html: entry.name })
+
+    if (first) {
+        $(device).click(function() {
+            $(".DeviceListPages.tab_active").removeClass("tab_active")
+            $(".DeviceListPages.tab_button_active").removeClass("tab_button_active")
+            $("#" + "DEVICE_PAGE_" + entry.name).removeClass("tab_inactive").addClass("tab_active")
+            $(device).addClass("tab_button_active")
+        });
+    }
+
+    SetOverviewRow(entry.name, {
+        // ip : vars.localip,
+        state: entry.state,
+        timestamp: timestamp.toLocaleString(),
+        uptime: FormatSeconds(sysinfo_props.uptime.value),
+        wifi: sysinfo_props.wifi.value + "%",
+        // release : vars["fw/nodemcu/git_release"],
+        errors: {
+            caption: err_caption,
+            value: err_value,
+        }
+    })
+
+    var sub_id = "DEVICE_PAGE_" + entry.name
+    GetOrCreateDiv(sub_id, "DeviceListContent", "DeviceListPages tabcontent tab_inactive")
+    GetOrCreateDiv("HEADER_" + sub_id, sub_id, "Header DevicePageHeader", { html: entry.name })
+
+    var pages_id = "DEVICE_PAGE_CONTENT_" + sub_id
+    GetOrCreateDiv(pages_id, sub_id, "DevicePageBar")
+
+    var btns = [
+        GetOrCreateDiv("NODES_" + pages_id, pages_id, my_class + " DevicePage DevicePageButton tab_button tab_button_active", { html: "Nodes", data: "NODES" }),
+        GetOrCreateDiv("INFO_" + pages_id, pages_id, my_class + " DevicePage DevicePageButton tab_button", { html: "Device info", data: "INFO" }),
+        GetOrCreateDiv("CMD_" + pages_id, pages_id, my_class + " DevicePage DevicePageButton tab_button", { html: "Commands", data: "CMD" }),
+    ]
+    if (first)
+        for (var i in btns) {
+            $(btns[i]).click(function(event) {
+                $(".DevicePage.tab_active." + my_class).removeClass("tab_active")
+                $(".DevicePage.tab_button_active." + my_class).removeClass("tab_button_active")
+                console.log($(this).attr("data") + "_" + sub_id)
+                $("#" + $(this).attr("data") + "_" + sub_id).addClass("tab_active")
+                $(this).addClass("tab_button_active")
+            });
+        }
+
+    var pages = [
+        SetDeviceNodesPage(entry, sub_id, "NODES_" + sub_id),
+        SetDeviceInfoPage(entry, sub_id, "INFO_" + sub_id),
+        SetDeviceCmdPage(entry, sub_id, "CMD_" + sub_id),
+    ]
+    if (first) {
+        for (var i in pages) {
+            $(pages[i]).addClass(my_class)
+        }
+        $(pages[0]).removeClass("tab_inactive").addClass("tab_active")
     }
 }
 
