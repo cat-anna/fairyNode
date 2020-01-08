@@ -26,7 +26,7 @@ function FairyNode_InitOverview() {
         timestamp: "Firmware timestamp",
         uptime: "Uptime",
         wifi: "Signal",
-        // release : "Node version",
+        release: "Node version",
         errors: {
             header: true,
             caption: "Errors",
@@ -78,11 +78,14 @@ function SetOverviewRow(id, values) {
     var uptime_class = "OverviewTableNodeUptime"
     var wifi_class = "OverviewTableNodeWifi"
     var space_class = "OverviewTableNodeSpace"
-        // var ip = GetOrCreateDiv("IP_" + id, row_id, "OverviewTableEntry OverviewTableNodeIp")
-        // $(ip).html(values.ip)
+    var release_class = "OverviewTableNodeRelease"
 
-    GetOrCreateDiv("FW_TIMESTAMP_" + id, row_id, row_class + fw_class).html(values.timestamp)
+    // var ip = GetOrCreateDiv("IP_" + id, row_id, "OverviewTableEntry OverviewTableNodeIp")
+    // $(ip).html(values.ip)
+
     GetOrCreateDiv("UPTIME_" + id, row_id, row_class + uptime_class).html(values.uptime)
+    GetOrCreateDiv("FW_TIMESTAMP_" + id, row_id, row_class + fw_class).html(values.timestamp)
+    GetOrCreateDiv("RELEASE_" + id, row_id, row_class + release_class).html(values.release)
     GetOrCreateDiv("WIFI_" + id, row_id, row_class + wifi_class).html(values.wifi)
     GetOrCreateDiv("SPACE_" + id, row_id, row_class + space_class, { html: "&nbsp; " })
 
@@ -90,6 +93,10 @@ function SetOverviewRow(id, values) {
 }
 
 function SetDeviceNodesPage(entry, sub_id, body_id) {
+
+    var $root_elem = $("#" + body_id)
+    var first = $root_elem.length == 0
+
     var page = GetOrCreateDiv(body_id, sub_id, " DevicePageContent DevicePage tabcontent tab_inactive")
 
     function check_value(v, empty) {
@@ -100,7 +107,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
 
     for (var key in entry.nodes) {
         node = entry.nodes[key]
-        var node_id = key + "_NODE_" + sub_id
+        var node_id = key + "_NODE_" + body_id
         GetOrCreateDiv(node_id, body_id, "DeviceNode")
         GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html(node.name)
 
@@ -119,24 +126,27 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             if (prop.settable != true) {
                 GetOrCreateDiv("SETTABLE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySettable").html("&nbsp")
             } else {
-                if (prop.datatype == "boolean") {
-                    var checkbox = GetOrCreateDiv("SETTABLE_" + prop_id, prop_id, "", {
-                        classes: "DeviceNodePropertyEntry DeviceNodePropertySettable",
-                        type: "input type='checkbox'"
-                    })
-                    var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
-                    $(checkbox).attr("data-url", url)
-                    $(checkbox).prop('checked', prop.value == "true")
-                    $(checkbox).change(function() {
-                        body = {}
-                        if ($(this).is(":checked")) {
-                            body.value = true
-                        } else {
-                            body.value = false
-                        }
-                        QueryPost($(this).attr("data-url"), body)
-                        setTimeout(refresh, 3000);
-                    });
+                if (first) {
+                    if (prop.datatype == "boolean") {
+                        var checkbox = GetOrCreateDiv("SETTABLE_" + prop_id, prop_id, "", {
+                            classes: "DeviceNodePropertyEntry DeviceNodePropertySettable",
+                            type: "input type='checkbox'"
+                        })
+                        var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
+                        $(checkbox).attr("data-url", url)
+                        $(checkbox).prop('checked', prop.value == "true")
+                        $(checkbox).change(function() {
+                            console.log("CHANGE " + $(this).attr("data-url"))
+                            body = {}
+                            if ($(this).is(":checked")) {
+                                body.value = true
+                            } else {
+                                body.value = false
+                            }
+                            QueryPost($(this).attr("data-url"), body)
+                            setTimeout(refresh, 3000);
+                        });
+                    }
                 }
             }
         }
@@ -145,7 +155,26 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
 }
 
 function SetDeviceInfoPage(entry, sub_id, body_id) {
-    var page = GetOrCreateDiv(body_id, sub_id, "DevicePageContent DevicePage tabcontent tab_inactive", { html: "info" })
+    var page = GetOrCreateDiv(body_id, sub_id, "DevicePageContent DevicePage tabcontent tab_inactive")
+
+    var node_id = key + "_VARIABLE_" + body_id
+    GetOrCreateDiv(node_id, body_id, "DeviceNode")
+    GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("Variables")
+
+    var keys = Object.keys(entry.variables)
+    keys.sort()
+    for (var i in keys) {
+        var key = keys[i]
+        var value = entry.variables[key]
+        var id = key.split("/").join("")
+
+        var prop_id = id + "_" + node_id
+        GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
+            // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+        GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: key })
+        GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
+    }
+
     return page
 }
 
@@ -202,7 +231,7 @@ function UpdateDevice(entry) {
         timestamp: timestamp.toLocaleString(),
         uptime: FormatSeconds(sysinfo_props.uptime.value),
         wifi: sysinfo_props.wifi.value + "%",
-        // release : vars["fw/nodemcu/git_release"],
+        release: vars["fw/nodemcu/git_release"],
         errors: {
             caption: err_caption,
             value: err_value,
@@ -226,7 +255,6 @@ function UpdateDevice(entry) {
             $(btns[i]).click(function(event) {
                 $(".DevicePage.tab_active." + my_class).removeClass("tab_active")
                 $(".DevicePage.tab_button_active." + my_class).removeClass("tab_button_active")
-                console.log($(this).attr("data") + "_" + sub_id)
                 $("#" + $(this).attr("data") + "_" + sub_id).addClass("tab_active")
                 $(this).addClass("tab_button_active")
             });
