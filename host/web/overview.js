@@ -26,7 +26,7 @@ function FairyNode_InitOverview() {
         timestamp: "Firmware timestamp",
         uptime: "Uptime",
         wifi: "Signal",
-        release: "Node version",
+        release: "NodeMCU version | FairyNode version",
         errors: {
             header: true,
             caption: "Errors",
@@ -231,7 +231,7 @@ function UpdateDevice(entry) {
         timestamp: timestamp.toLocaleString(),
         uptime: FormatSeconds(sysinfo_props.uptime.value),
         wifi: sysinfo_props.wifi.value + "%",
-        release: vars["fw/nodemcu/git_release"],
+        release: vars["fw/nodemcu/git_release"] + " | " + vars["fw/fairynode"],
         errors: {
             caption: err_caption,
             value: err_value,
