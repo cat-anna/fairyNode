@@ -1,14 +1,23 @@
+
+local copas = require "copas"
 local lfs = require "lfs"
 local file = require "pl.file"
 local path = require "pl.path"
 local JSON = require "json"
 local shell = require "lib/shell"
-
-local project = {}
+local md5 = require "md5"
+local pretty = require 'pl.pretty'
+local struct = require 'struct'
+local file_image = require "lib/file_image"
 
 local DeviceConfigFile = "devconfig.lua"
 local FirmwareConfigFile = "fwconfig.lua"
-luac_cross = "../nodemcu-firmware/luac.cross"
+
+local luac_cross = "../nodemcu-firmware/luac.cross" -- TODO
+local CONFIG_HASH_NAME = "config_hash.cfg"
+
+local ProjectMt = {}
+ProjectMt.__index = ProjectMt
 
 local function GenerateFileLists(storage, fileList)
    local function store(f, content)
@@ -18,7 +27,7 @@ local function GenerateFileLists(storage, fileList)
 
    local function store_table(f, t)
       table.sort(t)
-      local content = "return {" .. table.concat( t, ",") .. "}"
+      local content = "return {" .. table.concat(t, ",") .. "}"
       storage:AddFile(f, content)
       print("GENERATE:", f, #content, content)
    end
@@ -28,10 +37,10 @@ local function GenerateFileLists(storage, fileList)
    table.insert(fileList, storage.basePath .. "/" .. "lfs-events.lua")
    table.insert(fileList, storage.basePath .. "/" .. "lfs-sensors.lua")
 
-   local file_list = { }
-   local event_list = { }
-   local sensor_list = { }
-   local service_list = { }
+   local file_list = {}
+   local event_list = {}
+   local sensor_list = {}
+   local service_list = {}
 
    for _, v in ipairs(fileList) do
       local base = path.basename(v)
@@ -89,19 +98,19 @@ end
 local function PreprocessFileList(self, fileList, vars)
    table.sort(fileList)
 
-   local remove_items = { }
+   local remove_items = {}
 
    for k, v in pairs(fileList) do
       local t = type(k)
       -- print(t, k, v)
       if t == "number" then
-         fileList[k] = path.normpath(v:formatEx(vars))
          -- print(k, fileList[k])
+         fileList[k] = path.normpath(v:formatEx(vars))
       elseif t == "string" then
          if v.mode == "generated" then
             PreprocessGeneratedFile(self, v, vars)
          elseif v.mode == "conditional" then
-            PreprocessConditionalFile(self, fileList, k, v, vars)            
+            PreprocessConditionalFile(self, fileList, k, v, vars)
             table.insert(remove_items, k)
          else
             error("Unknown file entry mode: " .. v.mode)
@@ -111,12 +120,12 @@ local function PreprocessFileList(self, fileList, vars)
       end
    end
 
-   for k,v in ipairs(remove_items) do
+   for k, v in ipairs(remove_items) do
       fileList[v] = nil
    end
 end
 
-function project:Preprocess()
+function ProjectMt:Preprocess()
    self.lfs = table.merge(self.config.firmware.lfs, self.config.project.lfs)
    self.files = table.merge(self.config.firmware.files, self.config.project.files)
    self.config = table.merge(self.chip.config, self.config.project.config)
@@ -129,21 +138,20 @@ function project:Preprocess()
       COMMON = "common/"
    }
 
-   print("LFS:")
+   -- print("LFS:")
    PreprocessFileList(self, self.lfs, vars)
-   print("FILES:")
+   -- print("FILES:")
    PreprocessFileList(self, self.files, vars)
-
-   self:UpdateLFSStamp()
 end
 
-function project:UpdateLFSStamp()
+function ProjectMt:CalcTimestamps()
    if self.lfsStamp and self.lfsStamp > 0 then
       return self.lfsStamp
    end
-   local max = 0
 
    function process(lst)
+      local content = { }
+      local max = 0
       for _, v in ipairs(lst) do
          if type(v) == "string" then
             local attr = lfs.attributes(v)
@@ -153,16 +161,21 @@ function project:UpdateLFSStamp()
             if attr.modification > max then
                max = attr.modification
             end
+            table.insert(content, file.read(v))
          end
       end
+      local all_code = table.concat(content, "")
+      return { timestamp = max, hash = md5.sumhexa(all_code) }
    end
 
-   process(self.lfs)
-   self.lfsStamp = max
-   return self.lfsStamp
+   return { 
+      lfs = process(self.lfs),
+      root = process(self.files),
+      config = json.decode(self:GenerateConfigFiles()[CONFIG_HASH_NAME]),
+   }
 end
 
-function project:GetConfigFileContent(name)
+function ProjectMt:GetConfigFileContent(name)
    local v = self.config[name]
    if not v then
       print("There is no config " .. name)
@@ -172,24 +185,30 @@ function project:GetConfigFileContent(name)
       return v
    else
       return JSON.encode(v)
+   end
+end
+
+function ProjectMt:GenerateConfigFiles()
+   local r = { }
+   local all_content = { }
+   for k, _ in pairs(self.config) do
+      local name = k .. ".cfg"
+      local content = self:GetConfigFileContent(k)
+      -- print("GENERATE:", name, #content)
+      r[name] = content
+      table.insert(all_content, name .. "|" .. content)
    end 
+
+   table.sort(all_content)
+   r[CONFIG_HASH_NAME] = JSON.encode({
+        hash = md5.sumhexa(table.concat(all_content, "")),
+        timestamp = os.time(),
+   })
+
+   return r
 end
 
-function project:GenerateConfigFiles(outStorage, list)
-   local function store(f, content)
-      outStorage:AddFile(f, content)
-      if list then
-         list[#list + 1] = f
-      end
-      print("GENERATE:", f, #content)
-   end
-
-   for k,_ in pairs(self.config) do
-      store(k .. ".cfg",self:GetConfigFileContent(k))
-   end
-end
-
-function project:GenerateDynamicFiles(source, outStorage, list)
+function ProjectMt:GenerateDynamicFiles(source, outStorage, list)
    for k, v in pairs(source) do
       local lines, code = shell.LinesOf("lua", nil, v)
       if not code then
@@ -199,25 +218,30 @@ function project:GenerateDynamicFiles(source, outStorage, list)
       print("GENERATE", k, #content)
       table.insert(list, outStorage:AddFile(k, content))
    end
-   table.insert(list, outStorage:AddFile("lfs-timestamp.lua", string.format([[
-      return %d
-  ]], self:UpdateLFSStamp())))
+
+   local ts = self:CalcTimestamps()
+   local pretty_ts = pretty.write(ts.lfs)
+
+   local timestamp_file = string.format([[return %d, %s ]], ts.lfs.timestamp, pretty_ts )
+   print("LFS-TIMESTAMP: \n---------------\n" .. timestamp_file .. "\n---------------")
+   
+   table.insert(list, outStorage:AddFile("lfs-timestamp.lua", timestamp_file))
 end
 
-function AssertFileUniqness(fileList)
-   local arr = { }
+local function AssertFileUniqness(fileList)
+   local arr = {}
    local succ = true
-   for _,v in ipairs(fileList) do
-         if arr[v] then
-            succ = false
-            print("FILE IS NOT UNIQUE: " .. v)
-         end
-         arr[v] = true
+   for _, v in ipairs(fileList) do
+      if arr[v] then
+         succ = false
+         print("FILE IS NOT UNIQUE: " .. v)
+      end
+      arr[v] = true
    end
    return succ
 end
 
-function project:BuildLFS(outStorage)
+function ProjectMt:BuildLFS(outStorage)
    local generated_storage = require("lib/file_storage").new()
 
    local fileList = {}
@@ -229,10 +253,10 @@ function project:BuildLFS(outStorage)
       error("Canot generate lfs if not all files are unique!")
    end
 
-   print("Files in lfs: ", #fileList)
+   print("Files in lfs: ", #fileList, "\n" .. table.concat(fileList, "\n"))
    local args = {
       "f",
-      o = outStorage:AddFile("lfs.img.pending"),
+      o = outStorage:AddFile("lfs.pending.img")
    }
    if not self.chip.config.debug then
       table.insert(args, "s")
@@ -246,4 +270,72 @@ function project:BuildLFS(outStorage)
    generated_storage:Clear()
 end
 
-return project
+function ProjectMt:BuildRootImage()
+   local fileList = self.files
+   print("Files in root: ", #fileList, "\n" .. table.concat(fileList, "\n"))
+   return file_image.Pack(fileList)
+end
+
+function ProjectMt:BuildConfigImage()
+   local fileList = self:GenerateConfigFiles()
+   
+   local files = table.keys(fileList)
+   print("Files in config: ", #files, "\n" .. table.concat(files, "\n"))
+   return file_image.Pack(fileList)
+end
+
+-----------------------------------------------
+
+local ProjectModule = {}
+ProjectModule.__index = ProjectModule
+ProjectModule.Deps = {
+   devconfig = "project-config",
+   fwconfig = "fw-config",
+}
+
+function ProjectModule:LogTag()
+   return "ProjectModule"
+end
+
+function ProjectModule:BeforeReload()
+end
+
+function ProjectModule:AfterReload()
+end
+
+function ProjectModule:Init()
+end
+
+function ProjectModule:ProjectExists(chipid)
+  return self.devconfig.chipid[chipid] ~= nil
+end
+
+function ProjectModule:LoadProject(chipid)
+   local chip_config = self.devconfig.chipid[chipid]
+   if not chip_config then
+      error("ERROR: Unknown chip " .. chipid)
+   end
+
+   local mt = {
+      __index = function(t, name)      
+         return rawget(t, name) or self.devconfig.chipid[chipid][name] or ProjectMt[name]
+      end
+   }
+
+   local proj = {
+      chip = chip_config,
+   }
+
+   proj.projectDir = self.devconfig.projectDir .. "/" .. chip_config.project
+
+   proj.config = {
+      firmware = self.fwconfig,
+      project = dofile(proj.projectDir .. "/" .. FirmwareConfigFile)
+   }
+
+   setmetatable(proj, mt)
+   proj:Preprocess()
+   return proj
+end
+
+return ProjectModule

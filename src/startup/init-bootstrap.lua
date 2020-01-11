@@ -1,4 +1,3 @@
-
 local function PrintHwInfo()
   print("INIT: bootreason: ", node.bootreason())
 
@@ -14,8 +13,15 @@ local function PrintHwInfo()
   print("INIT: Node git commit id: ", sw_version.git_commit_id)
   print("INIT: Node release: ", sw_version.git_release)
   print("INIT: Node commit dts: ", sw_version.git_commit_dts)
-  print(string.format("INIT: Node version: %d.%d.%d", sw_version.node_version_major, sw_version.node_version_minor, sw_version.node_version_revision))
-  
+  print(
+    string.format(
+      "INIT: Node version: %d.%d.%d",
+      sw_version.node_version_major,
+      sw_version.node_version_minor,
+      sw_version.node_version_revision
+    )
+  )
+
   local build_config = node.info("build_config")
   print("INIT: ssl: ", build_config.ssl)
   print(string.format("INIT: LFS size: %x", build_config.lfs_size))
@@ -25,10 +31,22 @@ end
 
 PrintHwInfo()
 
-local s, t = pcall(require, "lfs-timestamp")
-if s then
-  print("INIT: lfs-timestamp: ", t)
+local function PrintTimestamp(id)
+  local old_timestamp
+  local new_timestamp
+  local ts_success
+  ts_success, old_timestamp, new_timestamp = pcall(require, id)
+  if ts_success then
+    if new_timestamp then
+      print("INIT: " .. id .. ": ", new_timestamp.timestamp)
+    else
+      print("INIT: " .. id .. ": ", old_timestamp)
+    end
+  end
 end
+
+PrintTimestamp("lfs-timestamp")
+PrintTimestamp("root-timestamp")
 
 pcall(require, "init-error")
 pcall(require, "init-event")
@@ -41,7 +59,9 @@ local function bootstrap(t)
   if abort then
     print "INIT: Initialization aborted!"
     abort = nil
-    if t then t:unregister() end
+    if t then
+      t:unregister()
+    end
     return
   end
 
@@ -51,11 +71,15 @@ local function bootstrap(t)
     return
   end
 
-  if t then 
+  if t then
     t:unregister()
-  end 
+  end
 
-  node.task.post(function() pcall(require, "init-service") end)
+  node.task.post(
+    function()
+      pcall(require, "init-service")
+    end
+  )
 end
 
 if wifi.getmode() == wifi.STATION then

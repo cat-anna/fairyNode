@@ -1,58 +1,54 @@
 #!/usr/bin/lua
 local lapp = require 'pl.lapp'
 local path = require "pl.path"
+local file = require "pl.file"
 local dir = require "pl.dir"
-local json = require("json")
+local json = require "json"
+local copas = require "copas"
+local asynchttp = require("copas.http").request
+
 local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
 package.path = package.path .. ";" .. fairy_node_base .. "/host/?.lua" .. ";" .. fairy_node_base .. "/host/?/init.lua"
 
 local shell = require "lib/shell"
-
-local node_tool_exec = "nodemcu-tool"
+local file_image = require "lib/file_image"
 
 local args = lapp [[
 Upload software using serial
     --port (string)                         serial port to use
     --nodemcu-tool (default 'nodemcu-tool') select nodemcu-tool to use
-    --only-lfs                              write only lfs
-    --only-config                           write only configuration
-    --no-config                             do not uplad configuration
-    --no-lfs                                do not write lfs
+    --lfs                                   write only lfs
+    --config                                write configuration
+    --root                                  write root image
+    --all                                   write all
     --dry-run                               do a dry run
 ]]
---compile                               compile files after upload
-
-for k,v in pairs(args) do
-    print(k .."=" .. tostring(v or "<NIL>"))
-end
+    --compile                               compile files after upload
 
 local nodemcu_tool_cfg = {
     port = args.port
 }
 
-local conf = { }
-conf.__index = conf
-conf.__newindex = function()
-   error("Attempt to change conf at runtime")
+local cfg = {
+    host = "localhost:8000",
+    node_tool = "nodemcu-tool",
+    dry_run = false,
+}
+
+for k,v in pairs(args) do
+    print(k .. "=" .. tostring(v))
+    if v ~= false then
+        cfg[k] = v
+    end
 end
 
-conf.debug = args.debug
-conf.fairy_node_base = fairy_node_base
+if cfg.all then
+    cfg.all = nil
 
-configuration = setmetatable({}, conf)
- 
-function LoadScript(name)
-    return dofile(configuration.fairy_node_base .. "/" .. file)
+    cfg.lfs = true
+    cfg.config = true
+    cfg.root = true
 end
-
-local cfg = {}
-cfg.upload_config = ((not args.no_config) or (args.only_config)) and (not args.only_lfs)
-cfg.upload_files = (not args.only_config) and (not args.only_lfs)
-cfg.upload_lfs = ((not args.no_lfs) and (not args.only_config)) or args.only_lfs
-
-print("Uplaod config: ", cfg.upload_config)
-print("Uplaod files: ", cfg.upload_files)
-print("Uplaod lfs: ", cfg.upload_lfs)
 
 print "Detecting chip..."
 for line in shell.ForEachLineOf(args.nodemcu_tool, nodemcu_tool_cfg, {"fsinfo"}) do
@@ -65,29 +61,65 @@ for line in shell.ForEachLineOf(args.nodemcu_tool, nodemcu_tool_cfg, {"fsinfo"})
     end
 end
 
+local downloads = { }
 
-local storage = require("lib/file_storage").new()
-local Chip = require("lib/chip")
-local chip = Chip.GetChipConfig(cfg.chipid)
-local project = chip:LoadProjectConfig()
-
-if cfg.upload_lfs then
-    project:BuildLFS(storage)
+local function MakeQuerry(what)
+    local url = "http://" .. cfg.host .. "/ota/" .. cfg.chipid .. "/" .. what
+    res, err = asynchttp(url)
+    if err ~= 200 then
+        print("Failed to query " .. url)
+        os.exit(1)
+    end
+    downloads[what] = res
+    print("Got response from " .. url .. " " .. tostring(res:len()) .. " bytes")
 end
 
-if cfg.upload_config then
-    project:GenerateConfigFiles(storage)
+if cfg.lfs then
+    copas.addthread(MakeQuerry, "lfs_image")
+end
+if cfg.root then
+    copas.addthread(MakeQuerry, "root_image")
+end
+if cfg.config then
+    copas.addthread(MakeQuerry, "config_image")
+end
+
+copas.loop()
+
+local storage = require("lib/file_storage").new()
+
+if downloads.root_image then
+    local files = file_image.Unpack(downloads.root_image)
+    for name,data in pairs(files) do
+        if name == "init.lua" or name == "ota-installer.lua" then
+            local temp_name = storage:AddFile(name)
+            file.write(temp_name, data)
+            print("Adding file " .. name)
+        end
+    end
+
+    file.write(storage:AddFile("root.pending.img"), downloads.root_image)
+    print("Adding file root.pending.img") 
+end
+
+if downloads.lfs_image then
+    file.write(storage:AddFile("lfs.pending.img"), downloads.lfs_image)
+    print("Adding file lfs.pending.img")
+end
+
+if downloads.config_image then
+    file.write(storage:AddFile("config.pending.img"), downloads.config_image)
+    print("Adding file config.pending.img")
 end
 
 local file_list = { }
 
-if cfg.upload_files then
-    table.insert(file_list, table.concat(project.files, " "))
-end
-
 if #storage.list > 0 then
+    file.write(storage:AddFile("ota.ready"), "1")
     table.insert(file_list, table.concat(storage.list, " "))
 end
+
+-- for n,_ in pairs(file.list()) do print("Removing:" .. n); file.remove(n) end
 
 if #file_list == 0 then
     print "Nothing to upload"
@@ -96,12 +128,14 @@ end
 
 if not args.dry_run then
     table.insert(file_list, 1, "upload")
--- if args.compile then
--- table.insert(file_list, 2, "--compile")
--- end
+
+    -- if args.compile then
+     -- table.insert(file_list, 2, "--compile")
+    -- end
 
     shell.Start(args.nodemcu_tool, nodemcu_tool_cfg, file_list)
 end
 
 storage:Clear()
+
 print "Done"

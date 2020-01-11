@@ -22,19 +22,13 @@ if file.exists("debug.cfg") then
   print("INIT: Debug mode is enabled")
 end
 
-if file.exists("lfs.img.pending") then
-  print "OTA: Load new lfs..."
-  if rtcmem then
-    rtcmem.write32(120, 0)
-  end
-  file.remove("lfs.img")
-  file.rename("lfs.img.pending", "lfs.img")
-  node.flashreload("lfs.img")
-  -- in case of error
-  file.remove("lfs.img")
-  node.restart()
+if file.exists("ota.ready") then
+  print "OTA: New package is ready for installation"
+  local ota_installer = require("ota-installer")
+  ota_installer.Install()
   return
 end
+
 
 local function CheckRebootCounter()
   if not rtcmem then

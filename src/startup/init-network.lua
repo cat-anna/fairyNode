@@ -26,7 +26,7 @@ else
       print("WiFi: got IP address: " .. T.IP)
       node.task.post(function() if Event then Event("wifi.gotip") end end)
       node.task.post(function() require("sys-led").Set("wifi", true) end)
-      tmr.create():alarm(30 * 1000, tmr.ALARM_SINGLE, function() pcall(function() require("sys-ota").Check() end) end)
+      tmr.create():alarm(30 * 1000, tmr.ALARM_SINGLE, function() pcall(function() require("ota-core").Check() end) end)
     end
   )
   wifi.eventmon.register(

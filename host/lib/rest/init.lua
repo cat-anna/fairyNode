@@ -48,7 +48,8 @@ function RestPublic.HandlerModule(module, handler_name)
             code = http.InternalServerError
             result = msg
         end
-        print(string.format("REST-RESPONSE: Code:%d body:%s bytes", code, JSON.encode(result):len()))
+        
+        print(string.format("REST-RESPONSE: Code:%d body:%s bytes", code, (type(result) == "string" and result:len() or JSON.encode(result):len())))
         local response = restserver.response()
         response:status(code)
         response:entity(result)       
@@ -70,7 +71,7 @@ local function LoadEndpoints(server)
             if attr.mode == "file" then
                 local name = file:match("endpoint%-([^%.]+).lua")
                 if name then
-                    print("Loading REST endpoint " .. name)
+                    print("REST: Loading endpoint " .. name)
                     local f = require("lib/rest/endpoint-" .. name)
                     SafeCall(f, server)
                 end

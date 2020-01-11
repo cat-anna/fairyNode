@@ -1,3 +1,4 @@
+
 local m = {
     is_connected = false,
     nodes = { },
@@ -83,9 +84,23 @@ local function PublishInfo()
 
     HomiePublish("/$implementation", "esp8266")
     HomiePublish("/$fw/name", "fairyNode")
-    HomiePublish("/$fw/fairynode", "0.0.1")
+    HomiePublish("/$fw/fairynode", "0.0.2")
 
-    HomiePublish("/$fw/timestamp", require("lfs-timestamp"))
+    local old_timestamp
+    local new_timestamp
+    old_timestamp, new_timestamp = require("lfs-timestamp")
+    if new_timestamp then
+        HomiePublish("/$fw/lfs-timestamp", new_timestamp.timestamp)
+    else
+        HomiePublish("/$fw/timestamp", old_timestamp)
+    end
+
+    local root_success, root_timestamp = pcall(require, "root-timestamp")
+    if root_success then
+        HomiePublish("/$fw/root-timestamp", root_timestamp.timestamp)
+    else
+        HomiePublish("/$fw/root-timestamp", 0)
+    end
 
     local hw_info = node.info("hw")
     local sw_version = node.info("sw_version")

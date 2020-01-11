@@ -10,12 +10,12 @@ return {
         if subcmd == "ota" then
             local otacmd = table.remove(args, 1)
             if otacmd == "check" then
-                node.task.post(function() pcall(require("sys-ota").Check) end)
+                node.task.post(function() pcall(require("ota-core").Check) end)
                 out("SYS: ok")
                 return
             end
             if otacmd == "update" then
-                node.task.post(function() pcall(require("sys-ota").Update) end)
+                node.task.post(function() pcall(require("ota-core").Update) end)
                 out("SYS: ok")
                 return
             end     
