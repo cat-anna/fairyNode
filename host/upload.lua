@@ -11,7 +11,7 @@ local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."
 package.path = package.path .. ";" .. fairy_node_base .. "/host/?.lua" .. ";" .. fairy_node_base .. "/host/?/init.lua"
 
 local shell = require "lib/shell"
-local file_image = require "lib/file_image"
+local file_image = require "lib/file-image"
 
 local args = lapp [[
 Upload software using serial

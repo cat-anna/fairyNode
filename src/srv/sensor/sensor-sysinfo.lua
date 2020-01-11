@@ -39,6 +39,7 @@ return {
                 wifi = { name = "Wifi signal quality", datatype = "float" },
                 bootreason = { name = "Boot reason", datatype = "string" },
                 errors = { name = "Active errors", datatype = "string" },
+                free_space = { name = "Free flash space", datatype = "integer" },
                 vdd = GetVddPropConfig(),
             }
         })
@@ -48,6 +49,8 @@ return {
             HomiePublishNodeProperty("sysinfo", "bootreason",sjson.encode({node.bootreason()}))
         end
 
+        local flash_remaining = file.fsinfo()
+        HomiePublishNodeProperty("sysinfo", "free_space", tostring(flash_remaining))
         HomiePublishNodeProperty("sysinfo", "heap", tostring(node.heap()))
         HomiePublishNodeProperty("sysinfo", "uptime", tostring(tmr.time()))
         HomiePublishNodeProperty("sysinfo", "wifi", tostring(GetWifiSignalQuality()))

@@ -22,7 +22,9 @@ function DownloadItemMt:CloseSocket(socket)
     socket:on("receive", nil)
     socket:on("connection", nil)
     socket:on("disconnection", nil)
-    pcall(socket.close, socket)
+    if socket:getaddr() ~= nil then
+        pcall(socket.close, socket)
+    end
 end
 
 function DownloadItemMt:Failure(socket, message)

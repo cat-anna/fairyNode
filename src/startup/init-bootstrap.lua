@@ -32,16 +32,10 @@ end
 PrintHwInfo()
 
 local function PrintTimestamp(id)
-  local old_timestamp
-  local new_timestamp
-  local ts_success
-  ts_success, old_timestamp, new_timestamp = pcall(require, id)
-  if ts_success then
-    if new_timestamp then
-      print("INIT: " .. id .. ": ", new_timestamp.timestamp)
-    else
-      print("INIT: " .. id .. ": ", old_timestamp)
-    end
+  local success, timestamp = pcall(require, id)
+  if success and type(timestamp) == "table" then
+      print("INIT: " .. id .. ".timestamp: ", timestamp.timestamp)
+      print("INIT: " .. id .. ".hash: ", timestamp.hash)
   end
 end
 

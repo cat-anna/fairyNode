@@ -54,7 +54,7 @@ local function InstallImage(image_name, installed_name)
         local file_info = {
             file_size = size - file_name_size - 1,
             target_name = file_name,
-            temp_name = file_name .. ".pending"
+            temp_name = "pending." .. file_name
         }
         table.insert(unpacked_files, file_info)
         file.remove(file_info.temp_name)
@@ -77,6 +77,24 @@ local function InstallImage(image_name, installed_name)
             position = position + block_size
         end
         tmp:close()
+
+        if file_info.temp_name ~= "pending.init.lua" and file_info.temp_name:match("%.lua$") then
+            print("OTA: Compiling file " .. file_info.temp_name)
+            tmr.wdclr()
+            local success = pcall(node.compile, file_info.temp_name)
+            if success then
+                print("OTA: Compiled file " .. file_info.temp_name)
+                local temp_name_lua = file_info.temp_name
+                file_info.temp_name = file_info.temp_name:gsub("%.lua$", ".lc")
+                file_info.target_name = file_info.target_name:gsub("%.lua$", ".lc")
+                if not file_info.temp_name or not file_info.target_name then
+                    return cleanup("Failed to rename compiled file")
+                end
+                file.remove(temp_name_lua)
+            else
+                return cleanup("Failed to compile file")
+            end
+        end
     end
 
     input:close()
@@ -86,11 +104,6 @@ local function InstallImage(image_name, installed_name)
         print("OTA: Commiting file " .. v.temp_name .. " -> " .. v.target_name)
         file.remove(v.target_name)
         file.rename(v.temp_name, v.target_name)
-        if v.target_name ~= "init.lua" and v.target_name:match("%.lua$") then
-            tmr.wdclr()
-            node.compile(v.target_name)
-            file.remove(v.target_name)
-        end
     end
     
     file.remove(installed_name)
@@ -115,19 +128,27 @@ local function StartInstall()
     node.setcpufreq(node.CPU160MHZ)
 
     if file.exists(ROOT_PENDING_FILE) then
-        InstallImage(ROOT_PENDING_FILE, ROOT_CURRENT_FILE)
+        if not InstallImage(ROOT_PENDING_FILE, ROOT_CURRENT_FILE) then
+            print("OTA: Installation failed")
+            file.remove(ROOT_PENDING_FILE)
+            file.remove(TOKEN_FILE_NAME)
+        end
         node.restart()
         return
     end
     if file.exists(CONFIG_PENDING_FILE) then
-        InstallImage(CONFIG_PENDING_FILE, CONFIG_CURRENT_FILE)
+        if not InstallImage(CONFIG_PENDING_FILE, CONFIG_CURRENT_FILE) then
+            print("OTA: Installation failed")
+            file.remove(CONFIG_PENDING_FILE)
+            file.remove(TOKEN_FILE_NAME)
+        end
         node.restart()
         return        
     end  
     if file.exists(LFS_PENDING_FILE) then
         InstallLfs()
     end   
-    
+
     file.remove(TOKEN_FILE_NAME)
 
     if rtcmem then

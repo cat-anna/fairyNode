@@ -24,8 +24,11 @@ end
 
 if file.exists("ota.ready") then
   print "OTA: New package is ready for installation"
-  local ota_installer = require("ota-installer")
-  ota_installer.Install()
+  node.task.post(function()
+    collectgarbage()
+    local ota_installer = require("ota-installer")
+    ota_installer.Install()
+  end)
   return
 end
 

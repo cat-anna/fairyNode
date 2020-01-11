@@ -1,4 +1,22 @@
 
+local HomieMt = {}
+HomieMt.__index = HomieMt
+
+function HomieMt:OnEvent(id, arg)
+    if id == "" then
+        HomiePublish("/$state", "ota")  
+    end
+
+    local handlers = {
+        ["app.init.completed"] = self.PostInit,
+        ["ota.start"] = self.OnOtaStart,
+    }
+    local h = handlers[id]
+    if h then
+        h(self)
+    end   
+end
+
 local m = {
     is_connected = false,
     nodes = { },
@@ -67,6 +85,12 @@ local function MQTTRestoreSubscriptions(client)
     end
 end
 
+function m.OnOtaStart()
+    HomiePublish("/$state", "ota")
+    m.is_connected = false
+    tmr.create():alarm(1000, tmr.ALARM_SINGLE, function() pcall(m.mqttClient.close, m.mqttClient) end)
+end
+
 function m.PostInit()
     local nodes = table.concat(m.nodes, ",")
     HomiePublish("/$nodes", nodes)    
@@ -84,23 +108,30 @@ local function PublishInfo()
 
     HomiePublish("/$implementation", "esp8266")
     HomiePublish("/$fw/name", "fairyNode")
-    HomiePublish("/$fw/fairynode", "0.0.2")
+    HomiePublish("/$fw/FairyNode/version", "0.0.2")
 
-    local old_timestamp
-    local new_timestamp
-    old_timestamp, new_timestamp = require("lfs-timestamp")
-    if new_timestamp then
-        HomiePublish("/$fw/lfs-timestamp", new_timestamp.timestamp)
-    else
-        HomiePublish("/$fw/timestamp", old_timestamp)
-    end
+    local lfs_timestamp = require("lfs-timestamp")
+    HomiePublish("/$fw/FairyNode/lfs/timestamp", lfs_timestamp.timestamp)
+    HomiePublish("/$fw/FairyNode/lfs/hash", lfs_timestamp.hash)
 
     local root_success, root_timestamp = pcall(require, "root-timestamp")
-    if root_success then
-        HomiePublish("/$fw/root-timestamp", root_timestamp.timestamp)
-    else
-        HomiePublish("/$fw/root-timestamp", 0)
+    if not root_success or type(root_timestamp) ~= "table"  then
+        root_timestamp = { timestamp = 0, hash = "" }
     end
+    HomiePublish("/$fw/FairyNode/root/timestamp", root_timestamp.timestamp)
+    HomiePublish("/$fw/FairyNode/root/hash", root_timestamp.hash)
+
+    local config_timestamp
+    if file.exists("config_hash.cfg") then
+        config_timestamp = require("sys-config").JSON("config_hash.cfg")
+        if type(config_timestamp) ~= "table" then
+            config_timestamp = { timestamp = 0, hash = "" }
+        end
+    else
+        config_timestamp = { timestamp = 0, hash = "" }
+    end    
+    HomiePublish("/$fw/FairyNode/config/timestamp", config_timestamp.timestamp)
+    HomiePublish("/$fw/FairyNode/config/hash", config_timestamp.hash)
 
     local hw_info = node.info("hw")
     local sw_version = node.info("sw_version")
@@ -112,15 +143,15 @@ local function PublishInfo()
     HomiePublish("/$hw/flash_mode", hw_info.flash_mode)
     HomiePublish("/$hw/flash_speed", hw_info.flash_speed)
 
-    HomiePublish("/$fw/nodemcu/version", string.format("%d.%d.%d", sw_version.node_version_major, sw_version.node_version_minor, sw_version.node_version_revision))
-    HomiePublish("/$fw/nodemcu/git_branch", sw_version.git_branch)
-    HomiePublish("/$fw/nodemcu/git_commit_id", sw_version.git_commit_id)
-    HomiePublish("/$fw/nodemcu/git_release", sw_version.git_release)
-    HomiePublish("/$fw/nodemcu/git_commit_dts", sw_version.git_commit_dts)
-    HomiePublish("/$fw/nodemcu/ssl", build_config.ssl)
-    HomiePublish("/$fw/nodemcu/lfs_size", build_config.lfs_size)
-    HomiePublish("/$fw/nodemcu/modules", build_config.modules)
-    HomiePublish("/$fw/nodemcu/number_type", build_config.number_type)
+    HomiePublish("/$fw/NodeMcu/version", string.format("%d.%d.%d", sw_version.node_version_major, sw_version.node_version_minor, sw_version.node_version_revision))
+    HomiePublish("/$fw/NodeMcu/git_branch", sw_version.git_branch)
+    HomiePublish("/$fw/NodeMcu/git_commit_id", sw_version.git_commit_id)
+    HomiePublish("/$fw/NodeMcu/git_release", sw_version.git_release)
+    HomiePublish("/$fw/NodeMcu/git_commit_dts", sw_version.git_commit_dts)
+    HomiePublish("/$fw/NodeMcu/ssl", build_config.ssl)
+    HomiePublish("/$fw/NodeMcu/lfs_size", build_config.lfs_size)
+    HomiePublish("/$fw/NodeMcu/modules", build_config.modules)
+    HomiePublish("/$fw/NodeMcu/number_type", build_config.number_type)
 end
 
 local function MqttConnected(client)
@@ -172,7 +203,7 @@ local function MqttProcessMessage(client, topic, payload)
 end
 
 local function GetHomieBaseTopic()
-    return "homie/" .. wifi.sta.gethostname() 
+    return "homie/" .. (wifi.sta.gethostname() or "")
 end
 
 local function GetHomiePropertyTopic(node_name, property_name)
@@ -180,13 +211,13 @@ local function GetHomiePropertyTopic(node_name, property_name)
 end
 
 function m.HomiePublish(topic, payload, retain, qos)
-    payload = tostring(payload)
-    local t = GetHomieBaseTopic() .. topic
-    print("MQTT: " .. t .. " <- " .. (payload or "<NIL>"))
     if not m.is_connected then
         print("MQTT: not connected")
         return false
     end
+    payload = tostring(payload)
+    local t = GetHomieBaseTopic() .. topic
+    print("MQTT: " .. t .. " <- " .. (payload or "<NIL>"))
     local retain_value = 1
     if retain ~= nil and not retain then retain_value = 0 end
     local r
@@ -218,6 +249,8 @@ function m.Init()
     end
 
     m.mqttClient:connect(cfg.host, cfg.port or 1883, MqttConnected, MqttHandleError)
+
+    return setmetatable(m, HomieMt)
 end
 
 function m.Close()

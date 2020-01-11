@@ -29,7 +29,6 @@ fwconfig.lfs = {
     "{FW}/startup/ota-installer.lua",
 
     "{FW}/srv/srv-mqtt.lua",
-    "{FW}/srv/event-mqtt.lua",
     "{FW}/srv/srv-ntp.lua",
     "{FW}/srv/cmd/srv-command.lua",
     "{FW}/srv/cmd/mqtt-command.lua",

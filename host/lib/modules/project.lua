@@ -8,7 +8,7 @@ local shell = require "lib/shell"
 local md5 = require "md5"
 local pretty = require 'pl.pretty'
 local struct = require 'struct'
-local file_image = require "lib/file_image"
+local file_image = require "lib/file-image"
 
 local DeviceConfigFile = "devconfig.lua"
 local FirmwareConfigFile = "fwconfig.lua"
@@ -145,10 +145,6 @@ function ProjectMt:Preprocess()
 end
 
 function ProjectMt:CalcTimestamps()
-   if self.lfsStamp and self.lfsStamp > 0 then
-      return self.lfsStamp
-   end
-
    function process(lst)
       local content = { }
       local max = 0
@@ -222,7 +218,7 @@ function ProjectMt:GenerateDynamicFiles(source, outStorage, list)
    local ts = self:CalcTimestamps()
    local pretty_ts = pretty.write(ts.lfs)
 
-   local timestamp_file = string.format([[return %d, %s ]], ts.lfs.timestamp, pretty_ts )
+   local timestamp_file = string.format([[return %s ]], pretty_ts )
    print("LFS-TIMESTAMP: \n---------------\n" .. timestamp_file .. "\n---------------")
    
    table.insert(list, outStorage:AddFile("lfs-timestamp.lua", timestamp_file))
@@ -271,8 +267,18 @@ function ProjectMt:BuildLFS(outStorage)
 end
 
 function ProjectMt:BuildRootImage()
-   local fileList = self.files
-   print("Files in root: ", #fileList, "\n" .. table.concat(fileList, "\n"))
+   local fileList = {}
+   for _,v in ipairs(self.files) do
+      fileList[path.basename(v)] = file.read(v)
+   end
+
+   local ts = self:CalcTimestamps()
+
+   print(JSON.encode(ts.root))
+   fileList["root-timestamp.lua"] = "return " .. pretty.write(ts.root)
+
+   local files = table.keys(fileList)
+   print("Files in root: ", #files, "\n" .. table.concat(files, "\n"))
    return file_image.Pack(fileList)
 end
 

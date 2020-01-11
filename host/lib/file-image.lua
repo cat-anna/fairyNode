@@ -16,16 +16,8 @@ function m.Pack(file_list)
 
    table.sort(file_list)
    for k,v in pairs(file_list) do
-      local file_name
-      local file_data
-
-      if type(k) == "number" then
-         file_name = path.basename(v)
-         file_data = file.read(v)
-      else
-         file_name = path.basename(k)
-         file_data = v
-      end
+      local file_name = path.basename(k)
+      local file_data = v
 
       local block =
          table.concat(

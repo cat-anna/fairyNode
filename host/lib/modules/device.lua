@@ -83,6 +83,10 @@ function Device:HandleStateChangd(topic, payload)
         return
     end
 
+    if self.state == "ota" and payload == "lost" then
+        print(self:LogTag() .. self.name .. " 'ota -> lost' state transition ignored")
+    end
+
     self.state = payload
     print(self:LogTag() .. self.name .. " entered state " .. payload)
 end

@@ -56,13 +56,21 @@ end
 function OtaCoreMt:DownloadCompleted()
   print("OTA: Download completed")
   self.http_handler = nil
+  wifi.setmode(wifi.NULLMODE)
 
   local token = file.open(TOKEN_FILE_NAME, "w")
   token:write("1")
   token:close()
 
+  if not file.exists("ota-installer.lc") and not file.exists("ota-installer.lua") then
+    print "OTA: Forcing update..."
+    node.task.post(function()
+      require("ota-installer").Install()
+    end)
+    return
+  end
+
   print "OTA: Restarting..."
-  wifi.setmode(wifi.NULLMODE)
   node.task.post(node.restart)
 end
 
@@ -77,24 +85,25 @@ function OtaCoreMt:BeginUpdate()
   end
   
   self.http_handler:SetFinishedCallback(function() self:DownloadCompleted() end)
-  self.http_handler:Start()
+  
+  tmr.create():alarm(5000, tmr.ALARM_SINGLE, function()
+    self.http_handler:Start()
+  end)
 end
 
 local function LoadTimestamps()
   local r = { }
 
-  local loaded, old_stamp, new_stamp = pcall(require, "lfs-timestamp")
+  local loaded, lfs_stamp = pcall(require, "lfs-timestamp")
   if loaded then
-    if new_stamp then
-      r.lfs = new_stamp
+    if type(lfs_stamp) == "table" then
+      r.lfs = lfs_stamp
     end
   end
 
-  loaded, old_stamp, new_stamp = pcall(require, "root-timestamp")
+  loaded, root_stamp = pcall(require, "root-timestamp")
   if loaded then
-    if new_stamp then
-      r.root = new_stamp
-    end
+      r.root = root_stamp
   end
 
   if file.exists("config_hash.cfg") then
