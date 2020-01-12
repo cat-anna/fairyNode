@@ -126,9 +126,10 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             if (prop.settable != true) {
                 GetOrCreateDiv("SETTABLE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySettable").html("&nbsp")
             } else {
+                var control_id = "SETTABLE_" + prop_id
                 if (first) {
                     if (prop.datatype == "boolean") {
-                        var checkbox = GetOrCreateDiv("SETTABLE_" + prop_id, prop_id, "", {
+                        var checkbox = GetOrCreateDiv(control_id, prop_id, "", {
                             classes: "DeviceNodePropertyEntry DeviceNodePropertySettable",
                             type: "input type='checkbox'"
                         })
@@ -147,6 +148,8 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             setTimeout(refresh, 3000);
                         });
                     }
+                } else {
+                    $("#" + control_id).prop('checked', prop.value == "true")
                 }
             }
         }
@@ -288,7 +291,7 @@ function UpdateDevice(entry) {
     var err_caption
     var err_value = null
     var err_current = sysinfo_props.errors.value
-    if (err_current == "[]") {
+    if (err_current == "[]" || err_current == null) {
         err_caption = "&nbsp;"
     } else {
         err_caption = "Active"
@@ -311,13 +314,15 @@ function UpdateDevice(entry) {
         });
     }
 
-
+    var uptime = null
+    if (sysinfo_props.uptime != null)
+        uptime = sysinfo_props.uptime.value
 
     SetOverviewRow(entry.name, {
         // ip : vars.localip,
         state: entry.state,
         timestamp: timestamp.toLocaleString(),
-        uptime: FormatSeconds(sysinfo_props.uptime.value),
+        uptime: FormatSeconds(uptime),
         wifi: sysinfo_props.wifi.value + "%",
         release: (vars["fw/NodeMcu/git_release"] || vars["fw/nodemcu/git_release"]) + " | " +
             (vars["fw/FairyNode/version"] || vars["fw/fairynode"]),

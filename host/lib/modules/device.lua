@@ -88,7 +88,7 @@ function Device:HandleStateChangd(topic, payload)
     end
 
     self.state = payload
-    print(self:LogTag() .. self.name .. " entered state " .. payload)
+    print(self:LogTag() .. self.name .. " entered state " .. (payload or "<?>"))
 end
 
 function Device:HandlePropertyValue(topic, payload)
@@ -130,7 +130,7 @@ function Device:HandlePropertyConfigValue(topic, payload)
 end
 
 function Device:HandleNodeProperties(topic, payload)
-    local props = payload:split(",")
+    local props = (payload or ""):split(",")
     local node_name = topic:match("/([^/]+)/$properties$")
 
     -- print(self:LogTag() .. string.format("node (%s) properties (%d): %s", node_name, #props, payload))
@@ -169,11 +169,11 @@ function Device:HandleNodeValue(topic, payload)
     end
 
     node[value] = payload
-    -- print(self:LogTag() .. string.format("node (%s) %s=%s", node_name, value, payload))
+    print(self:LogTag() .. string.format("node (%s) %s=%s", node_name, value, payload))
 end
 
 function Device:HandleNodes(topic, payload)
-    local nodes = payload:split(",")
+    local nodes = (payload or ""):split(",")
     -- print("DEVICE: nodes (" .. tostring(#nodes) .. "): ", payload)
 
     for _,node_name in ipairs(nodes) do

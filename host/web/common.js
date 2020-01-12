@@ -69,6 +69,10 @@ function QueryPost(sub_url, body, on_data) {
 }
 
 function FormatSeconds(duration) {
+    if (duration == null) {
+        return "&lt;?&gt;"
+    }
+
     var sec_num = parseInt(duration, 10); // don't forget the second param
     var hours = Math.floor(sec_num / 3600);
     var minutes = Math.floor((sec_num - (hours * 3600)) / 60);

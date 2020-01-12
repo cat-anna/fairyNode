@@ -182,6 +182,9 @@ local function MqttProcessMessage(client, topic, payload)
 
     if m.settable_nodes[topic] then
         local node_info = m.settable_nodes[topic]
+        if node_info.release_on_set then
+            m.settable_nodes[topic] = nil
+        end
         print("MQTT: " .. (topic or "<NIL>") .. " is a settable property")
         pcall(node_info.setter, topic, payload, node_info.node_name, node_info.prop_name)
         return
@@ -206,7 +209,11 @@ local function GetHomieBaseTopic()
     return "homie/" .. (wifi.sta.gethostname() or "")
 end
 
-local function GetHomiePropertyTopic(node_name, property_name)
+local function GetHomiePropertySetTopic(node_name, property_name)
+    return GetHomieBaseTopic() .. string.format("/%s/%s/set", node_name, property_name)
+end
+
+local function GetHomiePropertyStateTopic(node_name, property_name)
     return GetHomieBaseTopic() .. string.format("/%s/%s", node_name, property_name)
 end
 
@@ -288,12 +295,19 @@ node = {
         local settable = "false"
         if values.setter then
             settable = "true"
-            local topic_name = GetHomiePropertyTopic(node_name, prop_name)
+            local topic_name = GetHomiePropertySetTopic(node_name, prop_name)
             print("MQTT: Homie settable addres:", topic_name)
             m.settable_nodes[topic_name] = {
                 setter = values.setter,
                 prop_name = prop_name,
                 node_name = node_name,
+            }
+            print("MQTT: Homie state addres:", topic_name)
+            m.settable_nodes[GetHomiePropertyStateTopic(node_name, prop_name)] = {
+                setter = values.setter,
+                prop_name = prop_name,
+                node_name = node_name,
+                release_on_set = true,
             }
         end
         m.HomiePublishNodeProperty(node_name, prop_name .. "/$settable", settable)

@@ -5,6 +5,22 @@ print "===Starting fairyNode==="
 
 node.setcpufreq(node.CPU160MHZ)
 
+if file.exists("ota.ready") then
+  print "OTA: New package is ready for installation"
+  node.task.post(function()
+    collectgarbage()
+    local ota_installer = require("ota-installer")
+    ota_installer.Install()
+  end)
+  collectgarbage()
+  return
+end
+
+if file.exists("debug.cfg") then
+  debugMode = true
+  print("INIT: Debug mode is enabled")
+end
+
 local pcall_x = pcall
 function pcall(f, ...)
   local succ, r, r1, r2, r3 = pcall_x(f, ...)
@@ -16,22 +32,6 @@ function pcall(f, ...)
   end
   return succ, r, r1, r2, r3
 end
-
-if file.exists("debug.cfg") then
-  debugMode = true
-  print("INIT: Debug mode is enabled")
-end
-
-if file.exists("ota.ready") then
-  print "OTA: New package is ready for installation"
-  node.task.post(function()
-    collectgarbage()
-    local ota_installer = require("ota-installer")
-    ota_installer.Install()
-  end)
-  return
-end
-
 
 local function CheckRebootCounter()
   if not rtcmem then
