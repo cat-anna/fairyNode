@@ -79,7 +79,6 @@ end
 if CheckRebootCounter() then
   pcall(node.flashindex("init-lfs"))
 end
-pcall(require, "init-hw")
 
 print "INIT: Waiting before entering bootstrap..."
 tmr.create():alarm(
@@ -92,7 +91,7 @@ tmr.create():alarm(
       return
     end
 
-    print "INIT: Entering bootstrap..."
+    pcall(require, "init-hw")
     require "init-bootstrap"
     t:unregister()
   end

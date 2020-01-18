@@ -3,6 +3,14 @@ print("INIT: Initializing hardware")
 
 hw = require("sys-config").JSON("hw.cfg")
 
+if hw.uart ~= nil then
+    if hw.uart == false then
+        print("INIT: Disabling UART")
+        node.output(function() end, 0)
+        uart.on("data", 4, function() end, 0)
+    end
+end
+
 -- if gpio and hw.gpio then
     -- do sth with gpio 
     -- todo

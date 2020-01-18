@@ -29,7 +29,6 @@ local function PrintHwInfo()
   print("INIT: numbers: ", build_config.number_type)
 end
 
-PrintHwInfo()
 
 local function PrintTimestamp(id)
   local success, timestamp = pcall(require, id)
@@ -38,6 +37,10 @@ local function PrintTimestamp(id)
       print("INIT: " .. id .. ".hash: ", timestamp.hash)
   end
 end
+
+print "INIT: Entering bootstrap..."
+
+PrintHwInfo()
 
 PrintTimestamp("lfs-timestamp")
 PrintTimestamp("root-timestamp")

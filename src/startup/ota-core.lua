@@ -62,14 +62,6 @@ function OtaCoreMt:DownloadCompleted()
   token:write("1")
   token:close()
 
-  if not file.exists("ota-installer.lc") and not file.exists("ota-installer.lua") then
-    print "OTA: Forcing update..."
-    node.task.post(function()
-      require("ota-installer").Install()
-    end)
-    return
-  end
-
   print "OTA: Restarting..."
   node.task.post(node.restart)
 end
