@@ -1,3 +1,6 @@
+
+var kMissingValueBlock = "<span class='MissingValue'>&lt;&nbsp;?&nbsp;&gt;<span>"
+
 function FairyNode_InitOverview() {
     bootstrap_code = `
     <div id="OverviewOuter">
@@ -16,7 +19,6 @@ function FairyNode_InitOverview() {
     </div>
     `;
 
-
     node = document.getElementById('fairyNode-root');
     node.insertAdjacentHTML('afterend', bootstrap_code);
 
@@ -26,7 +28,7 @@ function FairyNode_InitOverview() {
         timestamp: "LFS timestamp",
         uptime: "Uptime",
         wifi: "Signal",
-        release: "NodeMCU version | FairyNode version",
+        release: "NodeMCU | FairyNode version",
         errors: {
             header: true,
             caption: "Errors",
@@ -102,7 +104,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
     function check_value(v, empty) {
         if (v != null) return v;
         if (empty != null) return empty;
-        return "<span class='MissingValue'>&lt;&nbsp;?&nbsp;&gt;<span>";
+        return kMissingValueBlock;
     }
 
     for (var key in entry.nodes) {
@@ -157,116 +159,159 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
     return page
 }
 
+function SetDeviceInfoPageStatus(entry, body_id) {
+    var node_id = "DEVICESTATUS_" + body_id
+    GetOrCreateDiv(node_id, body_id, "DeviceNode")
+    GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("Device status")
+
+    var nodes = entry.nodes
+    var sysinfo_props
+    if (nodes) {
+        sysinfo = nodes.sysinfo
+        if (sysinfo) {
+            sysinfo_props = sysinfo.properties
+        }
+    }
+
+    var blocks = [
+        ["State", entry.state],
+        ["Uptime", FormatSeconds(sysinfo_props.uptime.value), ],
+        // ["Root", "fw/FairyNode/root/timestamp", ],
+        // ["NodeMcu release", "fw/NodeMcu/git_release", ],
+    ]
+
+    if (sysinfo_props.free_space != null) {
+        free_space = (sysinfo_props.free_space.value / 1024).toFixed(1) + " kib"
+        blocks.push(
+            ["Flash free space", free_space]
+        )
+    }
+
+    for (var i in blocks) {
+        var block = blocks[i]
+
+        var caption = block[0]
+        var value = block[1]
+        var id = caption.split(" ").join("_")
+
+        if (/timestamp$/.test(value)) {
+            value = (new Date(value * 1000)).toLocaleString()
+        }
+
+        var prop_id = id + "_" + node_id
+        GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
+            // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+        GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: caption })
+        GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
+    }
+
+    var state_block_id = "#" + "VALUE_" + blocks[0][0] + "_" + node_id
+    $(state_block_id).removeClass(function(index, className) {
+        return (className.match(/(^|\s)NodeState-\S+/g) || []).join(' ');
+    });
+    $(state_block_id).addClass("NodeState-" + entry.state)
+}
+
+function SetDeviceInfoPageSwVersion(entry, body_id) {
+    var node_id = "SW_VERSION_" + body_id
+    GetOrCreateDiv(node_id, body_id, "DeviceNode")
+    GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("Software version")
+
+    var blocks = [
+        ["Configuration", "fw/FairyNode/config/timestamp", ],
+        ["LFS", "fw/FairyNode/lfs/timestamp", ],
+        ["Root", "fw/FairyNode/root/timestamp", ],
+        ["FairyNode version", "fw/FairyNode/version", ],
+        ["NodeMcu release", "fw/NodeMcu/git_release", ],
+        ["NodeMcu branch", "fw/NodeMcu/git_branch", ],
+    ]
+    
+    for (var i in blocks) {
+        var block = blocks[i]
+
+        var caption = block[0]
+        var var_name = block[1]
+
+        var value = entry.variables[var_name] || "-"
+        var id = var_name.split("/").join("")
+
+        if (/timestamp$/.test(var_name)) {
+            value = (new Date(value * 1000)).toLocaleString()
+        }
+
+        var prop_id = id + "_" + node_id
+        GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
+            // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+        GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: caption })
+        GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
+    }
+}
+
+function SetDeviceInfoPageVariables(entry, body_id) {
+    var node_id = "VARIABLE_" + body_id
+    GetOrCreateDiv(node_id, body_id, "DeviceNode")
+    GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("Variables")
+
+    var keys = Object.keys(entry.variables)
+    keys.sort()
+    for (var i in keys) {
+        var key = keys[i]
+        var value = entry.variables[key]
+        var id = key.split("/").join("")
+
+        var prop_id = id + "_" + node_id
+        GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
+            // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+        GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: key })
+        GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
+    }
+}
+
+function SetDeviceInfoPageActiveErrors(entry, body_id) {
+    var node_id = "ERRORS_" + body_id
+    GetOrCreateDiv(node_id, body_id, "DeviceNode")
+
+    var errors = null
+    if (entry.nodes.sysinfo != null && entry.nodes.sysinfo.properties.errors != null) {
+        errors = entry.nodes.sysinfo.properties.errors.value
+    }
+
+    $("#" + node_id).html("")
+    if (errors == null || errors == "[]") {
+        GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("No active errors")
+        return
+    }
+
+    GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader DeviceInfoErrorsActive").html("Active errors")
+    
+    var error_dict = JSON.parse(errors)
+    var keys = Object.keys(error_dict)
+    keys.sort()
+    for (var i in keys) {
+        var key = keys[i]
+        var value = error_dict[key]
+
+        var prop_id = i + "_" + node_id
+        GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
+            // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+        GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: key })
+        GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)        
+    }
+
+}
+
 function SetDeviceInfoPage(entry, sub_id, body_id) {
     var page = GetOrCreateDiv(body_id, sub_id, "DevicePageContent DevicePage tabcontent tab_inactive")
-        //
-        {
-            var node_id = key + "_STATUS_" + body_id
-            GetOrCreateDiv(node_id, body_id, "DeviceNode")
-            GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("Device status")
-
-            var nodes = entry.nodes
-            var sysinfo_props
-            if (nodes) {
-                sysinfo = nodes.sysinfo
-                if (sysinfo) {
-                    sysinfo_props = sysinfo.properties
-                }
-            }
-
-
-
-            var blocks = [
-                ["State", entry.state],
-                ["Uptime", FormatSeconds(sysinfo_props.uptime.value), ],
-                // ["Root", "fw/FairyNode/root/timestamp", ],
-                // ["NodeMcu release", "fw/NodeMcu/git_release", ],
-            ]
-
-            if (sysinfo_props.free_space != null) {
-                free_space = (sysinfo_props.free_space.value / 1024).toFixed(1) + " kib"
-                blocks.push(
-                    ["Flash free space", free_space]
-                )
-            }
-
-            for (var i in blocks) {
-                var block = blocks[i]
-
-                var caption = block[0]
-                var value = block[1]
-                var id = caption.split(" ").join("_")
-
-                if (/timestamp$/.test(var_name)) {
-                    value = (new Date(value * 1000)).toLocaleString()
-                }
-
-                var prop_id = id + "_" + node_id
-                GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
-                    // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
-                GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: caption })
-                GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
-            }
-        }
-        //
-        {
-            var node_id = key + "_SW_VERSION_" + body_id
-            GetOrCreateDiv(node_id, body_id, "DeviceNode")
-            GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("Software version")
-
-            var blocks = [
-                ["Configuration", "fw/FairyNode/config/timestamp", ],
-                ["LFS", "fw/FairyNode/lfs/timestamp", ],
-                ["Root", "fw/FairyNode/root/timestamp", ],
-                ["FairyNode version", "fw/FairyNode/version", ],
-                ["NodeMcu release", "fw/NodeMcu/git_release", ],
-            ]
-
-            for (var i in blocks) {
-                var block = blocks[i]
-
-                var caption = block[0]
-                var var_name = block[1]
-
-                var value = entry.variables[var_name]
-                var id = var_name.split("/").join("")
-
-                if (/timestamp$/.test(var_name)) {
-                    value = (new Date(value * 1000)).toLocaleString()
-                }
-
-                var prop_id = id + "_" + node_id
-                GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
-                    // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
-                GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: caption })
-                GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
-            }
-        }
-        //
-        {
-            var node_id = key + "_VARIABLE_" + body_id
-            GetOrCreateDiv(node_id, body_id, "DeviceNode")
-            GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("Variables")
-
-            var keys = Object.keys(entry.variables)
-            keys.sort()
-            for (var i in keys) {
-                var key = keys[i]
-                var value = entry.variables[key]
-                var id = key.split("/").join("")
-
-                var prop_id = id + "_" + node_id
-                GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
-                    // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
-                GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: key })
-                GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
-            }
-        }
+    SetDeviceInfoPageStatus(entry, body_id)
+    SetDeviceInfoPageSwVersion(entry, body_id)
+    SetDeviceInfoPageActiveErrors(entry, body_id)
+    SetDeviceInfoPageVariables(entry, body_id)
     return page
 }
 
 function SetDeviceCmdPage(entry, sub_id, body_id) {
-    var page = GetOrCreateDiv(body_id, sub_id, "DevicePageContent DevicePage tabcontent tab_inactive", { html: "cmd" })
+    var page = GetOrCreateDiv(body_id, sub_id, "DevicePageContent DevicePage tabcontent tab_inactive")
+
     return page
 }
 
@@ -324,8 +369,8 @@ function UpdateDevice(entry) {
         timestamp: timestamp.toLocaleString(),
         uptime: FormatSeconds(uptime),
         wifi: sysinfo_props.wifi.value + "%",
-        release: (vars["fw/NodeMcu/git_release"] || vars["fw/nodemcu/git_release"]) + " | " +
-            (vars["fw/FairyNode/version"] || vars["fw/fairynode"]),
+        release: (vars["fw/NodeMcu/git_release"] || vars["fw/NodeMcu/git_branch"] ) + " | " +
+            (vars["fw/FairyNode/version"] ),
         errors: {
             caption: err_caption,
             value: err_value,

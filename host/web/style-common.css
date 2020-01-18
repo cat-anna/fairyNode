@@ -1,3 +1,8 @@
+html {
+    overflow-y: scroll;
+}
+
+
 /* * {box-sizing: border-box} */
 
 .FN_tooltip {
@@ -190,7 +195,7 @@
 }
 
 .OverviewTableNodeRelease {
-    width: 300px;
+    width: 250px;
     /* width: 25%; */
 }
 
@@ -350,4 +355,8 @@
 
 .DeviceNodePropertySetValue {
     width: 300px;
+}
+
+.DeviceInfoErrorsActive {
+    background-color: rgba(255, 0, 0, 0.3);
 }
