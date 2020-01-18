@@ -35,7 +35,6 @@ fwconfig.lfs = {
     "{FW}/srv/cmd/cmd-gpio.lua",
     "{FW}/srv/cmd/cmd-help.lua",
     "{FW}/srv/cmd/cmd-sys.lua",
-    "{FW}/srv/cmd/cmd-cfg.lua",
 
     "{FW}/srv/sensor/sensor-sysinfo.lua",
     "{FW}/srv/sensor/srv-sensor.lua",
