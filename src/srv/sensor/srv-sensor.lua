@@ -1,7 +1,9 @@
 
 sensor = sensor or {}
 
-local readout_timer = nil
+local Module = {}
+Module.__index = Module
+
 local readout_index = 0
 
 local function ApplySensorReadout(readout)
@@ -14,19 +16,6 @@ local function ApplySensorReadout(readout)
             print("SENSOR: ", name .. "=" .. tostring(value))
         end
         sensor[name] = value
-    end
-end
-
-local function load_sensors(timer)
-    local s, lst = pcall(require, "lfs-sensors")
-    if s then
-        for _,v in ipairs(lst) do
-            pcall(function()
-                local init = require(v).Init
-                if init then init() end
-            end)
-            coroutine.yield()
-        end
     end
 end
 
@@ -46,20 +35,60 @@ local function SensorReadout()
         end
         readout_index = readout_index + 1
     end
+    if Event then 
+        Event("sensor.readout") 
+        Event("sensor.update")
+    end
+end
+
+local function load_sensors(timer)
+    local s, lst = pcall(require, "lfs-sensors")
+    if s then
+        for _,v in ipairs(lst) do
+            pcall(function()
+                local init = require(v).Init
+                if init then init() end
+            end)
+            coroutine.yield()
+        end
+    end
+end
+
+function Module:OnOtaStart(id, arg)
+    if self.timer then
+        self.timer:unregister()
+        self.timer = nil
+    end
+end
+
+function Module:OnAppStart(id, arg)
+    local scfg = require("sys-config").JSON("sensor.cfg")
+    if not scfg then
+        scfg = { }
+    end
+
+    local interval = (scfg.interval or (5 * 60))
+    print("SENSOR: Setting interval " .. tostring(interval) .. " seconds")
+
+    self.timer = tmr.create()
+    self.timer:alarm(interval * 1000, tmr.ALARM_AUTO, SensorReadout)
+end
+
+function Module:OnEvent(id, arg)
+    local handlers = {
+        ["ota.start"] = self.OnOtaStart,
+        ["app.start"] = self.OnAppStart,
+    }
+    local h = handlers[id]
+    if h then
+        pcall(h, self, id, arg)
+    end   
 end
 
 return {
     Init = function()
-        local scfg = require("sys-config").JSON("sensor.cfg")
-        if not scfg then
-            scfg = { }
-        end
-
-        if not readout_timer then
-            readout_timer = tmr.create():alarm(scfg.interval or 5 * 60 * 1000, tmr.ALARM_AUTO, SensorReadout)
-        end
-
         load_sensors()
+        return setmetatable({ }, Module)
     end,
     Read = SensorReadout,
 }

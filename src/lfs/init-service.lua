@@ -8,6 +8,10 @@ local function InitService()
     coroutine.yield()
 
     local srv_cache = { }
+    local function add_service(name, object)
+        srv_cache[name] = object
+    end
+
     for _,v in ipairs(require "lfs-services") do
         coroutine.yield()
 
@@ -15,7 +19,7 @@ local function InitService()
         print("INIT: Loading " .. name)
         local mod = require(v)
         if mod.Init then
-            srv_cache[name] = mod.Init()
+            srv_cache[name] = mod.Init(add_service)
         end
     end
 
@@ -33,11 +37,11 @@ local function InitService()
     coroutine.yield()
     if Event then Event("app.init.completed") end
 
-    tmr.create():alarm(5000, tmr.ALARM_SINGLE, function()
+    tmr.create():alarm(2000, tmr.ALARM_SINGLE, function()
         if Event then Event("app.start") end
     end)  
     
     coroutine.yield():unregister()
 end
 
-tmr.create():alarm(300, tmr.ALARM_AUTO, coroutine.wrap(InitService))
+tmr.create():alarm(50, tmr.ALARM_AUTO, coroutine.wrap(InitService))

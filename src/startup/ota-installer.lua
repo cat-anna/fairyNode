@@ -117,8 +117,9 @@ local function InstallLfs()
     print "OTA: Loading new LFS..."
     file.remove(LFS_CURRENT_FILE)
     file.rename(LFS_PENDING_FILE, LFS_CURRENT_FILE)
-    node.flashreload(LFS_CURRENT_FILE)
+    local errm = node.flashreload(LFS_CURRENT_FILE)
     -- in case of error
+    print("OTA: Failed to load new LFS (" .. errm .. ")")
     file.remove(LFS_CURRENT_FILE)
 end
 
