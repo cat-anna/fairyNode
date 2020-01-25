@@ -1,5 +1,6 @@
 
---TODO: queue events?
+local event_queue = { }
+local event_timer = nil
 
 local function ApplyEvent(id, arg, module)
     local mod = require(module)
@@ -14,9 +15,7 @@ local function ApplyEvent(id, arg, module)
 end
 
 local function BroadcastEvent(id, arg)
-    local timer = coroutine.yield()
-    timer:interval(20)
-
+    coroutine.yield()
     print("EVENT:", id, tostring(arg))
 
     if services then
@@ -48,11 +47,24 @@ local function BroadcastEvent(id, arg)
     end
 
     if debugMode then print("EVENT: processed: ", id) end
-    timer:unregister()
+end
+
+local function CoroutineTimer()
+    event_timer:interval(10)
+    while #event_queue > 0 do
+        local e = table.remove(event_queue, 1)
+        BroadcastEvent(e.id, e.arg) 
+    end
+    event_timer:unregister()
+    event_timer = nil
 end
 
 return {
     ProcessEvent = function(id, arg)
-        tmr.create():alarm(50, tmr.ALARM_AUTO, coroutine.wrap(function() BroadcastEvent(id, arg) end))
+        table.insert(event_queue, { id = id, arg = arg })
+        if not event_timer then
+            event_timer = tmr.create()
+            event_timer:alarm(20, tmr.ALARM_AUTO, coroutine.wrap(function() CoroutineTimer() end))
+        end
     end,
 }
