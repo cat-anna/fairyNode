@@ -11,16 +11,16 @@ return {
         end
 
         for k,name in pairs(dscfg) do 
-            HomieAddNode(name, {
-                name = name,
-                properties = {
-                    temperature = {
-                        datatype = "float",
-                        name = "Temperature",
-                        unit = "°C",
-                    }
-                }
-            })
+            -- HomieAddNode(name, {
+            --     name = name,
+            --     properties = {
+            --         temperature = {
+            --             datatype = "float",
+            --             name = "Temperature",
+            --             unit = "°C",
+            --         }
+            --     }
+            -- })
         end
     end,    
     Read = function()
@@ -51,7 +51,7 @@ return {
                 end
                 print("DS18B20: " .. addr_str .. ": Device has no name")
             else
-                HomiePublishNodeProperty(name, "temperature", tostring(temp))
+                -- HomiePublishNodeProperty(name, "temperature", tostring(temp))
                 r[name] = { temperature = temp, }                
             end
         end

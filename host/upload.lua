@@ -119,7 +119,7 @@ if #storage.list > 0 then
     table.insert(file_list, table.concat(storage.list, " "))
 end
 
--- for n,_ in pairs(file.list()) do print("Removing:" .. n); file.remove(n) end
+-- for n,_ in pairs(file.list()) do print("Removing: " .. n); file.remove(n) end
 
 if #file_list == 0 then
     print "Nothing to upload"

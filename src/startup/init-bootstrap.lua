@@ -29,7 +29,6 @@ local function PrintHwInfo()
   print("INIT: numbers: ", build_config.number_type)
 end
 
-
 local function PrintTimestamp(id)
   local success, timestamp = pcall(require, id)
   if success and type(timestamp) == "table" then
@@ -46,31 +45,31 @@ PrintTimestamp("lfs-timestamp")
 PrintTimestamp("root-timestamp")
 
 pcall(require, "init-error")
-pcall(require, "init-event")
+pcall(require, "sys-event")
 require("init-network")
 
 -- require("init-log")
 
-local timeout = 5
+-- local timeout = 5
 local function bootstrap(t)
   if abort then
     print "INIT: Initialization aborted!"
     abort = nil
-    if t then
-      t:unregister()
-    end
+    -- if t then
+    --   t:unregister()
+    -- end
     return
   end
 
-  timeout = timeout - 1
+  -- timeout = timeout - 1
 
-  if not wifi.sta.getip() and timeout > 0 then
-    return
-  end
+  -- if not wifi.sta.getip() and timeout > 0 then
+  --   return
+  -- end
 
-  if t then
-    t:unregister()
-  end
+  -- if t then
+  --   t:unregister()
+  -- end
 
   node.task.post(
     function()
@@ -79,9 +78,10 @@ local function bootstrap(t)
   )
 end
 
-if wifi.getmode() == wifi.STATION then
-  print "INIT: Waiting for network connection..."
-  tmr.create():alarm(10 * 1000, tmr.ALARM_AUTO, bootstrap)
-else
-  node.task.post(bootstrap)
-end
+-- if wifi.getmode() == wifi.STATION then
+--   print "INIT: Waiting for network connection..."
+--   tmr.create():alarm(10 * 1000, tmr.ALARM_AUTO, bootstrap)
+-- else
+  tmr.create():alarm(1000, tmr.ALARM_SINGLE, bootstrap)
+  -- node.task.post(bootstrap)
+-- end

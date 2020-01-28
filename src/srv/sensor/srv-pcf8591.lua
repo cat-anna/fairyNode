@@ -16,10 +16,10 @@ return {
             }
         end
 
-        HomieAddNode("pcf8591", {
-            name = "pcf8591",
-            properties = props
-        })
+        -- HomieAddNode("pcf8591", {
+        --     name = "pcf8591",
+        --     properties = props
+        -- })
     end,
     Read = function()
         local pcfcfg = require("sys-config").JSON("pcf8591.cfg")
@@ -43,7 +43,7 @@ return {
             local name = pcfcfg.channels[i] or (string.format("channel_%d", i - 1))
             local value = pcf.adc(i - 1) / 255
             read[name] = string.format("%.3f", value)
-            HomiePublishNodeProperty("pcf8591", name, string.format("%.3f", value * 100))
+            -- HomiePublishNodeProperty("pcf8591", name, string.format("%.3f", value * 100))
         end
 
         local name = pcfcfg.name or "pcf8591"

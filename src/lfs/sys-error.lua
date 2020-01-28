@@ -13,10 +13,6 @@ local function IsAnyErrorSet()
 end 
 
 local function DoUpdate()
-    if HomiePublishNodeProperty then
-        HomiePublishNodeProperty("sysinfo", "errors",  sjson.encode(error_state.errors))
-    end
-
     SetErrorLed(IsAnyErrorSet())
     error_state.update_pending = nil
     if Event then Event("app.error", { any = IsAnyErrorSet(), errors = error_state.errors, }) end
@@ -24,10 +20,14 @@ end
 
 return {
     SetError = function(id, value)
+        if not error_state.errors[id] and not value then
+            --error is not active, and it is begin cleared
+            return
+        end
         error_state.errors[id] = value
         if not error_state.update_pending then
             error_state.update_pending = true
-           tmr.create():alarm(1000, tmr.ALARM_SINGLE, DoUpdate)
+           tmr.create():alarm(500, tmr.ALARM_SINGLE, DoUpdate)
         end
     end
 }

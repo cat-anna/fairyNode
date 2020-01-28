@@ -26,20 +26,14 @@ local function InitService()
     services = srv_cache
     
     coroutine.yield()
-    if Event then Event("app.init.post-services") end
-    coroutine.yield()
-    if Event then Event("app.init.pre-user") end
-
-    pcall(require, "init-user")
-
-    coroutine.yield()
-    if Event then Event("app.init.post-user") end
+    if Event then Event("app.init.post-services", services) end
     coroutine.yield()
     if Event then Event("app.init.completed") end
 
-    tmr.create():alarm(2000, tmr.ALARM_SINGLE, function()
-        if Event then Event("app.start") end
-    end)  
+    coroutine.yield():interval(2000)
+    coroutine.yield()
+    
+    if Event then Event("app.start") end
     
     coroutine.yield():unregister()
 end

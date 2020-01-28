@@ -35,11 +35,9 @@ local function GenerateFileLists(storage, fileList)
    table.insert(fileList, storage.basePath .. "/" .. "lfs-files.lua")
    table.insert(fileList, storage.basePath .. "/" .. "lfs-services.lua")
    table.insert(fileList, storage.basePath .. "/" .. "lfs-events.lua")
-   table.insert(fileList, storage.basePath .. "/" .. "lfs-sensors.lua")
 
    local file_list = {}
    local event_list = {}
-   local sensor_list = {}
    local service_list = {}
 
    for _, v in ipairs(fileList) do
@@ -53,14 +51,10 @@ local function GenerateFileLists(storage, fileList)
       if name:find("event%-") then
          table.insert(event_list, string.format([["%s"]], name))
       end
-      if name:find("sensor%-") then
-         table.insert(sensor_list, string.format([["%s"]], name))
-      end
    end
 
    store_table("lfs-services.lua", service_list)
    store_table("lfs-events.lua", event_list)
-   store_table("lfs-sensors.lua", sensor_list)
    store_table("lfs-files.lua", file_list)
 end
 
@@ -107,11 +101,14 @@ local function PreprocessFileList(self, fileList, vars)
          -- print(k, fileList[k])
          fileList[k] = path.normpath(v:formatEx(vars))
       elseif t == "string" then
+         print(k, v.mode)
          if v.mode == "generated" then
             PreprocessGeneratedFile(self, v, vars)
          elseif v.mode == "conditional" then
-            PreprocessConditionalFile(self, fileList, k, v, vars)
-            table.insert(remove_items, k)
+            if remove_items[k] == nil then --?
+               PreprocessConditionalFile(self, fileList, k, v, vars) 
+            end
+            remove_items[k] = true
          else
             error("Unknown file entry mode: " .. v.mode)
          end
@@ -120,8 +117,8 @@ local function PreprocessFileList(self, fileList, vars)
       end
    end
 
-   for k, v in ipairs(remove_items) do
-      fileList[v] = nil
+   for k, v in pairs(remove_items) do
+      fileList[k] = nil
    end
 end
 

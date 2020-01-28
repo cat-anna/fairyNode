@@ -164,23 +164,24 @@ function SetDeviceInfoPageStatus(entry, body_id) {
     GetOrCreateDiv(node_id, body_id, "DeviceNode")
     GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("Device status")
 
+    var blocks = [
+        ["State", entry.state],
+        // ["Root", "fw/FairyNode/root/timestamp", ],
+        // ["NodeMcu release", "fw/NodeMcu/git_release", ],
+    ]
+
     var nodes = entry.nodes
     var sysinfo_props
     if (nodes) {
         sysinfo = nodes.sysinfo
         if (sysinfo) {
             sysinfo_props = sysinfo.properties
+            blocks.push(["Uptime", FormatSeconds(sysinfo_props.uptime.value), ])
         }
     }
 
-    var blocks = [
-        ["State", entry.state],
-        ["Uptime", FormatSeconds(sysinfo_props.uptime.value), ],
-        // ["Root", "fw/FairyNode/root/timestamp", ],
-        // ["NodeMcu release", "fw/NodeMcu/git_release", ],
-    ]
 
-    if (sysinfo_props.free_space != null) {
+    if (sysinfo_props != null && sysinfo_props.free_space != null) {
         free_space = (sysinfo_props.free_space.value / 1024).toFixed(1) + " kib"
         blocks.push(
             ["Flash free space", free_space]
@@ -335,14 +336,15 @@ function UpdateDevice(entry) {
 
     var err_caption
     var err_value = null
-    var err_current = sysinfo_props.errors.value
-    if (err_current == "[]" || err_current == null) {
-        err_caption = "&nbsp;"
-    } else {
-        err_caption = "Active"
-        err_value = err_current
+    if(sysinfo_props != null ){
+        var err_current = sysinfo_props.errors.value
+        if (err_current == "[]" || err_current == null) {
+            err_caption = "&nbsp;"
+        } else {
+            err_caption = "Active"
+            err_value = err_current
+        }
     }
-
 
     var my_class = "Device_" + entry.name
     var $root_elem = $("#DEVICE_" + entry.name)
@@ -360,15 +362,18 @@ function UpdateDevice(entry) {
     }
 
     var uptime = null
-    if (sysinfo_props.uptime != null)
+    var wifi = null
+    if (sysinfo_props != null && sysinfo_props.uptime != null)
         uptime = sysinfo_props.uptime.value
+    if (sysinfo_props != null && sysinfo_props.wifi != null)
+        wifi = sysinfo_props.wifi.value + "%"
 
     SetOverviewRow(entry.name, {
         // ip : vars.localip,
         state: entry.state,
         timestamp: timestamp.toLocaleString(),
         uptime: FormatSeconds(uptime),
-        wifi: sysinfo_props.wifi.value + "%",
+        wifi: wifi,
         release: (vars["fw/NodeMcu/git_release"] || vars["fw/NodeMcu/git_branch"] ) + " | " +
             (vars["fw/FairyNode/version"] ),
         errors: {

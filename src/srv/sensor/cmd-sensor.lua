@@ -6,7 +6,7 @@ return {
             return
         end
         if subcmd == "read" then
-            node.task.post(function() require("srv-sensor").Read() end)
+            node.task.post(function() services.sensor:TriggerReadout() end)
             out("SENSOR: ok")
             return
         end

@@ -1,5 +1,8 @@
 
-local function HandlePinChange(state, level, pulse)
+local Module = {}
+Module.__index = Module
+
+function Module:HandlePinChange(state, level, pulse)
     local delta = bit.band((pulse - state.pulse), 0x7fffffff) or 0
     if delta < 30 * 1000 then
         return
@@ -20,50 +23,48 @@ local function HandlePinChange(state, level, pulse)
     if Event then
         Event("gpio." .. state.trig, { value = value, level = t })
     end    
-    HomiePublishNodeProperty("gpio", state.trig, value)
+
+    self.node:SetValue(state.trig, value)
 end
 
-local Module = {}
-Module.__index = Module
-
-function Module:DoInit()
+function Module:ContrllerInit(event, ctl)
     local props = { }
+    local any = false
+
     for _,v in pairs(hw.gpio) do
         print("GPIO: Preparing:", v.pin, v.trig)
 
         v.pulse = tmr.now()
         v.state = 0
 
+        any = true
         props[v.trig] = {
             datatype = "integer",
             name = "gpio " .. v.trig,
         }
 
         gpio.mode(v.pin, gpio.INT, v.pullup and gpio.PULLUP or nil)
-        gpio.trig(v.pin, "both", function(...) pcall(HandlePinChange, v, ...) end)
+        gpio.trig(v.pin, "both", function(...) pcall(self.HandlePinChange, self, v, ...) end)
 
         v.pullup = nil
     end
 
-    HomieAddNode("gpio", {
-        name = "gpio",
-        properties = props,
-    })    
+    if any then
+        self.node = ctl:AddNode("gpio", {
+            name = "gpio",
+            properties = props,
+        })    
+    end  
 end
 
-function Module:OnEvent(id, arg)
-    local handlers = {
-        ["app.init.post-services"] = Module.DoInit,
-    }
-    local h = handlers[id]
-    if h then
-        h(self, id, arg)
-    end
-end
+Module.EventHandlers = {
+    ["app.init.post-services"] = Module.DoInit,
+    ["controller.init"] = Module.ContrllerInit,
+}
 
 return {
     Init = function()
-        if not hw or not hw.gpio then
+        if not hw or not hw.gpio and gpio then
             return
         end
         

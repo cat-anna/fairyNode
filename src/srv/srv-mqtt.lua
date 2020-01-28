@@ -1,235 +1,50 @@
 
-local HomieMt = {}
-HomieMt.__index = HomieMt
-
-function HomieMt:OnEvent(id, arg)
-    if id == "" then
-        HomiePublish("/$state", "ota")  
-    end
-
-    local handlers = {
-        ["app.init.completed"] = self.PostInit,
-        ["ota.start"] = self.OnOtaStart,
-    }
-    local h = handlers[id]
-    if h then
-        h(self)
-    end   
-end
-
-local m = {
-    is_connected = false,
-    nodes = { },
-    settable_nodes = { },
-}
-
 local function topic2regexp(topic)
     return topic:gsub("+", "%w*"):gsub("#", ".*")
 end
 
-local function MqttHandleError(client, error)
-    print("MQTT: connection error, code:", error)
-    tmr.create():alarm(
-        10 * 1000,
-        tmr.ALARM_SINGLE,
-        function(t)
-            m.Init()
-            t:unregister()
-        end
-    )
+local Module = {}
+Module.__index = Module
+
+function Module:OnOtaStart()
+    tmr.create():alarm(10 * 1000, tmr.ALARM_SINGLE, function() 
+        self:Close()
+    end)
 end
 
-local function findHandlers()
-    local h = {}
-    for _,v in pairs(require "lfs-files") do
-        local match = v:match("(mqtt%-%w+)")
-        if match then
-            table.insert(h, match)
-        end
-    end
-    return h
-end
-
-local function MQTTRestoreSubscriptions(client)
-    if not m.init_done then
-        return
-    end
-    
-    local any = false
-    local topics = {}
-    local base = "homie/" .. wifi.sta.gethostname()
-    for _, f in ipairs(findHandlers()) do
-        local s, m = pcall(require,f)
-        if not s or not m then
-            print("MQTT: Cannot load handler ", f)
-        else
-            local t = base .. m.GetTopic()
-            print("MQTT: Subscribe " .. t .. " -> " .. f)
-            topics[t] = 0
-            any = true
-        end
-    end
-    for k,v in pairs(m.settable_nodes) do
-        topics[k] = 0
-        print("MQTT: Subscribe for settable node " .. k)
-    end
-
-    if any then
-        if client then
-            client:subscribe(topics, function(client) print("MQTT: Subscriptions restored") end)
-        else
-            print("MQTT: Not connected. Cannot restore subscriptions.")
-        end
-    else
-        print("MQTT: no subscriptions!")
+function Module:OnWifiConnected()
+    if self.post_services then
+        self:Connect()
     end
 end
 
-function m.OnOtaStart()
-    HomiePublish("/$state", "ota")
-    m.is_connected = false
-    tmr.create():alarm(1000, tmr.ALARM_SINGLE, function() pcall(m.mqttClient.close, m.mqttClient) end)
-end
+function Module:OnPostServices()
+    self.post_services = true
 
-function m.PostInit()
-    local nodes = table.concat(m.nodes, ",")
-    HomiePublish("/$nodes", nodes)    
-    HomiePublish("/$state", "ready")
-    m.init_done = true
-    node.task.post(function() MQTTRestoreSubscriptions(m.mqttClient) end)
-end
-
-local function PublishInfo()
-    HomiePublish("/$homie", "3.0.0")
-
-    HomiePublish("/$name", wifi.sta.gethostname())
-    HomiePublish("/$localip", wifi.sta.getip() or "")
-    HomiePublish("/$mac", wifi.sta.getmac() or "")
-
-    HomiePublish("/$implementation", "esp8266")
-    HomiePublish("/$fw/name", "fairyNode")
-    HomiePublish("/$fw/FairyNode/version", "0.0.2")
-
-    local lfs_timestamp = require("lfs-timestamp")
-    HomiePublish("/$fw/FairyNode/lfs/timestamp", lfs_timestamp.timestamp)
-    HomiePublish("/$fw/FairyNode/lfs/hash", lfs_timestamp.hash)
-
-    local root_success, root_timestamp = pcall(require, "root-timestamp")
-    if not root_success or type(root_timestamp) ~= "table"  then
-        root_timestamp = { timestamp = 0, hash = "" }
+    if wifi.sta.getip() then
+        self:Connect()
     end
-    HomiePublish("/$fw/FairyNode/root/timestamp", root_timestamp.timestamp)
-    HomiePublish("/$fw/FairyNode/root/hash", root_timestamp.hash)
-
-    local config_timestamp
-    if file.exists("config_hash.cfg") then
-        config_timestamp = require("sys-config").JSON("config_hash.cfg")
-        if type(config_timestamp) ~= "table" then
-            config_timestamp = { timestamp = 0, hash = "" }
-        end
-    else
-        config_timestamp = { timestamp = 0, hash = "" }
-    end    
-    HomiePublish("/$fw/FairyNode/config/timestamp", config_timestamp.timestamp)
-    HomiePublish("/$fw/FairyNode/config/hash", config_timestamp.hash)
-
-    local hw_info = node.info("hw")
-    local sw_version = node.info("sw_version")
-    local build_config = node.info("build_config")
-
-    HomiePublish("/$hw/chip_id", string.format("%06X", hw_info.chip_id))
-    HomiePublish("/$hw/flash_id", string.format("%x", hw_info.flash_id))
-    HomiePublish("/$hw/flash_size", hw_info.flash_size)
-    HomiePublish("/$hw/flash_mode", hw_info.flash_mode)
-    HomiePublish("/$hw/flash_speed", hw_info.flash_speed)
-
-    HomiePublish("/$fw/NodeMcu/version", string.format("%d.%d.%d", sw_version.node_version_major, sw_version.node_version_minor, sw_version.node_version_revision))
-    HomiePublish("/$fw/NodeMcu/git_branch", sw_version.git_branch)
-    HomiePublish("/$fw/NodeMcu/git_commit_id", sw_version.git_commit_id)
-    HomiePublish("/$fw/NodeMcu/git_release", sw_version.git_release)
-    HomiePublish("/$fw/NodeMcu/git_commit_dts", sw_version.git_commit_dts)
-    HomiePublish("/$fw/NodeMcu/ssl", build_config.ssl)
-    HomiePublish("/$fw/NodeMcu/lfs_size", build_config.lfs_size)
-    HomiePublish("/$fw/NodeMcu/modules", build_config.modules)
-    HomiePublish("/$fw/NodeMcu/number_type", build_config.number_type)
 end
 
-local function MqttConnected(client)
-    print("MQTT: connected")
-    m.is_connected = true
+Module.EventHandlers = {
+    -- ["app.init.completed"] = self.PostInit,
+    ["ota.start"] = Module.OnOtaStart,
+    -- ["wifi.disconnected"] = Module.OnWifiDisconnected,
+    ["wifi.connected"] = Module.OnWifiConnected,
+    ["app.init.post-services"] = Module.OnPostServices,
+}
 
-    if not m.init_done then
-        HomiePublish("/$state", "init")        
-        PublishInfo()
-    else
-        HomiePublish("/$state", "ready")
-    end
-
-    node.task.post(function() MQTTRestoreSubscriptions(client) end)
-    if Event then Event("mqtt.connected") end
-end
-
-local function MQTTDisconnected(client)
-    print("MQTT: offline")
-    m.is_connected = false
-    MqttHandleError(client, "?")
-    if Event then Event("mqtt.disconnected") end
-end
-
-local function MqttProcessMessage(client, topic, payload)
-    local base = "homie/" .. wifi.sta.gethostname()
-    print("MQTT: " .. (topic or "<NIL>") .. " -> " .. (payload or "<NIL>"))
-
-    if m.settable_nodes[topic] then
-        local node_info = m.settable_nodes[topic]
-        if node_info.release_on_set then
-            m.settable_nodes[topic] = nil
-        end
-        print("MQTT: " .. (topic or "<NIL>") .. " is a settable property")
-        pcall(node_info.setter, topic, payload, node_info.node_name, node_info.prop_name)
-        return
-    end
-
-    for _, f in ipairs(findHandlers()) do
-        local s, m = pcall(require, f)
-        if not s or not m then
-            print("MQTT: cannot load handler " .. f)
-        else
-            local regex = topic2regexp(base .. m.GetTopic())
-            if topic:match(regex) and m.Message and m.Message(topic, payload) then
-                print("MQTT: topic " .. topic .. " handled by " .. f)
-                return
-            end
-        end
-    end
-    print("MQTT: cannot find handler for ", topic)
-end
-
-local function GetHomieBaseTopic()
-    return "homie/" .. (wifi.sta.gethostname() or "")
-end
-
-local function GetHomiePropertySetTopic(node_name, property_name)
-    return GetHomieBaseTopic() .. string.format("/%s/%s/set", node_name, property_name)
-end
-
-local function GetHomiePropertyStateTopic(node_name, property_name)
-    return GetHomieBaseTopic() .. string.format("/%s/%s", node_name, property_name)
-end
-
-function m.HomiePublish(topic, payload, retain, qos)
-    if not m.is_connected then
-        print("MQTT: not connected")
+function Module:Publish(topic, payload, retain, qos)
+    payload = tostring(payload)
+    print("MQTT: " .. topic .. " <- " .. (payload or "<NIL>"))
+    if not self.is_connected then
+        print("MQTT: Publish: Not connected")
         return false
     end
-    payload = tostring(payload)
-    local t = GetHomieBaseTopic() .. topic
-    print("MQTT: " .. t .. " <- " .. (payload or "<NIL>"))
-    local retain_value = 1
-    if retain ~= nil and not retain then retain_value = 0 end
+    local retain_value = retain and 1 or 0
     local r
     pcall(function()
-        r = m.mqttClient:publish(t, payload, qos or 0, retain_value)
+        r = self.mqttClient:publish(topic, payload, qos or 0, retain_value)
     end)
     if not r then
         print("MQTT: Publish failed")
@@ -237,10 +52,114 @@ function m.HomiePublish(topic, payload, retain, qos)
     return r
 end
 
-function m.Init()
-    print "MQTT: Initializing..."
+function Module:Subscribe(topics, handler)
+    if not self.is_connected then
+        print("MQTT: Subscribe: Not connected")
+        return
+    end
+    
+    if type(topics) == "string" then
+        topics = { topics }
+    end
 
-    if Event then Event("mqtt.disconnected") end      
+    local subs = {}
+    for _,v in ipairs(topics) do
+        local regex = topic2regexp(v)
+        subs[v] = 0
+
+        -- print("MQTT: Subscribe ", v)
+
+        if not self.subscriptions[regex] then
+            print("MQTT: " .. regex .. " is already registerd, replacing")
+        --     self.subscriptions[regex] = { }
+        end
+        self.subscriptions[regex] = handler
+
+        -- table.insert(self.subscriptions[regex], handler)
+    end
+
+    return self.mqttClient:subscribe(subs, function(client) print("MQTT: Subscription successful") end)
+end
+
+function Module:Unsubscribe(topics)
+    if not self.is_connected then
+        print("MQTT: Subscribe: Not connected")
+        return
+    end
+
+    if type(topics) == "string" then
+        topics = { topics }
+    end
+
+    local subs = {}
+    for _,v in ipairs(topics) do
+        local regex = topic2regexp(v)
+        subs[v] = 0
+        
+        -- print("MQTT: Unsubscribe ", v)
+        
+        self.subscriptions[regex] = nil
+    end
+    
+    return self.mqttClient:unsubscribe(subs, function(client) print("MQTT: Unsubscription successful") end)
+end
+
+function Module:ProcessMessage(client, topic, payload)
+    -- local base = "homie/" .. wifi.sta.gethostname()
+    print("MQTT: " .. (topic or "<NIL>") .. " -> " .. (payload or "<NIL>"))
+
+    for regex, handler in pairs(self.subscriptions) do
+        -- print("MQTT: Testing:", regex)
+        if topic:match(regex) then
+            -- print("MQTT: Matched:", regex)
+            node.task.post(function()
+                pcall(handler, topic, payload)
+            end)
+            return
+        end
+    end
+
+    print("MQTT: Cannot find handler for ", topic)
+end
+
+function Module:Disconnected(client)
+    print("MQTT: Offline")
+    self.is_connected = nil
+    -- self:HandleError(client, "?")
+    if Event then Event("mqtt.disconnected") end
+end
+
+function Module:Connected(client)
+    print("MQTT: Connected")
+    self.is_connected = true
+    if Event then Event("mqtt.connected", self) end
+    -- MQTTRestoreSubscriptions(client)
+end
+
+function Module:HandleError(client, error)
+    print("MQTT: connection error, code:", error)
+    -- tmr.create():alarm(
+    --     10 * 1000,
+    --     tmr.ALARM_SINGLE,
+    --     function(t)
+    --         m.Init()
+    --         t:unregister()
+    --     end
+    -- )
+end
+
+function Module:Close()
+    if self.mqttClient then
+        pcall(function()
+            self.mqttClient:close()
+        end)
+        self.mqttClient = nil
+        self.is_connected = nil
+    end
+end
+
+function Module:Connect()
+    print "MQTT: Connecting..."
 
     local cfg = require("sys-config").JSON("mqtt.cfg")
     if not cfg or not wifi.sta.gethostname() then
@@ -248,87 +167,26 @@ function m.Init()
         return
     end
 
-    if not m.mqttClient then
-        m.mqttClient = mqtt.Client(wifi.sta.gethostname(), 10, cfg.user, cfg.password)
-        m.mqttClient:lwt("homie/" .. wifi.sta.gethostname() .. "/$state", "lost", 0, 1)
-        m.mqttClient:on("offline", MQTTDisconnected)
-        m.mqttClient:on("message", MqttProcessMessage)
+    if not self.mqttClient then
+        self.mqttClient = mqtt.Client(wifi.sta.gethostname(), 10, cfg.user, cfg.password)
+        self.mqttClient:on("offline",  function(...) self:Disconnected(...) end)
+        self.mqttClient:on("message", function(...) self:ProcessMessage(...) end)
+
+        --todo:
+        self.mqttClient:lwt("homie/" .. wifi.sta.gethostname() .. "/$state", "lost", 0, 1)
     end
 
-    m.mqttClient:connect(cfg.host, cfg.port or 1883, MqttConnected, MqttHandleError)
-
-    return setmetatable(m, HomieMt)
+    self.mqttClient:connect(cfg.host, cfg.port or 1883, 
+        function(...) self:Connected(...) end, 
+        function(...) self:HandleError(...) end 
+    )
 end
 
-function m.Close()
-    if m.mqttClient then
-        m.mqttClient:disconnect()
-    end
-end
-
-function m.HomieAddNode(node_name, node)
-    table.insert(m.nodes, node_name)
-
---[[
-node = {
-    name = "some prop name",
-    properties = {
-        temperature = {
-            unit = "...",
-            datatype = "...",
-            name = "...",
-        }
-    }
+return {
+    Init = function()
+        local service = setmetatable({
+            subscriptions = { },
+        }, Module)
+        return service
+    end,
 }
-]]    
-
-    m.HomiePublish("/" .. node_name .. "/$name", node.name)
-    local props = { }
-    for prop_name,values in pairs(node.properties or {}) do
-        table.insert(props, prop_name)
-        for k,v in pairs(values or {}) do
-            if k ~= "setter" then
-                m.HomiePublishNodeProperty(node_name, prop_name .. "/$" .. k, v)
-            end
-        end
-        m.HomiePublishNodeProperty(node_name, prop_name .. "/$retained", "true")
-        local settable = "false"
-        if values.setter then
-            settable = "true"
-            local topic_name = GetHomiePropertySetTopic(node_name, prop_name)
-            print("MQTT: Homie settable addres:", topic_name)
-            m.settable_nodes[topic_name] = {
-                setter = values.setter,
-                prop_name = prop_name,
-                node_name = node_name,
-            }
-            print("MQTT: Homie state addres:", topic_name)
-            m.settable_nodes[GetHomiePropertyStateTopic(node_name, prop_name)] = {
-                setter = values.setter,
-                prop_name = prop_name,
-                node_name = node_name,
-                release_on_set = true,
-            }
-        end
-        m.HomiePublishNodeProperty(node_name, prop_name .. "/$settable", settable)
-    end
-    HomiePublish("/" .. node_name .. "/$properties", table.concat(props, ","))
-end
-
-function m.HomiePublishNodeProperty(node_name, property_name, value)
-    return m.HomiePublish(string.format("/%s/%s", node_name, property_name), value)
-end
-
-function HomiePublish(...)
-    return m.HomiePublish(...)
-end
-
-function HomiePublishNodeProperty(...)
-    return m.HomiePublishNodeProperty(...)
-end
-
-function HomieAddNode(...)
-    return m.HomieAddNode(...)
-end    
-
-return m
