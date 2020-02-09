@@ -102,6 +102,7 @@ end
 function Module:OnOtaStart(id, arg)
     self:Clear()
     tmr.delay(70)
+    self:SetBackLight(true)
     self:PrintLine(0, "OTA...")
 end
 

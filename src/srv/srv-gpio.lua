@@ -57,14 +57,21 @@ function Module:ContrllerInit(event, ctl)
     end  
 end
 
+function Module:OnOtaStart(id, arg)
+    for _,v in pairs(hw.gpio) do
+        gpio.trig(v.pin)
+    end
+end
+
 Module.EventHandlers = {
-    ["app.init.post-services"] = Module.DoInit,
+    -- ["app.init.post-services"] = Module.DoInit,
     ["controller.init"] = Module.ContrllerInit,
+    ["ota.start"] = Module.OnOtaStart,
 }
 
 return {
     Init = function()
-        if not hw or not hw.gpio and gpio then
+        if not hw or not hw.gpio or not gpio then
             return
         end
         

@@ -47,7 +47,7 @@ function Module:OnMqttConnected(event, mqtt)
 
     if Event then 
         self:PublishBaseInfo()
-        Event("controller.init", self, 200)
+        Event("controller.init", self, 500)
         Event("controller.ready", self) 
     end
 end
@@ -178,7 +178,7 @@ function Module:AddNode(node_name, node)
             end)
         end
 
-        self:PublishNodeProperty(node_name, prop_name, "$settable", values.setter ~= nil)
+        self:PublishNodeProperty(node_name, prop_name, "$settable", values.handler ~= nil)
 
         values.handler = nil
         values.retained = nil

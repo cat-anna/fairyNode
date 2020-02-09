@@ -5,7 +5,7 @@ local tend = 0
 local toffset = 0
 
 local function load(t)
-  local z = file.open("time.zone", "r")
+  local z = file.open("localtime", "r")
 
   local hdr = z:read(20)
   local magic = struct.unpack("c4 B", hdr)

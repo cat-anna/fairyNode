@@ -9,7 +9,12 @@ if file.exists("ota.ready") then
   print "OTA: New package is ready for installation"
   node.task.post(function()
     collectgarbage()
-    local ota_installer = require("ota-installer")
+    local loaded, ota_installer = pcall(require, "ota-installer")
+    if not loaded then
+      file.remove("ota.ready")
+      node.restart()
+      return
+    end
     ota_installer.Install()
   end)
   collectgarbage()
