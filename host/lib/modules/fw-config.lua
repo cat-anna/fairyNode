@@ -42,48 +42,40 @@ fwconfig.lfs = {
     "{FW}/srv/sensor/srv-sysinfo.lua",
     "{FW}/srv/sensor/srv-sensor.lua",
     "{FW}/srv/sensor/cmd-sensor.lua",
-    
+
     "{FW}/lfs/event-error.lua",
     "{FW}/lfs/sys-error.lua",
     "{FW}/lfs/init-error.lua",
-
-    bme280e = {
-        mode = "conditional",
-        "{FW}/srv/sensor/srv-bme280e.lua",
-    },
-    -- ds18b20 = {
-    --     mode = "conditional",
-    --     "{FW}/lib/ds18b20.lua",
-    --     "{FW}/srv/sensor/sensor-ds18b20.lua",
-    -- },
-    -- dht11 = {
-    --     mode = "conditional",
-    --     "{FW}/srv/sensor/sensor-dht11.lua",
-    -- },
-
-    i2c = {
-        mode = "conditional",
-        "{FW}/srv/cmd/cmd-i2c.lua",
-    },
-    ow = {
-        mode = "conditional",
-        "{FW}/srv/cmd/cmd-ow.lua",
-    },
-    gpio = {
-        mode = "conditional",
-        "{FW}/srv/srv-gpio.lua",
-    },
-    ["hd44780-i2c"] = {
-        mode = "conditional",
-        "{FW}/srv/srv-hd44780-i2c.lua",
-    },
 }
 
-    -- "{FW}/lib/fifosock.lua",
-    -- "srv/cmd/cmd-telnet.lua",
-    -- "lib/telnet.lua",
-    -- "srv/cmd/cmd-ftpserver.lua",
-    -- "lib/ftpserver.lua",
+fwconfig.modules = {
+    uart = { },
+    led = { },  
+    adc = { },  
+
+    ow = { lfs = { "{FW}/srv/cmd/cmd-ow.lua", }, },    
+    i2c = { lfs = { "{FW}/srv/cmd/cmd-i2c.lua", }, },
+    gpio = { lfs = { "{FW}/srv/srv-gpio.lua", }, },    
+    dht11 = { lfs = { "{FW}/srv/sensor/srv-dht11.lua", }, },    
+    telnet = { lfs = { "{FW}/lib/telnet.lua", "{FW}/srv/cmd/cmd-telnet.lua", }, },
+    ttp229 = { lfs = { "{FW}/srv/srv-ttp229.lua", }, },    
+    bme280e = { lfs = { "{FW}/srv/sensor/srv-bme280e.lua", }, },    
+    ws2812 = { lfs = { "{FW}/srv/srv-ws2812.lua", }, },    
+    ds18b20 = { lfs = { "{FW}/lib/ds18b20.lua", "{FW}/srv/sensor/srv-ds18b20.lua", }, },    
+    timezone = { lfs = { "{FW}/lib/timezone.lua", }, files = { "/etc/localtime" }, },
+    ["hd44780-i2c"] = { lfs = { "{FW}/srv/srv-hd44780-i2c.lua", }, },
+    
+    
+    --TODO: Following modules must be refactored/fixed
+    -- irx = { lfs = { "{FW}/srv/srv-irx.lua", }, }, -- not working
+    pcm = {
+        lfs = {
+            "{FW}/srv/pcm/cmd-pcm.lua",
+            "{FW}/srv/pcm/event-pcm.lua",
+            "{FW}/srv/pcm/mod-pcm.lua",
+        }
+    },
+    --clock32x8
 }
 
 return fwconfig

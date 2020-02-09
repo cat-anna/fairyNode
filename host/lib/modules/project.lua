@@ -79,24 +79,27 @@ local function PreprocessGeneratedFile(self, conf, vars)
    end
 end
 
-local function PreprocessConditionalFile(self, fileList, name, item, vars)
-   if self.config.hw[name] then
-      for i, v in ipairs(item) do
-         local arg = path.normpath(v:formatEx(vars))
-         -- print("COND:", i, item[i], "->", arg)
-         table.insert(fileList, arg)
-      end
-   end
-end
+-- local function PreprocessConditionalFile(self, fileList, name, item, vars)
+--    if self.config.hw[name] then
+--       for i, v in ipairs(item) do
+--          local arg = path.normpath(v:formatEx(vars))
+--          -- print("COND:", i, item[i], "->", arg)
+--          table.insert(fileList, arg)
+--       end
+--    end
+-- end
 
 local function PreprocessFileList(self, fileList, vars)
-   table.sort(fileList)
+   local keys = table.keys(fileList)
+   table.sort(keys, function(a,b) return tostring(a) < tostring(b) end)
 
-   local remove_items = {}
+   for _, key in ipairs(keys) do
+      local k = key
+      local v = fileList[k]
 
-   for k, v in pairs(fileList) do
       local t = type(k)
       -- print(t, k, v)
+
       if t == "number" then
          -- print(k, fileList[k])
          fileList[k] = path.normpath(v:formatEx(vars))
@@ -104,11 +107,6 @@ local function PreprocessFileList(self, fileList, vars)
          print(k, v.mode)
          if v.mode == "generated" then
             PreprocessGeneratedFile(self, v, vars)
-         elseif v.mode == "conditional" then
-            if remove_items[k] == nil then --?
-               PreprocessConditionalFile(self, fileList, k, v, vars) 
-            end
-            remove_items[k] = true
          else
             error("Unknown file entry mode: " .. v.mode)
          end
@@ -116,13 +114,24 @@ local function PreprocessFileList(self, fileList, vars)
          error("Unknown file entry type: " .. t)
       end
    end
+end
 
-   for k, v in pairs(remove_items) do
-      fileList[k] = nil
+function ProjectMt:AddModuleFiles() 
+   for _,v in ipairs(self.modules) do
+      -- print("PROCESSING MODULE: ", v)
+      local fw_module = self.firmware.modules[v]
+      if not fw_module then
+         error("There is no module: " .. v)
+      end
+      self.lfs = table.merge(self.lfs, fw_module.lfs or {})
+      self.files = table.merge(self.files, fw_module.files or {})
    end
 end
 
 function ProjectMt:Preprocess()
+   self.modules = table.merge(self.config.project.modules or {}, table.keys(self.config.project.config.hw))
+   print("MODULES: ", table.concat(self.modules, ","))
+
    self.lfs = table.merge(self.config.firmware.lfs, self.config.project.lfs)
    self.files = table.merge(self.config.firmware.files, self.config.project.files)
    self.config = table.merge(self.chip.config, self.config.project.config)
@@ -134,6 +143,8 @@ function ProjectMt:Preprocess()
       PROJECT = self.projectDir .. "/files/",
       COMMON = "common/"
    }
+
+   self:AddModuleFiles()
 
    -- print("LFS:")
    PreprocessFileList(self, self.lfs, vars)
@@ -246,7 +257,7 @@ function ProjectMt:BuildLFS(outStorage)
       error("Canot generate lfs if not all files are unique!")
    end
 
-   print("Files in lfs: ", #fileList, "\n" .. table.concat(fileList, "\n"))
+   print("Files in lfs: ", #fileList, "\n" .. table.concat(table.sorted(fileList), "\n"))
    local args = {
       "f",
       o = outStorage:AddFile("lfs.pending.img")
@@ -313,6 +324,10 @@ function ProjectModule:ProjectExists(chipid)
   return self.devconfig.chipid[chipid] ~= nil
 end
 
+function ProjectModule:ListDeviceIds()
+   return table.keys(self.devconfig.chipid)
+end
+
 function ProjectModule:LoadProject(chipid)
    local chip_config = self.devconfig.chipid[chipid]
    if not chip_config then
@@ -331,6 +346,7 @@ function ProjectModule:LoadProject(chipid)
 
    proj.projectDir = self.devconfig.projectDir .. "/" .. chip_config.project
 
+   proj.firmware = self.fwconfig -- TODO
    proj.config = {
       firmware = self.fwconfig,
       project = dofile(proj.projectDir .. "/" .. FirmwareConfigFile)

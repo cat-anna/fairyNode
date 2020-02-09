@@ -61,6 +61,11 @@ for line in shell.ForEachLineOf(args.nodemcu_tool, nodemcu_tool_cfg, {"fsinfo"})
     end
 end
 
+if not cfg.chipid then
+    print("Failed to get chipid")
+    return 1
+end
+
 local downloads = { }
 
 local function MakeQuerry(what)
@@ -114,10 +119,8 @@ end
 
 local file_list = { }
 
-if #storage.list > 0 then
-    file.write(storage:AddFile("ota.ready"), "1")
-    table.insert(file_list, table.concat(storage.list, " "))
-end
+file.write(storage:AddFile("ota.ready"), "1")
+table.insert(file_list, table.concat(storage.list, " "))
 
 -- for n,_ in pairs(file.list()) do print("Removing: " .. n); file.remove(n) end
 

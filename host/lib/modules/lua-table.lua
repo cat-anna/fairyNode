@@ -44,5 +44,20 @@ function table.keys(t)
     return r
 end
 
+function table.shalow_copy(t)
+    local r = {}
+    for k,v in pairs(t or {}) do
+       r[k] = v
+    end
+    return r
+end
+
+
+function table.sorted(t, comp)
+    local r = table.shalow_copy(t)
+    table.sort(r, comp)
+    return r
+end
+
 return {}
 
