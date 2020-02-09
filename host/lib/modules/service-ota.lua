@@ -111,6 +111,9 @@ function ServiceOta:ConfigImage(request, id)
     return http.OK, image, "application/octet-stream"
 end
 
+function ServiceOta:OtaDevices()
+    return http.OK, self.project:ListDeviceIds()
+end
 
 function ServiceOta:BeforeReload()
 end

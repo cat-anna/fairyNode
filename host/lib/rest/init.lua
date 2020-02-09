@@ -37,7 +37,7 @@ function RestPublic.HandlerModule(module, handler_name)
         local request = table.remove(args, 1)
 
         local invoke_func = function()
-            print(string.format("REST-REQUEST: %s.%s(%s)", module, handler_name, ConcatRequest(args, "; ")))
+            -- print(string.format("REST-REQUEST: %s.%s(%s)", module, handler_name, ConcatRequest(args, "; ")))
             local dev = modules.GetModule(module)
             code, result, content_type = dev[handler_name](dev, unpack(args))
         end
@@ -49,7 +49,7 @@ function RestPublic.HandlerModule(module, handler_name)
             result = msg
         end
         
-        print(string.format("REST-RESPONSE: Code:%d body:%s bytes", code, (type(result) == "string" and result:len() or JSON.encode(result):len())))
+        -- print(string.format("REST-RESPONSE: Code:%d body:%s bytes", code, (type(result) == "string" and result:len() or JSON.encode(result):len())))
         local response = restserver.response()
         response:status(code)
         response:entity(result)       

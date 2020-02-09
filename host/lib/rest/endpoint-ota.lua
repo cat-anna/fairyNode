@@ -3,6 +3,12 @@ return function(server)
     server:add_resource( "ota",{ 
             {
                 method = "GET",
+                path = "/devices",
+                produces = "application/json",
+                handler = rest.HandlerModule("service-ota", "OtaDevices"),
+            },        
+            {
+                method = "GET",
                 path = "{[A-Z0-9]+}/status",
                 produces = "application/json",
                 handler = rest.HandlerModule("service-ota", "OtaStatus"),
@@ -25,13 +31,6 @@ return function(server)
                 produces = "text/plain",
                 handler = rest.HandlerModule("service-ota", "ConfigImage"),
             },
-            --deprecated
-            {
-                method = "GET",
-                path = "{[A-Z0-9]+}/image",
-                produces = "text/plain",
-                handler = rest.HandlerModule("service-ota", "LfsImage"),
-            }
         }
     )
 end

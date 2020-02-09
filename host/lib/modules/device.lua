@@ -97,12 +97,41 @@ function Device:HandlePropertyValue(topic, payload)
 
     local node = self.nodes[node_name]
     local property = node.properties[prop_name]
+
     if property.value == payload and property.timestamp ~= nil then
         return
     end
 
+    local old_value = property.value
+    local timestamp = os.time()
+
+    self.event_bus:PushEvent({
+            event = "device.property_change",
+            argument = {
+                device = self.name,
+                node = node_name,
+                property = prop_name,
+                value = payload,
+                timestamp = timestamp,
+                old_value = old_value,
+            }
+    })
+
+    if property.value ~= nil and node_name == "sysinfo" and prop_name == "event" then
+        self.event_bus:PushEvent({
+            event = "device.event",
+            argument = {
+                device = self.name,
+                event = payload,
+                timestamp = property.timestamp,
+                old_value = old_value,
+            }
+        })
+    end
+
     property.value = payload
-    property.timestamp = os.time()
+    property.timestamp = timestamp
+
     -- print(self:LogTag() .. string.format("node %s.%s = %s", node_name, prop_name, payload))
 end
 
@@ -135,7 +164,7 @@ function Device:HandleNodeProperties(topic, payload)
     local node_name = topic:match("/([^/]+)/$properties$")
 
     -- print(self:LogTag() .. string.format("node (%s) properties (%d): %s", node_name, #props, payload))
-    
+
     local node = self.nodes[node_name]
     if not node.properties then
         node.properties = {}
@@ -262,7 +291,8 @@ end
 local DevState = {}
 DevState.__index = DevState
 DevState.Deps = {
-    mqtt = "mqtt-provider"
+    mqtt = "mqtt-provider",
+    event_bus = "event-bus",
 }
 
 function DevState:BeforeReload()
@@ -277,6 +307,7 @@ function DevState:AfterReload()
     for name,v in pairs(self.devices) do
         print("DEVICE: Updating metatable of device " .. name)
         setmetatable(v, Device)
+        v.event_bus = self.event_bus
         SafeCall(function () v:AfterReload() end)
     end
 
@@ -301,6 +332,7 @@ function DevState:AddDevice(topic, payload)
         id = device_name,
         homie_version = homie_version,
         mqtt = self.mqtt,
+        event_bus = self.event_bus,
     }, Device)
 
     SafeCall(function() dev:Init() end)

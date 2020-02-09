@@ -12,6 +12,15 @@ local module_dir = {
 local modules = {}
 local ModulesPublic = {}
 
+local Enumerator = { }
+Enumerator.__index = Enumerator
+
+function Enumerator:Enumerate(functor)
+    for k,v in pairs(modules) do
+        functor(k, v.instance)
+    end
+end
+
 local function ReloadModule(group, name, filename, filetime)
     -- print("MODULES: Checking module:",name, filename, filetime)
 
@@ -43,7 +52,7 @@ local function ReloadModule(group, name, filename, filetime)
 
     if new_metatable.Deps ~= nil then 
         for member, dep_name in pairs(new_metatable.Deps) do
-            if not modules[dep_name] then
+            if not modules[dep_name] and dep_name ~= "module-enumerator" then
                 print("MODULES: Module ".. name .. " dependency " .. dep_name ..  " are not yet satisfied")
                 return
             else
@@ -150,6 +159,11 @@ function ModulesPublic.GetModule(name)
     if modules[name] and modules[name].instance then
         return modules[name].instance
     end
+
+    if name == "module-enumerator" then
+        return setmetatable({}, Enumerator) 
+    end
+
     error("There is no module " .. name)
 end
 
