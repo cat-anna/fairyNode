@@ -43,7 +43,6 @@ function ServiceOta:OtaStatus(request, id)
     local ts = project:CalcTimestamps()
     print(self:LogTag() .. ": Timestamps = " .. pretty.write(ts))
 
-    ts.timestamp = ts.lfs.timestamp
     ts.enabled = not project.ota.disabled
     return http.OK, ts
 end

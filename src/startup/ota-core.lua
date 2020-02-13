@@ -106,7 +106,7 @@ local function LoadTimestamps()
   return r
 end
 
-function OtaCoreMt:CheckWhatToUpdate(remote_status, my_timestamps)
+function OtaCoreMt:CheckWhatToUpdate(remote_status, my_timestamps, ignore_host_disable)
   local any_download = false
 
   local function compare(remote, my)
@@ -121,7 +121,7 @@ function OtaCoreMt:CheckWhatToUpdate(remote_status, my_timestamps)
   end
 
   if compare(remote_status.lfs, my_timestamps.lfs) then
-    if remote_status.enabled  then
+    if remote_status.enabled or ignore_host_disable then
       print("OTA: LFS update is needed")
       self:AddLfsDownload()
       any_download = true
@@ -133,7 +133,7 @@ function OtaCoreMt:CheckWhatToUpdate(remote_status, my_timestamps)
   end
 
   if compare(remote_status.root, my_timestamps.root) then
-    if remote_status.enabled  then
+    if remote_status.enabled or ignore_host_disable then
       print("OTA: ROOT update is needed")
       self:AddRootDownload()
       any_download = true
@@ -145,7 +145,7 @@ function OtaCoreMt:CheckWhatToUpdate(remote_status, my_timestamps)
   end
 
   if compare(remote_status.config, my_timestamps.config) then
-    if remote_status.enabled  then
+    if remote_status.enabled or ignore_host_disable then
       print("OTA: CONFIG update is needed")
       self:AddConfigDownload()
       any_download = true
@@ -164,7 +164,7 @@ function OtaCoreMt:CheckWhatToUpdate(remote_status, my_timestamps)
   return any_download
 end
 
-function OtaCoreMt:CheckOtaStatus(data)
+function OtaCoreMt:CheckOtaStatus(data, ignore_host_disable)
   print("OTA: Remote status:" .. data)
   
   local succ, remote_status = pcall(sjson.decode, data)
@@ -175,7 +175,7 @@ function OtaCoreMt:CheckOtaStatus(data)
   data = nil
 
   local my_timestamps = LoadTimestamps()
-  local status, any_download = pcall(self.CheckWhatToUpdate, self, remote_status, my_timestamps)
+  local status, any_download = pcall(self.CheckWhatToUpdate, self, remote_status, my_timestamps, ignore_host_disable)
 
   if status and any_download then
     node.task.post(function() self:BeginUpdate() end)
@@ -191,7 +191,7 @@ function OtaCoreMt:Update()
   self:BeginUpdate()
 end
 
-function OtaCoreMt:Check()
+function OtaCoreMt:Check(ignore_host_disable)
   PackageCleanup()
 
   if file.exists(TOKEN_FILE_NAME) and file.exists(ROOT_PENDING_FILE) then
@@ -202,15 +202,15 @@ function OtaCoreMt:Check()
 
   self.http_handler:AddDownloadItem({
     request = makeRestRequestUrl("status"),
-    response_cb = function(data) self:CheckOtaStatus(data) end,
+    response_cb = function(data) self:CheckOtaStatus(data, ignore_host_disable) end,
   })
 
   self.http_handler:Start()
 end
 
 return {
-  Check = function()
-    node.task.post(function() OtaCoreMt.New():Check() end)
+  Check = function(ignore_host_disable)
+    node.task.post(function() OtaCoreMt.New():Check(ignore_host_disable) end)
   end,
   Update = function()
     node.task.post(function() OtaCoreMt.New():Update() end)
