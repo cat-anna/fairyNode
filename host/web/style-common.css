@@ -190,7 +190,8 @@ html {
 }
 
 .OverviewTableNodeFWTimestamp {
-    width: 150px;
+    width: 200px;
+    overflow: hidden;
     /* width: 25%; */
 }
 
