@@ -10,7 +10,7 @@ function FairyNode_InitOverview() {
                 <div id="DeviceListContent" class="DeviceListContent">
                     <div id="OverviewTable" class="DeviceListPages tabcontent tab_active">
                         <div id="OverviewTable" class="OverviewTable">
-                        </div>                    
+                        </div>
                     </div>
                 </div>
             </div>
@@ -149,6 +149,21 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             QueryPost($(this).attr("data-url"), body)
                             setTimeout(refresh, 3000);
                         });
+                    } else if (prop.datatype == "number") {
+                        var checkbox = GetOrCreateDiv(control_id, prop_id, "", {
+                            classes: "DeviceNodePropertyEntry DeviceNodePropertySettable DeviceNodePropertySettableNumber",
+                            type: "input type='number'"
+                        })
+                        var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
+                        $(checkbox).attr("data-url", url)
+                        $(checkbox).prop('value', prop.value)
+                        $(checkbox).change(function() {
+                            console.log("CHANGE " + $(this).attr("data-url"))
+                            body = {}
+                            body.value = $(this).prop("value")
+                            QueryPost($(this).attr("data-url"), body)
+                            setTimeout(refresh, 3000);
+                        });
                     }
                 } else {
                     $("#" + control_id).prop('checked', prop.value == "true")
@@ -226,7 +241,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         ["NodeMcu release", "fw/NodeMcu/git_release", ],
         ["NodeMcu branch", "fw/NodeMcu/git_branch", ],
     ]
-    
+
     for (var i in blocks) {
         var block = blocks[i]
 
@@ -284,7 +299,7 @@ function SetDeviceInfoPageActiveErrors(entry, body_id) {
     }
 
     GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader DeviceInfoErrorsActive").html("Active errors")
-    
+
     var error_dict = JSON.parse(errors)
     var keys = Object.keys(error_dict)
     keys.sort()
@@ -296,7 +311,7 @@ function SetDeviceInfoPageActiveErrors(entry, body_id) {
         GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
             // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
         GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: key })
-        GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)        
+        GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
     }
 
 }
