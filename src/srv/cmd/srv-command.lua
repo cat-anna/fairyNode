@@ -30,7 +30,7 @@ end
 function Module:MqttCommand(topic, payload)
     local output = function(line)
         if self.mqtt then
-            self.mqtt:Publish(GetTopic() .. "/output", line)
+            self.mqtt:Publish(GetCommandTopic() .. "/output", line)
         end
     end
     HandleCommand(payload, output)

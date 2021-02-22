@@ -16,9 +16,9 @@ fwconfig.files = {
 
 fwconfig.lfs = {
     "{FW}/lfs/fairy-node-info.lua",
-    
+
     "{FW}/lfs/init-lfs.lua",
-    "{FW}/lfs/lfs-string.lua", 
+    "{FW}/lfs/lfs-string.lua",
     "{FW}/lfs/init-service.lua",
     "{FW}/lfs/sys-event.lua",
     "{FW}/startup/init-hw.lua",
@@ -28,7 +28,7 @@ fwconfig.lfs = {
     "{FW}/startup/sys-led.lua",
 
     "{FW}/startup/ota-core.lua",
-    "{FW}/startup/ota-http.lua",            
+    "{FW}/startup/ota-http.lua",
     "{FW}/startup/ota-installer.lua",
 
     "{FW}/srv/srv-mqtt.lua",
@@ -50,22 +50,22 @@ fwconfig.lfs = {
 
 fwconfig.modules = {
     uart = { },
-    led = { },  
-    adc = { },  
+    led = { },
+    adc = { },
 
-    ow = { lfs = { "{FW}/srv/cmd/cmd-ow.lua", }, },    
+    ow = { lfs = { "{FW}/srv/cmd/cmd-ow.lua", }, },
     i2c = { lfs = { "{FW}/srv/cmd/cmd-i2c.lua", }, },
-    gpio = { lfs = { "{FW}/srv/srv-gpio.lua", }, },    
-    dht11 = { lfs = { "{FW}/srv/sensor/srv-dht11.lua", }, },    
+    gpio = { lfs = { "{FW}/srv/srv-gpio.lua", }, },
+    dht11 = { lfs = { "{FW}/srv/sensor/srv-dht11.lua", }, },
     telnet = { lfs = { "{FW}/lib/telnet.lua", "{FW}/srv/cmd/cmd-telnet.lua", }, },
-    ttp229 = { lfs = { "{FW}/srv/srv-ttp229.lua", }, },    
-    bme280e = { lfs = { "{FW}/srv/sensor/srv-bme280e.lua", }, },    
-    ws2812 = { lfs = { "{FW}/srv/srv-ws2812.lua", }, },    
-    ds18b20 = { lfs = { "{FW}/lib/ds18b20.lua", "{FW}/srv/sensor/srv-ds18b20.lua", }, },    
+    ttp229 = { lfs = { "{FW}/srv/srv-ttp229.lua", }, },
+    bme280e = { lfs = { "{FW}/srv/sensor/srv-bme280e.lua", }, },
+    ws2812 = { lfs = { "{FW}/srv/srv-ws2812.lua", }, },
+    ds18b20 = { lfs = { "{FW}/lib/ds18b20.lua", "{FW}/srv/sensor/srv-ds18b20.lua", }, },
     timezone = { lfs = { "{FW}/lib/timezone.lua", }, files = { "/etc/localtime" }, },
     ["hd44780-i2c"] = { lfs = { "{FW}/srv/srv-hd44780-i2c.lua", }, },
-    
-    
+
+
     --TODO: Following modules must be refactored/fixed
     -- irx = { lfs = { "{FW}/srv/srv-irx.lua", }, }, -- not working
     pcm = {

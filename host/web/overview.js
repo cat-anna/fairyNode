@@ -149,21 +149,6 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             QueryPost($(this).attr("data-url"), body)
                             setTimeout(refresh, 3000);
                         });
-                    } else if (prop.datatype == "number") {
-                        var checkbox = GetOrCreateDiv(control_id, prop_id, "", {
-                            classes: "DeviceNodePropertyEntry DeviceNodePropertySettable DeviceNodePropertySettableNumber",
-                            type: "input type='number'"
-                        })
-                        var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
-                        $(checkbox).attr("data-url", url)
-                        $(checkbox).prop('value', prop.value)
-                        $(checkbox).change(function() {
-                            console.log("CHANGE " + $(this).attr("data-url"))
-                            body = {}
-                            body.value = $(this).prop("value")
-                            QueryPost($(this).attr("data-url"), body)
-                            setTimeout(refresh, 3000);
-                        });
                     }
                 } else {
                     $("#" + control_id).prop('checked', prop.value == "true")
@@ -231,7 +216,22 @@ function SetDeviceInfoPageStatus(entry, body_id) {
 function SetDeviceInfoPageSwVersion(entry, body_id) {
     var node_id = "SW_VERSION_" + body_id
     GetOrCreateDiv(node_id, body_id, "DeviceNode")
-    GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("Software version")
+    var header = GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader")
+    header.html("<div style='float: left; display: block; padding-right:20px;'>Software version</div>")
+    jQuery('<div/>', {
+        // id: 'some-id',
+        "class": 'ota_trig_btn',
+        html: 'Trigger OTA',
+        "data-url" : "/device/" + entry.name + "/ota",
+        click: function() {
+            body = {
+                command: 'trigger',
+            }
+            QueryPost($(this).attr("data-url"), body)
+        }
+    }).appendTo(header);
+
+        // "<div class='ota_trig_btn'>Trigger OTA</div>")
 
     var blocks = [
         ["Configuration", "fw/FairyNode/config/timestamp", ],

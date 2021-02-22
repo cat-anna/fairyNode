@@ -45,10 +45,10 @@ function Module:OnMqttConnected(event, mqtt)
     self.mqtt = mqtt
     self.ready_state_reached = nil
 
-    if Event then 
+    if Event then
         self:PublishBaseInfo()
         Event("controller.init", self, 500)
-        Event("controller.ready", self) 
+        Event("controller.ready", self)
     end
 end
 
@@ -105,9 +105,9 @@ function Module:PublishBaseInfo()
         end
     else
         config_timestamp = { timestamp = 0, hash = "" }
-    end    
+    end
     self:Publish("/$fw/FairyNode/config/timestamp", config_timestamp.timestamp)
-    self:Publish("/$fw/FairyNode/config/hash", config_timestamp.hash)    
+    self:Publish("/$fw/FairyNode/config/hash", config_timestamp.hash)
 end
 
 function Module:PublishExtendedInfo()
@@ -122,7 +122,7 @@ function Module:PublishExtendedInfo()
     self:Publish("/$hw/flash_size", hw_info.flash_size)
     self:Publish("/$hw/flash_mode", hw_info.flash_mode)
     self:Publish("/$hw/flash_speed", hw_info.flash_speed)
-    
+
     self:Publish("/$fw/NodeMcu/version", string.format("%d.%d.%d", sw_version.node_version_major, sw_version.node_version_minor, sw_version.node_version_revision))
     self:Publish("/$fw/NodeMcu/git_branch", sw_version.git_branch)
     self:Publish("/$fw/NodeMcu/git_commit_id", sw_version.git_commit_id)
@@ -148,7 +148,7 @@ function Module:AddNode(node_name, node)
             }
         }
     }
-    ]]    
+    ]]
     local props = { }
     for prop_name,values in pairs(node.properties or {}) do
         table.insert(props, prop_name)
@@ -187,7 +187,7 @@ function Module:AddNode(node_name, node)
         for k,v in pairs(values or {}) do
             self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
         end
-        self:PublishNodeProperty(node_name, prop_name, "$retained", "true")        
+        self:PublishNodeProperty(node_name, prop_name, "$retained", "true")
         -- coroutine.yield()
     end
 

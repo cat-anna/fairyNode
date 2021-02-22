@@ -84,6 +84,16 @@ function DevSrv:GetCommandResult(request, device)
     return http.OK, r
 end
 
+function DevSrv:OtaCommand(request, device)
+    local dev = self.device:GetDevice(device)
+    if request.command == "trigger" then
+        dev:SendCommand("sys,ota,check", function() end)
+        return http.OK
+    end
+
+    return http.BadRequest
+end
+
 -------
 
 return DevSrv

@@ -14,6 +14,6 @@ return function(server)
             consumes = "application/json",
             produces = "application/json",
             handler = rest.HandlerModule("service-command", "ExecuteCommand"),
-        },          
+        },
     })
 end

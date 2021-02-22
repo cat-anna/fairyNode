@@ -3,7 +3,7 @@ local function GetWifiSignalQuality()
     local v = (wifi.sta.getrssi() + 100) * 2
     if v > 100 then
         return 100
-    end 
+    end
     if v < 0 then
         return 0
     end
@@ -34,14 +34,14 @@ function Sensor:Readout(event, sensors)
         return
     end
     local flash_remaining = file.fsinfo()
-    
+
     self.node:SetValue("free_space", tostring(flash_remaining))
     self.node:SetValue("heap", tostring(node.heap()))
     self.node:SetValue("uptime", tostring(tmr.time()))
     self.node:SetValue("wifi", tostring(GetWifiSignalQuality()))
 
     if self.use_vdd then
-        self.node:SetValue("vdd", tostring( adc.readvdd33(0)))
+        self.node:SetValue("vdd", tostring(adc.readvdd33(0)))
     end
 end
 
@@ -55,7 +55,7 @@ end
 function Sensor:OnEvent(event)
     if not self.node then
         return
-    end    
+    end
     self.node:SetValue("event", event)
 end
 
@@ -68,8 +68,13 @@ Sensor.EventHandlers = {
 return {
     Init = function()
         local use_vdd = nil
-        if hw and hw.adc then
+        if hw and hw.adc and adc then
             use_vdd = hw.adc == "vdd"
+            if use_vdd and adc.force_init_mode(adc.INIT_VDD33) then
+              print("SYSINFO: Restarting to force adc mode")
+              node.restart()
+              return -- don't bother continuing, the restart is scheduled
+            end
         end
         return setmetatable({ use_vdd = use_vdd }, Sensor)
     end,

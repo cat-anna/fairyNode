@@ -10,6 +10,7 @@ local function NTPCheck(t)
         t:interval(30 * 1000)
     else
         t:unregister()
+        if Event then Event("ntp.sync") end
     end 
 end
 
