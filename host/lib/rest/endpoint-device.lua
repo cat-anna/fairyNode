@@ -14,12 +14,18 @@ return function(server)
             path = "/{[^/]+}/node/{[^/]+}",
             produces = "application/json",
             handler = rest.HandlerModule("service-device", "GetNode"),
-        },    
+        },
         {
             method = "GET",
             path = "/{[^/]+}/node/{[^/]+}/{[^/]+}",
             produces = "application/json",
             handler = rest.HandlerModule("service-device", "GetProperty"),
+        },
+        {
+            method = "GET",
+            path = "/{[^/]+}/history/{[^/]+}/{[^/]+}",
+            produces = "application/json",
+            handler = rest.HandlerModule("service-device", "GetPropertyHistory"),
         },
 
         {
@@ -28,7 +34,7 @@ return function(server)
             consumes = "application/json",
             produces = "application/json",
             handler = rest.HandlerModule("service-device", "SetProperty"),
-        },    
+        },
         {
             method = "POST",
             path = "/{[^/]+}/command",
@@ -42,14 +48,14 @@ return function(server)
             consumes = "application/json",
             produces = "application/json",
             handler = rest.HandlerModule("service-device", "OtaCommand"),
-        },          
+        },
         {
             method = "GET",
             path = "/{[^/]+}/command/result",
             consumes = "application/json",
             produces = "application/json",
             handler = rest.HandlerModule("service-device", "GetCommandResult"),
-        },        
+        },
     })
 
 end

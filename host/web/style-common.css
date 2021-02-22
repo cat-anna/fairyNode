@@ -190,7 +190,8 @@ html {
 }
 
 .OverviewTableNodeFWTimestamp {
-    width: 150px;
+    width: 200px;
+    overflow: hidden;
     /* width: 25%; */
 }
 
@@ -315,12 +316,6 @@ html {
     box-sizing: border-box;
 }
 
-.ota_trig_btn {
-    float: left;
-    display: block;
-    cursor: pointer;
-}
-
 .DeviceNodePropertyContent {
     width: 100%;
     background-color: rgba(0, 0, 0, 0.3);
@@ -365,4 +360,11 @@ html {
 
 .DeviceInfoErrorsActive {
     background-color: rgba(255, 0, 0, 0.3);
+}
+
+.DeviceNodePropertySettableNumber {
+    width: 100px;
+    background: rgba(0, 0, 0, 0);
+    border: 1px silver solid;
+    color: white;
 }

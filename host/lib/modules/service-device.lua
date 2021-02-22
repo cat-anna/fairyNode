@@ -16,14 +16,14 @@ end
 
 -------
 
-function DevSrv:ListDevices(request) 
+function DevSrv:ListDevices(request)
     local devs = self.device:GetDeviceList()
 
     local result = { }
     for _,dev_name in ipairs(devs) do
         local r = {}
         table.insert(result, r)
-        
+
         local dev = self.device:GetDevice(dev_name)
 
         r.name = dev.name
@@ -35,14 +35,14 @@ function DevSrv:ListDevices(request)
     return http.OK, result
 end
 
-function DevSrv:GetProperty(request, device, node, property) 
+function DevSrv:GetProperty(request, device, node, property)
     local dev = self.device:GetDevice(device)
     local node = dev.nodes[node]
     local prop = node.properties[property]
     return http.OK, prop
 end
 
-function DevSrv:SetProperty(request, device, node, property) 
+function DevSrv:SetProperty(request, device, node, property)
     if request.value == nil then
         return http.NotAcceptable
     end
@@ -60,16 +60,23 @@ function DevSrv:SetProperty(request, device, node, property)
     return http.OK, true
 end
 
-function DevSrv:GetNode(request, device, node) 
+function DevSrv:GetPropertyHistory(request, device, node, property)
+    local dev = self.device:GetDevice(device)
+    local node = dev.nodes[node]
+    local prop = node.properties[property]
+    return http.OK, prop.history or {}
+end
+
+function DevSrv:GetNode(request, device, node)
     local dev = self.device:GetDevice(device)
     local node = dev.nodes[node]
     return http.OK, node
 end
 
-function DevSrv:SendCommand(request, device) 
+function DevSrv:SendCommand(request, device)
     local dev = self.device:GetDevice(device)
 
-    local cb = function(...) 
+    local cb = function(...)
         self["last_command_result_" .. dev.id] = { response = { ... }, timestamp = os.time() }
     end
 
@@ -77,9 +84,9 @@ function DevSrv:SendCommand(request, device)
     return http.OK, true
 end
 
-function DevSrv:GetCommandResult(request, device) 
+function DevSrv:GetCommandResult(request, device)
     local dev = self.device:GetDevice(device)
-    local r = self["last_command_result_" .. dev.id] 
+    local r = self["last_command_result_" .. dev.id]
     self["last_command_result_" .. dev.id]  = nil
     return http.OK, r
 end

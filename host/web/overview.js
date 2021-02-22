@@ -149,6 +149,21 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             QueryPost($(this).attr("data-url"), body)
                             setTimeout(refresh, 3000);
                         });
+                    } else if (prop.datatype == "number") {
+                        var checkbox = GetOrCreateDiv(control_id, prop_id, "", {
+                            classes: "DeviceNodePropertyEntry DeviceNodePropertySettable DeviceNodePropertySettableNumber",
+                            type: "input type='number'"
+                        })
+                        var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
+                        $(checkbox).attr("data-url", url)
+                        $(checkbox).prop('value', prop.value)
+                        $(checkbox).change(function() {
+                            console.log("CHANGE " + $(this).attr("data-url"))
+                            body = {}
+                            body.value = $(this).prop("value")
+                            QueryPost($(this).attr("data-url"), body)
+                            setTimeout(refresh, 3000);
+                        });
                     }
                 } else {
                     $("#" + control_id).prop('checked', prop.value == "true")

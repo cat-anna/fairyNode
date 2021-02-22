@@ -10,8 +10,8 @@ local function FormatPropertyValue(prop, value)
             if t == "boolean" then return v end
             return v ~= nil
         end,
-        string = tostring,   
-        float = tonumber,   
+        string = tostring,
+        float = tonumber,
         integer = function(v)
             return math.floor(tonumber(v))
         end,
@@ -58,7 +58,7 @@ function Device:GetPropertyMT(parent_node)
     end
     function mt.GetValueSetTopic(property)
         return parent_node:BaseTopic() .. "/" .. property.id .. "/set"
-    end    
+    end
     function mt.SetValue(property, value)
         if not property.settable then
             error(self:LogTag() .. string.format(" %s.%s is not settable", parent_node.id, property.id))
@@ -98,24 +98,29 @@ function Device:HandlePropertyValue(topic, payload)
     local node = self.nodes[node_name]
     local property = node.properties[prop_name]
 
+    local changed = true
     if property.value == payload and property.timestamp ~= nil then
-        return
+        changed = false
     end
 
     local old_value = property.value
-    local timestamp = os.time()
 
-    self.event_bus:PushEvent({
-            event = "device.property_change",
-            argument = {
-                device = self.name,
-                node = node_name,
-                property = prop_name,
-                value = payload,
-                timestamp = timestamp,
-                old_value = old_value,
-            }
-    })
+    local timestamp = os.time()
+    local value = FormatPropertyValue(property, payload)
+
+    if changed then
+        self.event_bus:PushEvent({
+                event = "device.property_change",
+                argument = {
+                    device = self.name,
+                    node = node_name,
+                    property = prop_name,
+                    value = value,
+                    timestamp = timestamp,
+                    old_value = old_value,
+                }
+        })
+    end
 
     if property.value ~= nil and node_name == "sysinfo" and prop_name == "event" then
         self.event_bus:PushEvent({
@@ -124,15 +129,23 @@ function Device:HandlePropertyValue(topic, payload)
                 device = self.name,
                 event = payload,
                 timestamp = property.timestamp,
+                value = value,
                 old_value = old_value,
             }
         })
     end
 
-    property.value = payload
+    property.value = value
     property.timestamp = timestamp
+    property.history = property.history or {}
+    table.insert(property.history, { value = value, timestamp = timestamp})
+    while #property.history > 1000 do
+        table.remove(property.history, 1)
+    end
 
-    -- print(self:LogTag() .. string.format("node %s.%s = %s", node_name, prop_name, payload))
+    if configuration.debug then
+        print(self:LogTag() .. string.format("node %s.%s = %s (got %d entries)", node_name, prop_name, payload, #property.history))
+    end
 end
 
 function Device:HandlePropertyConfigValue(topic, payload)
@@ -300,7 +313,7 @@ function DevState:BeforeReload()
 
     for name,v in pairs(self.devices) do
         SafeCall(function () v:BeforeReload() end)
-    end    
+    end
 end
 
 function DevState:AfterReload()
@@ -342,7 +355,7 @@ function DevState:AddDevice(topic, payload)
     print("Device: Added " .. device_name)
 end
 
-function DevState:GetDeviceList() 
+function DevState:GetDeviceList()
     local r = {}
     for k,_ in pairs(self.devices) do
         table.insert(r, k)
@@ -350,7 +363,7 @@ function DevState:GetDeviceList()
     return r
 end
 
-function DevState:GetDevice(name) 
+function DevState:GetDevice(name)
     local d = self.devices[name]
     if d then
         return d
