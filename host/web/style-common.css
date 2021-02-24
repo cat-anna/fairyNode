@@ -353,14 +353,14 @@ html {
 
 .DeviceNodePropertyChartBlock {
     width: 100%;
-    height: 400px;
+    height: 440px;
     background-color: rgba(0, 0, 0, 0.7);
     padding: 20px;
 }
 
 .DeviceNodePropertyChart {
     width: 100%;
-    height: 100%;
+    height: 400px;
 }
 
 .DeviceNodePropertyName {
