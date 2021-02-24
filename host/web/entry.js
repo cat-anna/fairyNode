@@ -15,6 +15,8 @@ function FairyNodeStart(src_base, rest_base, style, page_name) {
         page_name = "overview"
     }
 
+    $.getScript(src_base + "Chart.bundle.min.js", function() {})
+
     $.getScript(src_base + "common.js", function() {
         FairyNodeExecute(page_name, src_base, rest_base)
     });
