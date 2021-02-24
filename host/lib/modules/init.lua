@@ -12,6 +12,8 @@ local module_dir = {
 local modules = {}
 local ModulesPublic = {}
 
+local ReloadWatchers = { }
+
 local Enumerator = { }
 Enumerator.__index = Enumerator
 
@@ -21,11 +23,15 @@ function Enumerator:Enumerate(functor)
     end
 end
 
+function ModulesPublic:RegisterReloadWatcher(name, functor)
+    ReloadWatchers[name] = functor
+end
+
 local function ReloadModule(group, name, filename, filetime)
     -- print("MODULES: Checking module:",name, filename, filetime)
 
     if not modules[name] then
-        modules[name] = { 
+        modules[name] = {
             timestamp = 0,
             name = name,
             group = group,
@@ -50,7 +56,7 @@ local function ReloadModule(group, name, filename, filetime)
         return
     end
 
-    if new_metatable.Deps ~= nil then 
+    if new_metatable.Deps ~= nil then
         for member, dep_name in pairs(new_metatable.Deps) do
             if not modules[dep_name] and dep_name ~= "module-enumerator" then
                 print("MODULES: Module ".. name .. " dependency " .. dep_name ..  " are not yet satisfied")
@@ -59,7 +65,7 @@ local function ReloadModule(group, name, filename, filetime)
                 local mod_instance = ModulesPublic.GetModule(dep_name)
                 if not mod_instance then
                     print("MODULES: Failed to get module ".. dep_name .. " as dependency for " .. name)
-                    return           
+                    return
                 else
                     module.instance[member]  = mod_instance
                 end
@@ -84,12 +90,12 @@ local function ReloadModule(group, name, filename, filetime)
             if not success then
                 module.instance = nil
                 print("MODULES: Failed to initialize module:", name)
-                return 
+                return
             else
                 module.init_done = true
             end
-        end        
-    end 
+        end
+    end
 
     if module.instance.AfterReload then
         SafeCall(function ()
@@ -103,7 +109,7 @@ local function ReloadModule(group, name, filename, filetime)
     return true
 end
 
-local function ReloadModuleDirectory(group, base_dir)
+local function ReloadModuleDirectory(group, base_dir, first_reload)
     local all_loaded = true
     for file in lfs.dir(base_dir .. "/") do
         if file ~= "." and file ~= ".." and file ~= "init.lua" then
@@ -115,7 +121,15 @@ local function ReloadModuleDirectory(group, base_dir)
                 local name = file:match("([^%.]+).lua")
                 local t = attr.modification
                 if not ReloadModule(group, name, f, t) then
-                    all_loaded = false  
+                    all_loaded = false
+                else
+                    if not first_reload then
+                        for _,functor in pairs(ReloadWatchers) do
+                            SafeCall(function ()
+                                functor(name)
+                            end)
+                        end
+                    end
                 end
             end
         end
@@ -134,7 +148,7 @@ local function ReloadModules(first_reload)
         done = true
         attempts = attempts - 1
         for group,dir in pairs(module_dir) do
-            if not ReloadModuleDirectory(group, dir) then
+            if not ReloadModuleDirectory(group, dir, first_reload) then
                 done = false
             end
         end
@@ -143,7 +157,7 @@ end
 
 copas.addthread(function()
     copas.sleep(1)
-    ReloadModules(true)    
+    ReloadModules(true)
     while true do
         copas.sleep(1)
         ReloadModules(false)
@@ -152,8 +166,8 @@ copas.addthread(function()
         else
             copas.sleep(60*5)
         end
-    end 
-end)   
+    end
+end)
 
 function ModulesPublic.GetModule(name)
     if modules[name] and modules[name].instance then
@@ -161,7 +175,7 @@ function ModulesPublic.GetModule(name)
     end
 
     if name == "module-enumerator" then
-        return setmetatable({}, Enumerator) 
+        return setmetatable({}, Enumerator)
     end
 
     error("There is no module " .. name)

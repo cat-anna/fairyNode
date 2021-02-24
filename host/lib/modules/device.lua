@@ -11,6 +11,7 @@ local function FormatPropertyValue(prop, value)
             return v ~= nil
         end,
         string = tostring,
+        number = tonumber, --TODO
         float = tonumber,
         integer = function(v)
             return math.floor(tonumber(v))
@@ -65,17 +66,18 @@ function Device:GetPropertyMT(parent_node)
         end
         value = FormatPropertyValue(property, value)
         local topic = property:GetValueSetTopic()
-        self.mqtt:PublishMessage(topic, value, property.retain)
+        self.mqtt:PublishMessage(topic, value, property.retained)
         -- print(self:LogTag() .. string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
     end
     return mt
 end
 
 function Device:WatchTopic(topic, handler)
-    self.mqtt:WatchTopic(self:MqttId(), function(...) handler(self, ...) end, self:BaseTopic() .. topic)
+    self.mqtt:WatchTopic(self:MqttId() .. "-topic-" .. topic, function(...) handler(self, ...) end, self:BaseTopic() .. topic)
 end
+
 function Device:WatchRegex(topic, handler)
-    self.mqtt:WatchRegex(self:MqttId(), function(...) handler(self, ...) end, self:BaseTopic() .. topic)
+    self.mqtt:WatchRegex(self:MqttId() .. "-regex-" .. topic, function(...) handler(self, ...) end, self:BaseTopic() .. topic)
 end
 
 function Device:HandleStateChangd(topic, payload)
@@ -138,9 +140,11 @@ function Device:HandlePropertyValue(topic, payload)
     property.value = value
     property.timestamp = timestamp
     property.history = property.history or {}
-    table.insert(property.history, { value = value, timestamp = timestamp})
-    while #property.history > 1000 do
-        table.remove(property.history, 1)
+    if #property.history == 0 or property.history[#property.history].timestamp ~= timestamp or property.history[#property.history].value ~= value then
+        table.insert(property.history, {value = value, timestamp = timestamp})
+        while #property.history > 1000 do
+            table.remove(property.history, 1)
+        end
     end
 
     if configuration.debug then

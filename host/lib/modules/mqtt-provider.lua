@@ -10,6 +10,9 @@ local mqttloop = mqtt:get_ioloop()
 
 local MqttProvider = {}
 MqttProvider.__index = MqttProvider
+MqttProvider.Deps = {
+    event_bus = "event-bus",
+}
 
 local function topic2regexp(topic)
     return "^" .. topic:gsub("+", "([^/]+)"):gsub("#", "(.*)") .. "$"
@@ -30,7 +33,7 @@ function MqttProvider:ResetClient()
         reconnect = 1,
         keep_alive = 10,
         version = mqtt.v311,
-    }    
+    }
     mqtt_client:on {
         connect = function(...) self:HandleConnect(...) end,
         message = function(...) self:HandleMessage(...) end,
@@ -59,7 +62,7 @@ end
 function MqttProvider:RestoreSubscription(sub)
     if not self.connected or sub.subscribed then
         return
-    end    
+    end
     print("MQTT-PROVIDER: Restoring subscription " .. sub.regex)
     assert(self.mqtt_client:subscribe{ topic=sub.regex, qos=0, callback=function(suback)
         print("MQTT-PROVIDER: Scubscribed to " .. sub.regex)
@@ -83,12 +86,17 @@ function MqttProvider:HandleConnect(connack)
     print("MQTT-PROVIDER: Connected")
     self.connected = true
     self:RestoreSubscriptions()
+
+    self.event_bus:PushEvent({
+        event = "mqtt-provider.connected",
+        argument = {}
+    })
 end
 
 function MqttProvider:HandleMessage(msg)
     local topic = msg.topic
     local payload = msg.payload
-    
+
     if not self.cache[topic] then
         self.cache[topic] = {}
     end
@@ -97,10 +105,14 @@ function MqttProvider:HandleMessage(msg)
     if entry.content ~= payload then
         entry.content = payload
         entry.timeout = os.time()
-        -- print("MQTT-PROVIDER: changed:", topic, payload)
     end
+    -- print("MQTT-PROVIDER: changed:", topic, payload)
 
     self:NotifyWatchers(topic, payload)
+    self.event_bus:PushEvent({
+        event = "mqtt-provider.message",
+        argument = {topic=topic,payload=payload}
+    })
 end
 
 function MqttProvider:PublishMessage(topic, payload, retain)
@@ -114,10 +126,21 @@ function MqttProvider:PublishMessage(topic, payload, retain)
         qos = 0,
         retain = retain,
     }
+
+    -- self:NotifyWatchers(topic, payload)
+
+    self.event_bus:PushEvent({
+        event = "mqtt-provider.publish",
+        argument = {topic=topic,payload=payload}
+    })
 end
 
 function MqttProvider:HandleError(err)
     print("MQTT-PROVIDER: client error:", err)
+    self.event_bus:PushEvent({
+        event = "mqtt-provider.error",
+        argument = {error=err}
+    })
 end
 
 function MqttProvider:HandleClose()
@@ -126,6 +149,10 @@ function MqttProvider:HandleClose()
     for _,v in pairs(self.subscriptions) do
         v.subscribed = false
     end
+    self.event_bus:PushEvent({
+        event = "mqtt-provider.disconnected",
+        argument = {}
+    })
 end
 
 function MqttProvider:CallWatchers(watchers, topic, payload)
@@ -168,7 +195,7 @@ function MqttProvider:StopWatching(id)
     end
     for k,v in pairs(self.cache) do
         v.watchers = FilterWatcherList(v.watchers, id)
-    end    
+    end
     -- print("MQTT-PROVIDER: Unsubscribed:", id)
 end
 
@@ -176,12 +203,14 @@ function MqttProvider:WatchTopic(id, handler, topics)
     if type(topics) == "string" then
         topics = { topics }
     end
+
+    self:StopWatching(id)
     for _,topic in ipairs(topics) do
         if not self.cache[topic] then
             self.cache[topic] = {}
         end
 
-        local entry = self.cache[topic] 
+        local entry = self.cache[topic]
 
         if not entry.watchers then
             entry.watchers = {}
@@ -206,6 +235,7 @@ function MqttProvider:WatchRegex(id, handler, topics)
         topics = { topics }
     end
 
+    self:StopWatching(id)
     for _,mqtt_regex in ipairs(topics) do
         if not self.regex_watchers[mqtt_regex] then
             self.regex_watchers[mqtt_regex] = { regex = topic2regexp(mqtt_regex) }
@@ -214,7 +244,7 @@ function MqttProvider:WatchRegex(id, handler, topics)
         local entry = self.regex_watchers[mqtt_regex]
 
         if not entry.watchers then
-            entry.watchers = { } 
+            entry.watchers = { }
         end
 
         table.insert(entry.watchers, {
@@ -233,6 +263,9 @@ function MqttProvider:WatchRegex(id, handler, topics)
     end
 end
 
+function MqttProvider:IsConnected()
+    return self.connected
+end
 
 function MqttProvider:Init()
     self.connected = false
@@ -249,15 +282,15 @@ function MqttProvider:Init()
         while true do
             mqttloop:iteration()
             copas.sleep(0.001)
-        end 
-    end)    
+        end
+    end)
 
     copas.addthread(function()
         while true do
             copas.sleep(10)
             self.mqtt_client:send_pingreq()
-        end 
-    end)    
-end 
+        end
+    end)
+end
 
 return MqttProvider

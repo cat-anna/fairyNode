@@ -94,6 +94,111 @@ function SetOverviewRow(id, values) {
     return row
 }
 
+function newDate(timestamp) {
+    return moment.unix(timestamp).toDate();
+}
+
+function RefreshChart(chart) {
+    console.log(chart.source_url)
+    QueryGet(chart.source_url, function(data) {
+        data.history.sort(function(a, b) { return a.timestamp < b.timestamp; })
+
+        chart.config.data.datasets[0].label = data.label
+
+        for (var key in data.history) {
+            var item = data.history[key]
+            if(chart.last_timestamp < item.timestamp) {
+                chart.config.data.labels.push(newDate(item.timestamp));
+                chart.config.data.datasets[0].data.push({
+                    x: newDate(item.timestamp),
+                    y: parseFloat(item.value),
+                });
+                chart.last_timestamp = item.timestamp
+            }
+        }
+        chart.update();
+    })
+}
+function OpenDevicePropertyChart(url, parent_block) {
+    var chart_div_id = "CHART_" + parent_block
+    var exists = document.getElementById(chart_div_id) !== null
+    var open_chart = GetOrCreateDivAfter(chart_div_id, parent_block, "DeviceNodePropertyEntry DeviceNodePropertyChartBlock", { html: "&nbsp"})
+
+    if (exists) {
+        console.log("toggle")
+        $('#'+chart_div_id).toggle();
+        return
+    }
+
+    var canvas_id = "CANVAS_" + parent_block
+    var canvas = document.createElement('canvas');
+    $(canvas)
+        .attr('id', canvas_id)
+        .toggleClass("DeviceNodePropertyChart")
+        .text('unsupported browser')
+        .appendTo("#" + chart_div_id);
+
+    var timeFormat = 'MM/DD/YYYY HH:mm';
+
+    function newDateString(days) {
+        return moment().add(days, 'd').format(timeFormat);
+    }
+    var ctx = canvas.getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: '?',
+                borderColor: 'rgb(50, 50, 50)',
+                backgroundColor: 'rgb(150, 150, 150)',
+                fill: false,
+                data: [],
+            }]
+        },
+        options: {
+            legend: {
+                labels: {
+                    fontColor: 'rgb(50, 50, 50)',
+                }
+            },
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                    time: {
+                        parser: timeFormat,
+                        tooltipFormat: 'll HH:mm'
+                    },
+                    ticks: {
+                        fontColor: 'rgb(50, 50, 50)',
+                    },
+                    scaleLabel: {
+                        fontColor: 'rgb(50, 50, 50)',
+                        display: true,
+                        labelString: 'Date'
+                    }
+                }],
+                yAxes: [{
+                    ticks: {
+                        fontColor: 'rgb(50, 50, 50)',
+                    },
+                    scaleLabel: {
+                        fontColor: 'rgb(50, 50, 50)',
+                        display: true,
+                        labelString: 'value'
+                    }
+                }]
+            },
+        }
+    });
+
+    myChart.last_timestamp = 0
+    myChart.source_url = url
+
+    RefreshChart(myChart)
+    setInterval(function(){ RefreshChart(myChart) }, 10 * 1000)
+}
+
 function SetDeviceNodesPage(entry, sub_id, body_id) {
 
     var $root_elem = $("#" + body_id)
@@ -117,7 +222,20 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             var prop = node.properties[prop_key]
             var prop_id = prop_key + "_" + node_id
             GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
-                // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+
+            if(prop.datatype == "float" || prop.datatype == "integer" || prop.datatype == "boolean" || prop.datatype == "boolean") {
+                var chart_source = "/device/" + entry.name + "/history/" + node.id + "/" + prop.id
+                var chart_node_id = "CHART_BTN_" + prop_id
+                var open_chart = GetOrCreateDiv(chart_node_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyOpenChart", { html: "&nbsp"})
+                $(open_chart).attr("data-url", chart_source)
+                $(open_chart).attr("prop-id", prop_id)
+                $(open_chart).unbind('click').click(function() {
+                    OpenDevicePropertyChart($(this).attr("data-url"), $(this).attr("prop-id"), this)
+                })
+            } else {
+                GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+            }
+
             GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: prop.name })
             GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(check_value(prop.value))
             var timestamp = null
@@ -149,7 +267,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             QueryPost($(this).attr("data-url"), body)
                             setTimeout(refresh, 3000);
                         });
-                    } else if (prop.datatype == "number") {
+                    } else if (prop.datatype == "number" || prop.datatype == "float") {
                         var checkbox = GetOrCreateDiv(control_id, prop_id, "", {
                             classes: "DeviceNodePropertyEntry DeviceNodePropertySettable DeviceNodePropertySettableNumber",
                             type: "input type='number'"

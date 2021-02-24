@@ -64,7 +64,10 @@ function DevSrv:GetPropertyHistory(request, device, node, property)
     local dev = self.device:GetDevice(device)
     local node = dev.nodes[node]
     local prop = node.properties[property]
-    return http.OK, prop.history or {}
+    return http.OK, {
+        label = dev.name .. " - " .. node.name .. " - " .. prop.name,
+        history = prop.history
+    }
 end
 
 function DevSrv:GetNode(request, device, node)

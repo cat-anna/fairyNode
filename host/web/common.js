@@ -11,7 +11,6 @@ function FairyNodeExecute(page_name, src_base, rest_base) {
 }
 
 function GetOrCreateDiv(id, parent_id, classes, cfg) {
-
     var $element = $('#' + id);
     if (!$element.length) {
         var element_type = "div"
@@ -22,6 +21,30 @@ function GetOrCreateDiv(id, parent_id, classes, cfg) {
                 classes = classes + " " + cfg.classes
         }
         $element = $('<' + element_type + ' id="' + id + '" class="' + classes + '"></' + element_type + '>').appendTo('#' + parent_id);
+        if (cfg != null) {
+            if (cfg.html != null) {
+                $element.html(cfg.html)
+            }
+            if (cfg.data != null) {
+                $element.attr("data", cfg.data)
+            }
+        }
+    }
+
+    return $element
+}
+
+function GetOrCreateDivAfter(id, after_id, classes, cfg) {
+    var $element = $('#' + id);
+    if (!$element.length) {
+        var element_type = "div"
+        if (cfg != null) {
+            if (cfg.type != null)
+                element_type = cfg.type
+            if (cfg.classes != null)
+                classes = classes + " " + cfg.classes
+        }
+        $element = $('<' + element_type + ' id="' + id + '" class="' + classes + '"></' + element_type + '>').insertAfter('#' + after_id);
         if (cfg != null) {
             if (cfg.html != null) {
                 $element.html(cfg.html)
