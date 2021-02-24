@@ -58,17 +58,12 @@ local function ReloadModule(group, name, filename, filetime)
 
     if new_metatable.Deps ~= nil then
         for member, dep_name in pairs(new_metatable.Deps) do
-            if not modules[dep_name] and dep_name ~= "module-enumerator" then
+            local dep = modules[dep_name] or {}
+            if not dep.instance and dep_name ~= "module-enumerator" then
                 print("MODULES: Module ".. name .. " dependency " .. dep_name ..  " are not yet satisfied")
                 return
             else
-                local mod_instance = ModulesPublic.GetModule(dep_name)
-                if not mod_instance then
-                    print("MODULES: Failed to get module ".. dep_name .. " as dependency for " .. name)
-                    return
-                else
-                    module.instance[member]  = mod_instance
-                end
+                module.instance[member] = ModulesPublic.GetModule(dep_name)
             end
         end
     end
@@ -111,25 +106,31 @@ end
 
 local function ReloadModuleDirectory(group, base_dir, first_reload)
     local all_loaded = true
+    local files = {}
     for file in lfs.dir(base_dir .. "/") do
         if file ~= "." and file ~= ".." and file ~= "init.lua" then
             local f = base_dir .. '/' .. file
             local attr = lfs.attributes (f)
             assert (type(attr) == "table")
-
             if attr.mode == "file" then
                 local name = file:match("([^%.]+).lua")
-                local t = attr.modification
-                if not ReloadModule(group, name, f, t) then
-                    all_loaded = false
-                else
-                    if not first_reload then
-                        for _,functor in pairs(ReloadWatchers) do
-                            SafeCall(function ()
-                                functor(name)
-                            end)
-                        end
-                    end
+                local timestamp = attr.modification
+                table.insert(files, {
+                    name=name,timestamp=timestamp,path=f
+                })
+            end
+        end
+    end
+    table.sort(files, function (a,b) return a.path<b.path end)
+    for _,f in ipairs(files) do
+        if not ReloadModule(group, f.name, f.path, f.timestamp) then
+            all_loaded = false
+        else
+            if not first_reload then
+                for _,functor in pairs(ReloadWatchers) do
+                    SafeCall(function ()
+                        functor(f.name)
+                    end)
                 end
             end
         end

@@ -61,6 +61,9 @@ function EventBus:ProcessEvent(event_info)
 end
 
 function EventBus:ApplyEvent(module_name, module_instance, event_info)
+    if not module_instance then
+        return
+    end
     local event_table = module_instance.EventTable
     if not event_table then
         return
