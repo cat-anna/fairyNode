@@ -88,8 +88,8 @@ function SysInfo:InitHomieNode(event)
     self.homie_node = event.client:AddNode("SysInfo", {
         name = "Device state info",
         properties = {
-            lua_mem_usage = { name = "Lua vm memory usage", datatype = "number", unit = "KiB" },
-            cpu_usage = { name = "Cpu usage", datatype = "number", unit = "%" },
+            lua_mem_usage = { name = "Lua vm memory usage", datatype = "float", unit = "KiB" },
+            cpu_usage = { name = "Cpu usage", datatype = "float", unit = "%" },
         }
     })
 end

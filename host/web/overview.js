@@ -223,7 +223,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             var prop_id = prop_key + "_" + node_id
             GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
 
-            if(prop.datatype == "float" || prop.datatype == "integer" || prop.datatype == "boolean" || prop.datatype == "boolean") {
+            if(prop.datatype == "float" || prop.datatype == "integer" || prop.datatype == "boolean" || prop.datatype == "number") {
                 var chart_source = "/device/" + entry.name + "/history/" + node.id + "/" + prop.id
                 var chart_node_id = "CHART_BTN_" + prop_id
                 var open_chart = GetOrCreateDiv(chart_node_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyOpenChart", { html: "&nbsp"})
