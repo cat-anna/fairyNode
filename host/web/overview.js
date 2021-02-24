@@ -159,7 +159,7 @@ function OpenDevicePropertyChart(url, parent_block) {
         options: {
             legend: {
                 labels: {
-                    fontColor: 'rgb(50, 50, 50)',
+                    fontColor: 'rgb(150, 150, 150)',
                 }
             },
             scales: {
@@ -170,20 +170,21 @@ function OpenDevicePropertyChart(url, parent_block) {
                         tooltipFormat: 'll HH:mm'
                     },
                     ticks: {
-                        fontColor: 'rgb(50, 50, 50)',
+                        fontColor: 'rgb(150, 150, 150)',
+                        maxTicksLimit: 20,
                     },
                     scaleLabel: {
-                        fontColor: 'rgb(50, 50, 50)',
+                        fontColor: 'rgb(150, 150, 150)',
                         display: true,
                         labelString: 'Date'
                     }
                 }],
                 yAxes: [{
                     ticks: {
-                        fontColor: 'rgb(50, 50, 50)',
+                        fontColor: 'rgb(150, 150, 150)',
                     },
                     scaleLabel: {
-                        fontColor: 'rgb(50, 50, 50)',
+                        fontColor: 'rgb(150, 150, 150)',
                         display: true,
                         labelString: 'value'
                     }
