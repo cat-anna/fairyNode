@@ -5,7 +5,7 @@ function shell.Buildcmd(cmd, argsdict, argtable, ...)
 	if cmd then
 		table.insert(t, tostring(cmd))
 	end
-	
+
 	for k,v in pairs(argsdict or {}) do
 		if type(k) == "number" then
 			if v:len() == 1 then
@@ -22,14 +22,14 @@ function shell.Buildcmd(cmd, argsdict, argtable, ...)
 			t[#t + 1] = "'" .. v .. "'"
 		end
 	end
-	
+
 	for i,v in ipairs(argtable or {}) do
 		t[#t + 1] = v
-	end	
-	
+	end
+
 	for i,v in ipairs({...}) do
 		t[#t + 1] = v
-	end	
+	end
 
 	return table.concat(t, " ")
 end
@@ -42,7 +42,7 @@ function shell.Execute(cmd)
 	print("OS: ".. cmd)
 	local file = io.popen(cmd)
 	local l
-	while true do 
+	while true do
 		l = file:read "*l"
 		if not l then
 			break
@@ -54,9 +54,9 @@ end
 function shell.ForEachLineOf(...)
 	local c = shell.Buildcmd(...)
 	print("OS: ".. c)
-	
+
 	local h = io.popen(c)
-	
+
 	return function()
 		local line = h:read "*l"
 		if not line then
@@ -71,7 +71,7 @@ end
 function shell.LinesOf(...)
 	local c = shell.Buildcmd(...)
 	print("OS: ".. c)
-	
+
 	local h = io.popen(c)
 	local lines = { }
 	while true do

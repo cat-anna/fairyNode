@@ -1,5 +1,6 @@
 local JSON = require "json"
 local modules = require("lib/modules")
+local socket = require("socket")
 
 local NodeObject = {}
 NodeObject.__index = NodeObject
@@ -16,6 +17,38 @@ HomieClient.Deps = {
     mqtt = "mqtt-provider",
     event_bus = "event-bus",
 }
+local DatatypeParser = {
+    boolean = function(v)
+        local t = type(v)
+        if t == "string" then return v == "true" end
+        if t == "number" then return v > 0 end
+        if t == "boolean" then return v end
+        return v ~= nil
+    end,
+    string = tostring,
+    number = tonumber, --TODO
+    float = tonumber,
+    integer = function(v)
+        return math.floor(tonumber(v))
+    end,
+}
+
+local function FormatPropertyValue(datatype, value)
+    local fmt = DatatypeParser[datatype]
+
+    if fmt then
+        value = fmt(value)
+    end
+    return tostring(value)
+end
+
+local function DecodePropertyValue(datatype, value)
+    local fmt = DatatypeParser[datatype]
+    if fmt then
+        return fmt(value)
+    end
+    return tostring(value)
+end
 
 -------------------------------------------------------------------------------
 
@@ -103,6 +136,14 @@ function HomieClient:PublishNode(node, sub_topic, payload)
     return self:Publish(string.format("/%s/%s", node, sub_topic), payload)
 end
 
+function HomieClient:MqttId()
+    return "HomieClient"
+end
+
+function HomieClient:WatchTopicId(topic)
+   return self:MqttId() .. "-topic-" .. topic
+end
+
 function HomieClient:AddNode(node_name, node)
     table.insert(self.nodes, node_name)
     -- --[[
@@ -122,10 +163,6 @@ function HomieClient:AddNode(node_name, node)
     for prop_name,values in pairs(node.properties or {}) do
         table.insert(props, prop_name)
 
-        if values.value ~= nil then
-            self:PublishNodePropertyValue(node_name, prop_name, values.value)
-        end
-
         -- print(string.format("HOMIE: %s.%s", node_name or "?", prop_name or "?"))
         if values.handler then
             local mqtt = self.mqtt
@@ -133,20 +170,24 @@ function HomieClient:AddNode(node_name, node)
 
             local settable_topic = self:GetHomiePropertySetTopic(node_name, prop_name)
             print("HOMIE: Settable addres:", settable_topic)
-            mqtt:Subscribe(settable_topic, function(topic, payload)
+
+            self.mqtt:WatchTopic(self:WatchTopicId(settable_topic), function(topic, payload)
                 print(string.format("HOMIE: Importing value %s.%s=%s", node_name, prop_name, payload))
-                handler:ImportValue(topic, payload, node_name, prop_name)
-            end)
+                SafeCall(function()
+                    handler:SetNodeValue(topic, payload, node_name, prop_name, DecodePropertyValue(values.datatype, payload))
+                end)
+            end, settable_topic)
         end
 
         self:PublishNodeProperty(node_name, prop_name, "$settable", values.handler ~= nil)
 
         values.handler = nil
         values.retained = nil
-        values.value = nil
 
         for k,v in pairs(values or {}) do
-            self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
+            if k[1] ~= "_" then
+                self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
+            end
         end
         self:PublishNodeProperty(node_name, prop_name, "$retained", "true")
     end
@@ -167,17 +208,23 @@ function HomieClient:BeforeReload()
 end
 
 function HomieClient:AfterReload()
-    self.client_name = "fairyNode"
-    self.base_topic = "homie/" .. self.client_name
-    self.retain = true
+
 
     if self.mqtt:IsConnected() then
         self:EnterInitState()
     end
+
+    --
 end
 
 function HomieClient:Init()
+    self.client_name = socket.dns.gethostname()
+    self.base_topic = "homie/" .. self.client_name
+    self.retain = true
 
+    local lwt = modules.CreateModule("mqtt-provider-last-will")
+    lwt.topic = self.base_topic.."/$state"
+    lwt.payload = "lost"
 end
 
 HomieClient.EventTable = {

@@ -1,26 +1,35 @@
 local JSON = require "json"
 local modules = require("lib/modules")
 
-local function FormatPropertyValue(prop, value)
-    local datatypes = {
-        boolean = function(v)
-            local t = type(v)
-            if t == "string" then return v == "true" end
-            if t == "number" then return v > 0 end
-            if t == "boolean" then return v end
-            return v ~= nil
-        end,
-        string = tostring,
-        number = tonumber, --TODO
-        float = tonumber,
-        integer = function(v)
-            return math.floor(tonumber(v))
-        end,
-    }
+local DatatypeParser = {
+    boolean = function(v)
+        local t = type(v)
+        if t == "string" then return v == "true" end
+        if t == "number" then return v > 0 end
+        if t == "boolean" then return v end
+        return v ~= nil
+    end,
+    string = tostring,
+    number = tonumber, --TODO
+    float = tonumber,
+    integer = function(v)
+        return math.floor(tonumber(v))
+    end,
+}
 
-    local fmt = datatypes[prop.datatype]
+local function FormatPropertyValue(prop, value)
+    local fmt = DatatypeParser[prop.datatype]
+
     if fmt then
         value = fmt(value)
+    end
+    return tostring(value)
+end
+
+local function DecodePropertyValue(prop, value)
+    local fmt = DatatypeParser[prop.datatype]
+    if fmt then
+        return fmt(value)
     end
     return tostring(value)
 end
@@ -94,6 +103,22 @@ function Device:HandleStateChangd(topic, payload)
     print(self:LogTag() .. self.name .. " entered state " .. (payload or "<?>"))
 end
 
+function Device:PushPropertyHistory(property, value, timestamp)
+    property.history = property.history or {}
+    if #property.history > 0 then
+        local last_node = property.history[#property.history]
+        if last_node.vale == value or last_node.timestamp == timestamp then
+            return
+        end
+    end
+
+    table.insert(property.history, {value = value, timestamp = timestamp})
+
+    while #property.history > self.configuration.max_history_entries do
+        table.remove(property.history, 1)
+    end
+end
+
 function Device:HandlePropertyValue(topic, payload)
     local node_name, prop_name = topic:match("/([^/]+)/([^/]+)$")
 
@@ -108,7 +133,7 @@ function Device:HandlePropertyValue(topic, payload)
     local old_value = property.value
 
     local timestamp = os.time()
-    local value = FormatPropertyValue(property, payload)
+    local value = DecodePropertyValue(property, payload)
 
     if changed then
         self.event_bus:PushEvent({
@@ -139,16 +164,10 @@ function Device:HandlePropertyValue(topic, payload)
 
     property.value = value
     property.timestamp = timestamp
-    property.history = property.history or {}
-    if #property.history == 0 or property.history[#property.history].timestamp ~= timestamp or property.history[#property.history].value ~= value then
-        table.insert(property.history, {value = value, timestamp = timestamp})
-        while #property.history > 1000 do
-            table.remove(property.history, 1)
-        end
-    end
+    self:PushPropertyHistory(property, value, timestamp)
 
     if configuration.debug then
-        print(self:LogTag() .. string.format("node %s.%s = %s (got %d entries)", node_name, prop_name, payload, #property.history))
+        print(self:LogTag() .. string.format("node %s.%s = %s (got %d entries)", node_name, prop_name, tostring(value), #property.history))
     end
 end
 
@@ -321,10 +340,15 @@ function DevState:BeforeReload()
 end
 
 function DevState:AfterReload()
+    self.configuration = self.configuration or {
+        max_history_entries = 1000,
+    }
+
     for name,v in pairs(self.devices) do
         print("DEVICE: Updating metatable of device " .. name)
         setmetatable(v, Device)
         v.event_bus = self.event_bus
+        v.configuration = self.configuration
         SafeCall(function () v:AfterReload() end)
     end
 
@@ -350,6 +374,7 @@ function DevState:AddDevice(topic, payload)
         homie_version = homie_version,
         mqtt = self.mqtt,
         event_bus = self.event_bus,
+        configuration = self.configuration,
     }, Device)
 
     SafeCall(function() dev:Init() end)
@@ -374,5 +399,24 @@ function DevState:GetDevice(name)
     end
     error("There is no device " .. name)
 end
+
+function DevState:SetNodeValue(topic, payload, node_name, prop_name, value)
+    print("Device: config changed: ", self.configuration[prop_name], "->", value)
+    self.configuration[prop_name] = value
+end
+
+function DevState:InitHomieNode(event)
+    self.homie_node = event.client:AddNode("device_server_control", {
+        name = "Device server control",
+        properties = {
+            max_history_entries = { name = "Size of property value history", datatype = "integer", handler = self },
+        }
+    })
+    self.homie_node:SetValue("max_history_entries", tostring(self.configuration.max_history_entries))
+end
+
+DevState.EventTable = {
+    ["homie-client.init-nodes"] = DevState.InitHomieNode
+}
 
 return DevState

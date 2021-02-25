@@ -182,4 +182,18 @@ function ModulesPublic.GetModule(name)
     error("There is no module " .. name)
 end
 
+function ModulesPublic.CreateModule(name, group)
+    if not modules[name] then
+        modules[name] = {
+            timestamp = 0,
+            name = name,
+            group = group,
+            init_done = true,
+            instance = { }
+        }
+    end
+
+    return modules[name].instance
+end
+
 return ModulesPublic

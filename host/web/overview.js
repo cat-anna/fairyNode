@@ -48,6 +48,16 @@ function FairyNode_InitOverview() {
     });
 }
 
+function SortedKeys(unordered) {
+    return Object.keys(unordered).sort().reduce(
+        (obj, key) => {
+        obj[key] = unordered[key];
+        return obj;
+        },
+        {}
+    );
+}
+
 function SetOverviewRow(id, values) {
     var row_id = "ROW_" + id;
     var row = GetOrCreateDiv(row_id, "OverviewTable", "OverviewTableRow")
@@ -102,8 +112,8 @@ function RefreshChart(chart) {
     console.log(chart.source_url)
     QueryGet(chart.source_url, function(data) {
         data.history.sort(function(a, b) { return a.timestamp < b.timestamp; })
-
-        chart.config.data.datasets[0].label = data.label
+        console.log(data)
+        chart.config.data.datasets[0].label = data.label + " (" + data.history.length + " samples)"
 
         for (var key in data.history) {
             var item = data.history[key]
@@ -213,13 +223,21 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
         return kMissingValueBlock;
     }
 
-    for (var key in entry.nodes) {
+    const ordered = Object.keys(entry.nodes).sort().reduce(
+        (obj, key) => {
+          obj[key] = entry.nodes[key];
+          return obj;
+        },
+        {}
+      );
+
+    for (var key in SortedKeys(entry.nodes)) {
         node = entry.nodes[key]
         var node_id = key + "_NODE_" + body_id
         GetOrCreateDiv(node_id, body_id, "DeviceNode")
         GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html(node.name)
 
-        for (var prop_key in node.properties) {
+        for (var prop_key in SortedKeys(node.properties)) {
             var prop = node.properties[prop_key]
             var prop_id = prop_key + "_" + node_id
             GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
@@ -238,10 +256,11 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             }
 
             GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: prop.name })
-            GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(check_value(prop.value))
+            GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(check_value(prop.value) + " " + check_value(prop.unit, "") )
             var timestamp = null
-            if (prop.timestamp != null)
+            if (prop.timestamp != null){
                 timestamp = new Date(prop.timestamp * 1000).toLocaleString()
+            }
             GetOrCreateDiv("TIMESTAMP_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyTimestamp").html(check_value(timestamp))
 
             if (prop.settable != true) {
@@ -256,7 +275,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                         })
                         var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
                         $(checkbox).attr("data-url", url)
-                        $(checkbox).prop('checked', prop.value == "true")
+                        $(checkbox).prop('checked', prop.value)
                         $(checkbox).change(function() {
                             console.log("CHANGE " + $(this).attr("data-url"))
                             body = {}
@@ -268,7 +287,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             QueryPost($(this).attr("data-url"), body)
                             setTimeout(refresh, 3000);
                         });
-                    } else if (prop.datatype == "number" || prop.datatype == "float") {
+                    } else if (prop.datatype == "number" || prop.datatype == "float" || prop.datatype == "integer") {
                         var checkbox = GetOrCreateDiv(control_id, prop_id, "", {
                             classes: "DeviceNodePropertyEntry DeviceNodePropertySettable DeviceNodePropertySettableNumber",
                             type: "input type='number'"
@@ -322,7 +341,7 @@ function SetDeviceInfoPageStatus(entry, body_id) {
         )
     }
 
-    for (var i in blocks) {
+    for (var i in SortedKeys(blocks)) {
         var block = blocks[i]
 
         var caption = block[0]
@@ -376,7 +395,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         ["NodeMcu branch", "fw/NodeMcu/git_branch", ],
     ]
 
-    for (var i in blocks) {
+    for (var i in SortedKeys(blocks)) {
         var block = blocks[i]
 
         var caption = block[0]
@@ -404,7 +423,7 @@ function SetDeviceInfoPageVariables(entry, body_id) {
 
     var keys = Object.keys(entry.variables)
     keys.sort()
-    for (var i in keys) {
+    for (var i in SortedKeys(keys)) {
         var key = keys[i]
         var value = entry.variables[key]
         var id = key.split("/").join("")
@@ -437,7 +456,7 @@ function SetDeviceInfoPageActiveErrors(entry, body_id) {
     var error_dict = JSON.parse(errors)
     var keys = Object.keys(error_dict)
     keys.sort()
-    for (var i in keys) {
+    for (var i in SortedKeys(keys)) {
         var key = keys[i]
         var value = error_dict[key]
 
@@ -479,13 +498,15 @@ function UpdateDevice(entry) {
         }
     }
 
-    var timestamp = new Date(
-        (vars["fw/FairyNode/lfs/timestamp"] || vars["fw/timestamp"]) *
-        1000)
+    var timestamp_value = vars["fw/FairyNode/lfs/timestamp"] || vars["fw/timestamp"]
+    var timestamp = ""
+    if(timestamp_value) {
+        timestamp = new Date(timestamp_value * 1000)
+    }
 
     var err_caption
     var err_value = null
-    if(sysinfo_props != null ){
+    if(sysinfo_props != null && sysinfo_props.errors != null){
         var err_current = sysinfo_props.errors.value
         if (err_current == "[]" || err_current == null) {
             err_caption = "&nbsp;"
@@ -517,11 +538,17 @@ function UpdateDevice(entry) {
     if (sysinfo_props != null && sysinfo_props.wifi != null)
         wifi = sysinfo_props.wifi.value + "%"
 
+    if(uptime) {
+        uptime = FormatSeconds(uptime)
+    } else {
+        uptime = ""
+    }
+
     SetOverviewRow(entry.name, {
         // ip : vars.localip,
         state: entry.state,
         timestamp: timestamp.toLocaleString(),
-        uptime: FormatSeconds(uptime),
+        uptime: uptime,
         wifi: wifi,
         release: (vars["fw/NodeMcu/git_release"] || vars["fw/NodeMcu/git_branch"] ) + " | " +
             (vars["fw/FairyNode/version"] ),

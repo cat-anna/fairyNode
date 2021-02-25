@@ -4,6 +4,7 @@ local path = require "pl.path"
 local dir = require "pl.dir"
 local json = require("json")
 local mqtt = require("mqtt")
+local modules = require("lib/modules")
 
 local mqtt_client_cfg = { host = "mqttbroker.lan", user = "DevBoard0", password = "1x1ZOAHwq6MksJHD", }
 local mqttloop = mqtt:get_ioloop()
@@ -12,6 +13,7 @@ local MqttProvider = {}
 MqttProvider.__index = MqttProvider
 MqttProvider.Deps = {
     event_bus = "event-bus",
+    -- mqtt_last_will = "mqtt-provider-last-will",
 }
 
 local function topic2regexp(topic)
@@ -25,6 +27,11 @@ function MqttProvider:ResetClient()
         return
     end
 
+    local last_will
+    SafeCall(function()
+        last_will = modules.GetModule("mqtt-provider-last-will")
+    end)
+
     local mqtt_client = mqtt.client{
         uri = mqtt_client_cfg.host,
         username = mqtt_client_cfg.user,
@@ -33,6 +40,7 @@ function MqttProvider:ResetClient()
         reconnect = 1,
         keep_alive = 10,
         version = mqtt.v311,
+        will = last_will
     }
     mqtt_client:on {
         connect = function(...) self:HandleConnect(...) end,
