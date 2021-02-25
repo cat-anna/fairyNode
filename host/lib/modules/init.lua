@@ -110,8 +110,8 @@ local function ReloadModuleDirectory(group, base_dir, first_reload)
     for file in lfs.dir(base_dir .. "/") do
         if file ~= "." and file ~= ".." and file ~= "init.lua" then
             local f = base_dir .. '/' .. file
-            local attr = lfs.attributes (f)
-            assert (type(attr) == "table")
+            local attr = lfs.attributes(f)
+            assert(type(attr) == "table")
             if attr.mode == "file" then
                 local name = file:match("([^%.]+).lua")
                 local timestamp = attr.modification

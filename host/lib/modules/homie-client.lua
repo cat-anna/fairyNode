@@ -1,4 +1,3 @@
-local JSON = require "json"
 local modules = require("lib/modules")
 local socket = require("socket")
 
@@ -82,7 +81,6 @@ function HomieClient:EnterInitState()
 -- MQTT: homie/Lamp2/$fw/NodeMcu/git_commit_id <- 136e09739b835d6dcdf04034141d70ab755468c6
 -- MQTT: homie/Lamp2/$fw/NodeMcu/git_release <- 3.0.0-release_20210201
 -- MQTT: homie/Lamp2/$fw/NodeMcu/lfs_size <- 131072
--- MQTT: homie/Lamp2/$fw/NodeMcu/modules <- adc,crypto,file,gpio,i2c,mqtt,net,node,ow,pwm2,rtcmem,rtctime,sjson,sntp,struct,tmr,uart,wifi
 -- MQTT: homie/Lamp2/$fw/NodeMcu/number_type <- float
 -- MQTT: homie/Lamp2/$fw/NodeMcu/ssl <- false
 -- MQTT: homie/Lamp2/$fw/NodeMcu/version <- 3.0.0
@@ -112,6 +110,11 @@ end
 function HomieClient:EnterReadyState()
     self:Publish("/$nodes", table.concat(self.nodes, ","))
     self:Publish("/$state", "ready")
+
+    self.event_bus:PushEvent({
+        event = "homie-client.ready",
+        client = self,
+    })
 end
 
 -------------------------------------------------------------------------------

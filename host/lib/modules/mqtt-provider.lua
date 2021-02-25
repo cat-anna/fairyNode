@@ -2,7 +2,6 @@ local copas = require "copas"
 local lapp = require 'pl.lapp'
 local path = require "pl.path"
 local dir = require "pl.dir"
-local json = require("json")
 local mqtt = require("mqtt")
 local modules = require("lib/modules")
 

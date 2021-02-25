@@ -19,6 +19,8 @@ conf.__newindex = function()
    error("Attempt to change conf at runtime")
 end
 
+conf.storage_path = fairy_node_base .. "/storage"
+conf.cache_path = args.debug and (fairy_node_base .. "/cache") or "/var/tmp/fairyNode"
 conf.debug = args.debug
 conf.fairy_node_base = fairy_node_base
 

@@ -1,4 +1,3 @@
-local JSON = require "json"
 local modules = require("lib/modules")
 
 local DatatypeParser = {
@@ -90,9 +89,13 @@ function Device:WatchRegex(topic, handler)
 end
 
 function Device:HandleStateChangd(topic, payload)
-    if self.state == payload then
-        return
-    end
+    self.event_bus:PushEvent({
+        event = "device.event.state-change",
+        argument = {
+            device = self,
+            state = payload
+        }
+    })
 
     if self.state == "ota" and payload == "lost" then
         print(self:LogTag() .. self.name .. " 'ota -> lost' state transition ignored")
@@ -166,6 +169,8 @@ function Device:HandlePropertyValue(topic, payload)
     property.timestamp = timestamp
     self:PushPropertyHistory(property, value, timestamp)
 
+    self.cache:UpdateCache(self:GetPropertyId(node_name, prop_name), property)
+
     if configuration.debug then
         print(self:LogTag() .. string.format("node %s.%s = %s (got %d entries)", node_name, prop_name, tostring(value), #property.history))
     end
@@ -195,6 +200,10 @@ function Device:HandlePropertyConfigValue(topic, payload)
     -- print(self:LogTag() .. string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
 end
 
+function Device:GetPropertyId(node_id, prop_id)
+    return string.format("Device.%s.%s.%s", self.name, node_id, prop_id)
+end
+
 function Device:HandleNodeProperties(topic, payload)
     local props = (payload or ""):split(",")
     local node_name = topic:match("/([^/]+)/$properties$")
@@ -209,7 +218,7 @@ function Device:HandleNodeProperties(topic, payload)
 
     for _,prop_name in ipairs(props) do
         if not properties[prop_name] then
-            properties[prop_name] = {}
+            properties[prop_name] = self.cache:GetFromCache(self:GetPropertyId(node_name, prop_name)) or {}
         end
         local property = properties[prop_name]
         property.id = prop_name
@@ -329,6 +338,7 @@ DevState.__index = DevState
 DevState.Deps = {
     mqtt = "mqtt-provider",
     event_bus = "event-bus",
+    cache = "cache"
 }
 
 function DevState:BeforeReload()
@@ -348,6 +358,7 @@ function DevState:AfterReload()
         print("DEVICE: Updating metatable of device " .. name)
         setmetatable(v, Device)
         v.event_bus = self.event_bus
+        v.cache = self.cache
         v.configuration = self.configuration
         SafeCall(function () v:AfterReload() end)
     end
@@ -374,6 +385,7 @@ function DevState:AddDevice(topic, payload)
         homie_version = homie_version,
         mqtt = self.mqtt,
         event_bus = self.event_bus,
+        cache = self.cache,
         configuration = self.configuration,
     }, Device)
 
@@ -398,6 +410,16 @@ function DevState:GetDevice(name)
         return d
     end
     error("There is no device " .. name)
+end
+
+function DevState:FindDeviceById(id)
+    for _,v in pairs(self.devices) do
+        print(id, v.variables["hw/chip_id"], v.name)
+        if v.variables["hw/chip_id"] == id then
+            return v
+        end
+    end
+    return nil
 end
 
 function DevState:SetNodeValue(topic, payload, node_name, prop_name, value)

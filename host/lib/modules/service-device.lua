@@ -3,6 +3,9 @@ local http = require "lib/http-code"
 
 local DevSrv = {}
 DevSrv.__index = DevSrv
+DevSrv.Deps = {
+    device = "device"
+}
 
 function DevSrv:BeforeReload()
 end
@@ -11,7 +14,6 @@ function DevSrv:AfterReload()
 end
 
 function DevSrv:Init()
-    self.device = modules.GetModule("device")
 end
 
 -------
@@ -38,7 +40,12 @@ end
 function DevSrv:GetProperty(request, device, node, property)
     local dev = self.device:GetDevice(device)
     local node = dev.nodes[node]
-    local prop = node.properties[property]
+    local prop = {}
+    for k,v in pairs(node.properties[property]) do
+        if k[1] ~= "_" and k ~= "history" then
+            prop[k] = v
+        end
+    end
     return http.OK, prop
 end
 

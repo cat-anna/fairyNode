@@ -201,7 +201,6 @@ function SysInfo:GetCpuUsage()
 end
 
 function SysInfo:WatchStatus()
-    copas.sleep(60)
 
     collectgarbage()
     local lua_usage = collectgarbage("count")
@@ -216,7 +215,9 @@ function SysInfo:WatchStatus()
     if self.sysinfo_node then
         self.sysinfo_node:SetValue("lua_mem_usage", string.format("%.2f", lua_usage / 1024))
         self.sysinfo_node:SetValue("process_memory", string.format("%.2f", self_statm.size / 1024))
-        self.sysinfo_node:SetValue("system_memory", string.format("%.2f", mem_info.MemFree.value / 1024))
+
+        local mem_stat = mem_info.MemAvailable or mem_info.MemFree or { value = 0 }
+        self.sysinfo_node:SetValue("system_memory", string.format("%.2f", mem_stat.value / 1024))
 
         self.sysinfo_node:SetValue("cpu_usage", string.format("%.2f", cpu_usage))
         self.sysinfo_node:SetValue("system_load", string.format("%.2f", load[1]))
@@ -244,7 +245,10 @@ function SysInfo:AfterReload()
     if not self.watch_thread then
         self.watch_thread = copas.addthread(function()
             while true do
-                SafeCall(function() self:WatchStatus() end)
+                SafeCall(function()
+                    copas.sleep(60)
+                    self:WatchStatus()
+                end)
             end
         end)
     end
@@ -257,8 +261,6 @@ function SysInfo:InitHomieNode(event)
     SafeCall(function() self:InitSysInfoNode(event.client) end)
     SafeCall(function() self:InitStorageNode(event.client) end)
     SafeCall(function() self:InitThermalNode(event.client) end)
-    --
-    --ls /sys/class/thermal
 end
 
 function SysInfo:InitSysInfoNode(client)
@@ -323,7 +325,8 @@ function SysInfo:InitThermalNode(client)
 end
 
 SysInfo.EventTable = {
-    ["homie-client.init-nodes"] = SysInfo.InitHomieNode
+    ["homie-client.init-nodes"] = SysInfo.InitHomieNode,
+    ["homie-client.ready"] = SysInfo.WatchStatus
 }
 
 return SysInfo
