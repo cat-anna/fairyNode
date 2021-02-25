@@ -254,9 +254,9 @@ function SysInfo:Init()
 end
 
 function SysInfo:InitHomieNode(event)
-    self:InitSysInfoNode(event.client)
-    self:InitStorageNode(event.client)
-    self:InitThermalNode(event.client)
+    SafeCall(function() self:InitSysInfoNode(event.client) end)
+    SafeCall(function() self:InitStorageNode(event.client) end)
+    SafeCall(function() self:InitThermalNode(event.client) end)
     --
     --ls /sys/class/thermal
 end
@@ -272,6 +272,8 @@ function SysInfo:InitSysInfoNode(client)
         lua_mem_usage = { name = "Lua vm memory usage", datatype = "float", unit = "MiB" },
         process_memory = { name = "Process memory usage", datatype = "float", unit = "MiB" },
         system_memory = { name = "Free system memory", datatype ="float", unit = "MiB" },
+        -- SwapTotal:        252000 kB
+        -- SwapFree:         217184 kB
     }
     self.sysinfo_node = client:AddNode("sysinfo", {
         name = "System info",
@@ -302,9 +304,9 @@ end
 
 function SysInfo:InitThermalNode(client)
     self.thermal_props = {}
-    for entry in lfs.dir("/sys/class/thernal") do
-        if entry ~= "." and entry ~= ".." and entry ~= "init.lua" and entry:match("thernal_zone%d+") then
-            local base_path = "/sys/class/thernal/" .. entry
+    for entry in lfs.dir("/sys/class/thermal") do
+        if entry ~= "." and entry ~= ".." and entry ~= "init.lua" and entry:match("thermal_zone%d+") then
+            local base_path = "/sys/class/thermal/" .. entry
             local e = {
                 name = read_first_line(base_path .. "/type"),
                 unit = "C",
