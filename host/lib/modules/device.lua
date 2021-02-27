@@ -106,24 +106,20 @@ function Device:HandleStateChangd(topic, payload)
 end
 
 function Device:PushPropertyHistory(node, property, value, timestamp)
-    property.history = property.history or {}
-    if #property.history > 0 then
-        local last_node = property.history[#property.history]
-        if last_node.vale == value or last_node.timestamp == timestamp then
-            return
-        end
-    end
-
     local id = self:GetHistoryId(node, property.id)
     if not self.history[id] then
         self.history[id] =  self.cache:GetFromCache(id) or {
             values = {}
         }
     end
+
     local history = self.history[id]
-    if property.history then
-        history.values = property.history
-        property.history = nil
+
+    if #history.values > 0 then
+        local last_node = history.values[#history.values]
+        if last_node.value == value or last_node.timestamp == timestamp then
+            return
+        end
     end
 
     table.insert(history.values, {value = value, timestamp = timestamp})
@@ -268,7 +264,7 @@ function Device:HandleNodeValue(topic, payload)
     end
 
     node[value] = payload
-    print(self:LogTag() .. string.format("node (%s) %s=%s", node_name, value, payload))
+    print(self:LogTag() .. string.format("node (%s) %s=%s", node_name, value, payload ~= nil and payload or ""))
 end
 
 function Device:HandleNodes(topic, payload)
