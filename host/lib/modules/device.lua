@@ -106,7 +106,7 @@ function Device:HandleStateChangd(topic, payload)
     print(self:LogTag() .. self.name .. " entered state " .. (payload or "<?>"))
 end
 
-function Device:PushPropertyHistory(property, value, timestamp)
+function Device:PushPropertyHistory(node, property, value, timestamp)
     property.history = property.history or {}
     if #property.history > 0 then
         local last_node = property.history[#property.history]
@@ -115,10 +115,32 @@ function Device:PushPropertyHistory(property, value, timestamp)
         end
     end
 
-    table.insert(property.history, {value = value, timestamp = timestamp})
+    local id = self:GetHistoryId(node, property.id)
+    if not self.history[id] then
+        self.history[id] =  self.cache:GetFromCache(id) or {
+            values = {}
+        }
+    end
+    local history = self.history[id]
+    if property.history then
+        history.values = property.history
+        property.history = nil
+    end
 
-    while #property.history > self.configuration.max_history_entries do
-        table.remove(property.history, 1)
+    table.insert(history.values, {value = value, timestamp = timestamp})
+
+    while #history.values > self.configuration.max_history_entries do
+        table.remove(history.values, 1)
+    end
+
+    self.cache:UpdateCache(id, history)
+end
+
+function Device:GetHistory(node_name, property_name)
+    local id = self:GetHistoryId(node_name, property_name)
+    local history = self.history[id]
+    if history then
+        return history.values
     end
 end
 
@@ -167,12 +189,11 @@ function Device:HandlePropertyValue(topic, payload)
 
     property.value = value
     property.timestamp = timestamp
-    self:PushPropertyHistory(property, value, timestamp)
-
-    self.cache:UpdateCache(self:GetPropertyId(node_name, prop_name), property)
+    self:PushPropertyHistory(node_name, property, value, timestamp)
+    self.cache:UpdateCache(self:GetPropertyId(node_name, property.name), property)
 
     if configuration.debug then
-        print(self:LogTag() .. string.format("node %s.%s = %s (got %d entries)", node_name, prop_name, tostring(value), #property.history))
+        print(self:LogTag() .. string.format("node %s.%s = %s", node_name, prop_name, tostring(value)))
     end
 end
 
@@ -202,6 +223,10 @@ end
 
 function Device:GetPropertyId(node_id, prop_id)
     return string.format("Device.%s.%s.%s", self.name, node_id, prop_id)
+end
+
+function Device:GetHistoryId(node_id, prop_id)
+    return string.format("Device.history.%s.%s.%s", self.name, node_id, prop_id)
 end
 
 function Device:HandleNodeProperties(topic, payload)
@@ -350,6 +375,7 @@ function DevState:BeforeReload()
 end
 
 function DevState:AfterReload()
+    self.history = self.history or { }
     self.configuration = self.configuration or {
         max_history_entries = 1000,
     }
@@ -360,6 +386,10 @@ function DevState:AfterReload()
         v.event_bus = self.event_bus
         v.cache = self.cache
         v.configuration = self.configuration
+        if not self.history[name] then
+            self.history[name] = { }
+        end
+        v.history = self.history[name]
         SafeCall(function () v:AfterReload() end)
     end
 
@@ -369,6 +399,7 @@ end
 
 function DevState:Init()
     self.devices = { }
+    self.history = { }
 end
 
 function DevState:AddDevice(topic, payload)
@@ -379,6 +410,10 @@ function DevState:AddDevice(topic, payload)
         return
     end
 
+    if not self.history[device_name] then
+        self.history[device_name] = { }
+    end
+
     local dev = setmetatable({
         name = device_name,
         id = device_name,
@@ -387,6 +422,7 @@ function DevState:AddDevice(topic, payload)
         event_bus = self.event_bus,
         cache = self.cache,
         configuration = self.configuration,
+        history = self.history[device_name]
     }, Device)
 
     SafeCall(function() dev:Init() end)

@@ -111,8 +111,8 @@ function newDate(timestamp) {
 function RefreshChart(chart) {
     console.log(chart.source_url)
     QueryGet(chart.source_url, function(data) {
-        data.history.sort(function(a, b) { return a.timestamp < b.timestamp; })
         console.log(data)
+        data.history.sort(function(a, b) { return a.timestamp < b.timestamp; })
         chart.config.data.datasets[0].label = data.label + " (" + data.history.length + " samples)"
 
         for (var key in data.history) {

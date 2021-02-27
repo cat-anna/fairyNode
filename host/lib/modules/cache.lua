@@ -7,7 +7,6 @@ local Cache = {}
 Cache.__index = Cache
 Cache.Deps = { }
 
-
 -------------------------------------------------------------------------------
 
 function Cache:LogTag()
@@ -40,7 +39,7 @@ end
 function Cache:Init()
 end
 
- function Cache:CacheFile(id)
+function Cache:CacheFile(id)
     return string.format("%s/%s", self.cache_path, id)
 end
 
@@ -98,7 +97,7 @@ function Cache:GetFromCache(id)
         lfs.touch(file_name)
         local data = file.read(file_name)
 
-     result = json.decode(data)
+        result = json.decode(data)
     end)
     return result
 end
