@@ -185,7 +185,7 @@ function Device:HandlePropertyValue(topic, payload)
     property.value = value
     property.timestamp = timestamp
     self:PushPropertyHistory(node_name, property, value, timestamp)
-    self.cache:UpdateCache(self:GetPropertyId(node_name, property.name), property)
+    self.cache:UpdateCache(self:GetPropertyId(node_name, prop_name), property)
 
     if configuration.debug then
         print(self:LogTag() .. string.format("node %s.%s = %s", node_name, prop_name, tostring(value)))
