@@ -16,6 +16,7 @@ HomieClient.Deps = {
     mqtt = "mqtt-provider",
     event_bus = "event-bus",
 }
+
 local DatatypeParser = {
     boolean = function(v)
         local t = type(v)

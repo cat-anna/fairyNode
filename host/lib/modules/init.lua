@@ -170,6 +170,10 @@ copas.addthread(function()
     end
 end)
 
+function ModulesPublic.Reload()
+    ReloadModules(false)
+end
+
 function ModulesPublic.GetModule(name)
     if modules[name] and modules[name].instance then
         return modules[name].instance

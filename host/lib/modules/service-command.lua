@@ -1,9 +1,11 @@
 local http = require "lib/http-code"
 local copas = require "copas"
+local modules = require("lib/modules")
 
 local ServiceCommand = {}
 ServiceCommand.__index = ServiceCommand
 ServiceCommand.Deps = {
+    event_bus = "event-bus",
     -- mqtt = "mqtt-provider"
 }
 
@@ -18,7 +20,7 @@ function ServiceCommand:ListCommands()
         table.insert(r, cmd)
 
         cmd.name = v.name
-        cmd.args = v.args                
+        cmd.args = v.args
     end
     return http.OK, r
 end
@@ -32,8 +34,7 @@ function ServiceCommand:ExecuteCommand(request, command)
 
     local code = http.OK
     local r = nil
-    local succes, response
-    success, response = cmd.handler(self:ParseCommands(request, cmd))
+    local success, response = cmd.handler(self:ParseCommands(request, cmd))
     if not success then
         if type(response) == "number" then
             code = response
@@ -43,12 +44,12 @@ function ServiceCommand:ExecuteCommand(request, command)
     else
         r = response or {}
     end
-    
+
     return code, r
 end
 
 function ServiceCommand:ParseCommands(request, cmd)
-    
+
 end
 
 function ServiceCommand:RegisterCommand(module_id, command_name, args_desc, handler)
@@ -81,17 +82,31 @@ function ServiceCommand:AfterReload()
     self.commands = self.commands or {}
 
     self:RegisterCommand("ServiceCommand", "exit", nil, function(...) return self:ExitCommand(...) end)
+    self:RegisterCommand("ServiceCommand", "reload_modules", nil, function(...) return self:ReloadModules(...) end)
 end
 
 function ServiceCommand:Init()
     self.commands = {}
 end
 
+function ServiceCommand:ReloadModules()
+    modules.Reload()
+    return true
+end
+
 function ServiceCommand:ExitCommand()
     copas.addthread(function()
+        self.event_bus:PushEvent({
+            event = "exit.pending",
+            client = self,
+        })
         print(self:LogTag() .. string.format(" Exiting in 10 seconds"))
         copas.sleep(10)
         print(self:LogTag() .. string.format(" Exiting"))
+        self.event_bus:PushEvent({
+            event = "exit.trigger",
+            client = self,
+        })
         os.exit(0)
     end)
     return true
