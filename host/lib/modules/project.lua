@@ -13,7 +13,6 @@ local file_image = require "lib/file-image"
 local DeviceConfigFile = "devconfig.lua"
 local FirmwareConfigFile = "fwconfig.lua"
 
-local luac_cross = "../nodemcu-firmware/luac.cross" -- TODO
 local CONFIG_HASH_NAME = "config_hash.cfg"
 
 local ProjectMt = {}
@@ -116,7 +115,7 @@ local function PreprocessFileList(self, fileList, vars)
    end
 end
 
-function ProjectMt:AddModuleFiles() 
+function ProjectMt:AddModuleFiles()
    for _,v in ipairs(self.modules) do
       -- print("PROCESSING MODULE: ", v)
       local fw_module = self.firmware.modules[v]
@@ -172,7 +171,7 @@ function ProjectMt:CalcTimestamps()
       return { timestamp = max, hash = md5.sumhexa(all_code) }
    end
 
-   return { 
+   return {
       lfs = process(self.lfs),
       root = process(self.files),
       config = json.decode(self:GenerateConfigFiles()[CONFIG_HASH_NAME]),
@@ -201,7 +200,7 @@ function ProjectMt:GenerateConfigFiles()
       -- print("GENERATE:", name, #content)
       r[name] = content
       table.insert(all_content, name .. "|" .. content)
-   end 
+   end
 
    table.sort(all_content)
    r[CONFIG_HASH_NAME] = JSON.encode({
@@ -228,7 +227,7 @@ function ProjectMt:GenerateDynamicFiles(source, outStorage, list)
 
    local timestamp_file = string.format([[return %s ]], pretty_ts )
    print("LFS-TIMESTAMP: \n---------------\n" .. timestamp_file .. "\n---------------")
-   
+
    table.insert(list, outStorage:AddFile("lfs-timestamp.lua", timestamp_file))
 end
 
@@ -245,7 +244,12 @@ local function AssertFileUniqness(fileList)
    return succ
 end
 
-function ProjectMt:BuildLFS(outStorage)
+function ProjectMt:BuildLFS(outStorage, fw_commit_hash)
+   local luac = self.luac:GetLuacForHash(fw_commit_hash)
+   if not luac then
+      error("LFS compiler is not available")
+   end
+
    local generated_storage = require("lib/file_storage").new()
 
    local fileList = {}
@@ -265,11 +269,15 @@ function ProjectMt:BuildLFS(outStorage)
    if not self.chip.config.debug then
       table.insert(args, "s")
    end
+   if not self.chip.config.integer then
+      table.insert(args, "f")
+   end
    if self.chip.lfs and self.chip.lfs.size then
       args.m = tostring(self.chip.lfs.size)
    end
 
-   shell.Start(luac_cross, args, nil, unpack(fileList))
+   --
+   shell.Start(luac, args, nil, unpack(fileList))
 
    generated_storage:Clear()
 end
@@ -292,7 +300,7 @@ end
 
 function ProjectMt:BuildConfigImage()
    local fileList = self:GenerateConfigFiles()
-   
+
    local files = table.keys(fileList)
    print("Files in config: ", #files, "\n" .. table.concat(files, "\n"))
    return file_image.Pack(fileList)
@@ -305,6 +313,7 @@ ProjectModule.__index = ProjectModule
 ProjectModule.Deps = {
    devconfig = "project-config",
    fwconfig = "fw-config",
+   luac = "luac-builder",
 }
 
 function ProjectModule:LogTag()
@@ -335,7 +344,7 @@ function ProjectModule:LoadProject(chipid)
    end
 
    local mt = {
-      __index = function(t, name)      
+      __index = function(t, name)
          return rawget(t, name) or self.devconfig.chipid[chipid][name] or ProjectMt[name]
       end
    }
@@ -349,8 +358,9 @@ function ProjectModule:LoadProject(chipid)
    proj.firmware = self.fwconfig -- TODO
    proj.config = {
       firmware = self.fwconfig,
-      project = dofile(proj.projectDir .. "/" .. FirmwareConfigFile)
+      project = dofile(proj.projectDir .. "/" .. FirmwareConfigFile),
    }
+   proj.luac = self.luac
 
    setmetatable(proj, mt)
    proj:Preprocess()

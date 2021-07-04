@@ -17,7 +17,7 @@ function Sensor:ContrllerInit(event, ctl)
     self.node = ctl:AddNode("sysinfo", {
         name = "Device state info",
         properties = {
-            heap = { name = "Free heap", datatype = "integer", unit = "#" },
+            heap = { name = "Free heap", datatype = "integer", unit = "B" },
             uptime = { name = "Uptime", datatype = "integer", value = 0 },
             wifi = { name = "Wifi signal quality", datatype = "float" },
             bootreason = { name = "Boot reason", datatype = "string", value = sjson.encode({node.bootreason()}) },

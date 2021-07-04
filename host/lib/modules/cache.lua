@@ -23,17 +23,6 @@ function Cache:AfterReload()
     }
 
     os.execute("mkdir -p " .. self.cache_path)
-
-    if not self.watch_thread then
-        self.watch_thread = copas.addthread(function()
-            while true do
-                SafeCall(function()
-                    self:CheckCache()
-                    copas.sleep(1*60)
-                end)
-            end
-        end)
-    end
 end
 
 function Cache:Init()
@@ -146,7 +135,8 @@ end
 
 Cache.EventTable = {
     ["homie-client.init-nodes"] = Cache.InitHomieNode,
-    ["homie-client.ready"] = Cache.CheckCache
+    ["homie-client.ready"] = Cache.CheckCache,
+    ["timer.sensor-read.slow"] = Cache.CheckCache
 }
 
 return Cache

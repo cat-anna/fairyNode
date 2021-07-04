@@ -6,7 +6,8 @@ local pretty = require 'pl.pretty'
 local ServiceOta = {}
 ServiceOta.__index = ServiceOta
 ServiceOta.Deps = {
-    project = "project"
+    project = "project",
+    device = "device"
 }
 
 function ServiceOta:LogTag()
@@ -47,17 +48,39 @@ function ServiceOta:OtaStatus(request, id)
     return http.OK, ts
 end
 
+function ServiceOta:LfsImagePost(request, id)
+    return self:LfsImage(request, id)
+end
+
 function ServiceOta:LfsImage(request, id)
     if not self.project:ProjectExists(id) then
         print(self:LogTag() .. ": Unknown chip: " .. id)
         return http.NotFound
     end
 
+    local fw_commit_hash
+    if request and request.git_commit_id then
+        fw_commit_hash = request.git_commit_id
+        print(self:LogTag() .. ": Using commit hash from request: " .. fw_commit_hash)
+    end
+
+    if not fw_commit_hash then
+        local device = self.device:FindDeviceById(id)
+        if device then
+            fw_commit_hash = device.variables["fw/NodeMcu/git_commit_id"]
+        end
+        print(self:LogTag() .. ": Using commit hash from mqtt: " .. fw_commit_hash)
+    end
+
+    if not fw_commit_hash then
+        print(self:LogTag() .. ": No commit hash provided")
+    end
+
     local project = self.project:LoadProject(id)
     print(self:LogTag() .. ": " .. id .. " is " .. project.name .. "  OTA stamp: ", project.lfsStamp)
 
     local storage = require("lib/file_storage").new()
-    project:BuildLFS(storage)
+    project:BuildLFS(storage, fw_commit_hash)
 
     if #storage.list ~= 1 then
         print("CompileLFS produced incorrect count of files")
@@ -81,7 +104,7 @@ function ServiceOta:RootImage(request, id)
     local project = self.project:LoadProject(id)
     print(self:LogTag() .. ": " .. id .. " is " .. project.name .. "  OTA stamp: ", project.lfsStamp)
 
-    local image = project:BuildRootImage(storage)
+    local image = project:BuildRootImage()
 
     if not image then
         print("Compile Root failed")
@@ -100,7 +123,7 @@ function ServiceOta:ConfigImage(request, id)
     local project = self.project:LoadProject(id)
     print(self:LogTag() .. ": " .. id .. " is " .. project.name .. "  OTA stamp: ", project.lfsStamp)
 
-    local image = project:BuildConfigImage(storage)
+    local image = project:BuildConfigImage()
 
     if not image then
         print("Compile Config failed")

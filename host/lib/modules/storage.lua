@@ -19,17 +19,6 @@ end
 function Storage:AfterReload()
     self.storage_path = configuration.storage_path
     os.execute("mkdir -p " .. self.storage_path)
-
-    if not self.watch_thread then
-        self.watch_thread = copas.addthread(function()
-            while true do
-                SafeCall(function()
-                    self:CheckStorage()
-                    copas.sleep(10*60)
-                end)
-            end
-        end)
-    end
 end
 
 function Storage:Init()
@@ -127,7 +116,8 @@ end
 
 Storage.EventTable = {
     ["homie-client.init-nodes"] = Storage.InitHomieNode,
-    ["homie-client.ready"] = Storage.CheckStorage
+    ["homie-client.ready"] = Storage.CheckStorage,
+    ["timer.sensor-read.slow"] = Storage.CheckStorage
 }
 
 return Storage

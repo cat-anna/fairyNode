@@ -50,7 +50,6 @@ function Sensor:ReadCallback(temp_list, sensors)
     end
 end
 
-
 function Sensor:ContrllerInit(event, ctl)
     local props = {
         _unknown = { name = "Unkown sensors", datatype = "json" },

@@ -5,7 +5,8 @@ local file = require "pl.file"
 local dir = require "pl.dir"
 local json = require "json"
 local copas = require "copas"
-local asynchttp = require("copas.http").request
+local copas_http = require("copas.http")
+local ltn12 = require("ltn12")
 
 local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
 package.path = package.path .. ";" .. fairy_node_base .. "/host/?.lua" .. ";" .. fairy_node_base .. "/host/?/init.lua"
@@ -50,37 +51,87 @@ if cfg.all then
     cfg.root = true
 end
 
-print "Detecting chip..."
-for line in shell.ForEachLineOf(args.nodemcu_tool, nodemcu_tool_cfg, {"fsinfo"}) do
-    -- ChipID: 0x65ba0
-    local match = line:match("%sChipID:%s(%w+)%s")
-    if match then
-        cfg.chipid = string.format("%06X", tonumber(match))
-        print("Detected chip id: " .. cfg.chipid)
-        break
+function DetectChip()
+    print "Detecting chip..."
+    detect_name = string.format("detect_%d.lua", os.time())
+    file.write(detect_name, [[
+        hw = node.info("hw")
+        print(string.format("flash_size=%d", hw.flash_size))
+        print(string.format("chip_id=%06X", hw.chip_id))
+        print(string.format("flash_mode=%d", hw.flash_mode))
+        print(string.format("flash_speed=%d", hw.flash_speed))
+        print(string.format("flash_id=%d", hw.flash_id))
+        hw = nil
+
+        sw_version = node.info("sw_version")
+        print(string.format("git_commit_id=%s", sw_version.git_commit_id))
+        sw_version = nil
+    ]])
+    shell.Start(args.nodemcu_tool, nodemcu_tool_cfg, { "upload", detect_name })
+    local r = {}
+    for line in shell.ForEachLineOf(args.nodemcu_tool, nodemcu_tool_cfg, {"run", detect_name}) do
+        local key, value = line:match("([%w_]+)%s*=%s*(%w+)")
+        if key then
+            r[key] = value
+        end
+        -- flash_size=1024
+        -- chip_id=8E4CBE
+        -- flash_mode=3
+        -- flash_speed=40000000
+        -- flash_id=1327185
+        -- git_commit_id=310faf7fcc9130a296f7f17021d48c6d717f5fb6
     end
+    shell.Start(args.nodemcu_tool, nodemcu_tool_cfg, { "remove", detect_name })
+    file.delete(detect_name)
+
+    print("Detected chip id: " .. r.chip_id)
+    return r
 end
 
-if not cfg.chipid then
+chip_info = DetectChip()
+
+
+if not chip_info.chip_id then
     print("Failed to get chipid")
     return 1
 end
 
 local downloads = { }
 
-local function MakeQuerry(what)
-    local url = "http://" .. cfg.host .. "/ota/" .. cfg.chipid .. "/" .. what
-    res, err = asynchttp(url)
+local function MakeQuerry(what, body)
+    local url = "http://" .. cfg.host .. "/ota/" .. chip_info.chip_id .. "/" .. what
+    local err
+    local response = {} -- for the response body
+    if body then
+        print("POST: " .. url)
+        local dummy
+        dummy, err = copas_http.request({
+          method = "POST",
+          url = url,
+          source = ltn12.source.string(body),
+          sink = ltn12.sink.table(response),
+          headers = {
+            ["application/json"] = "text/plain",
+            ["content-length"] = tostring(#body)
+        },
+      })
+      response = table.concat(response, "")
+    else
+        print("GET: " .. url)
+        response, err = copas_http.request(url)
+    end
+    print("Got response from " .. url .. " " .. tostring(response:len()) .. " bytes")
     if err ~= 200 then
-        print("Failed to query " .. url)
+        print("Failed to query " .. url .. " code " .. tostring(err))
+        print(response)
         os.exit(1)
     end
-    downloads[what] = res
-    print("Got response from " .. url .. " " .. tostring(res:len()) .. " bytes")
+    downloads[what] = response
 end
 
 if cfg.lfs then
-    copas.addthread(MakeQuerry, "lfs_image")
+    local lfs_req_body = string.format([[{"git_commit_id":"%s"}]], chip_info.git_commit_id)
+    copas.addthread(MakeQuerry, "lfs_image", lfs_req_body)
 end
 if cfg.root then
     copas.addthread(MakeQuerry, "root_image")
@@ -104,7 +155,7 @@ if downloads.root_image then
     end
 
     file.write(storage:AddFile("root.pending.img"), downloads.root_image)
-    print("Adding file root.pending.img") 
+    print("Adding file root.pending.img")
 end
 
 if downloads.lfs_image then
