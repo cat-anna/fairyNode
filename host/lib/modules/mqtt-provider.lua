@@ -5,7 +5,7 @@ local dir = require "pl.dir"
 local mqtt = require("mqtt")
 local modules = require("lib/modules")
 
-local mqtt_client_cfg = { host = "mqttbroker.lan", user = "DevBoard0", password = "1x1ZOAHwq6MksJHD", }
+local mqtt_client_cfg = configuration.credentials.mqtt
 local mqttloop = mqtt:get_ioloop()
 
 local MqttProvider = {}

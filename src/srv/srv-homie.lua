@@ -168,14 +168,6 @@ function Module:AddNode(node_name, node)
                 print(string.format("HOMIE: Importing value %s.%s=%s", node_name, prop_name, payload))
                 handler:ImportValue(topic, payload, node_name, prop_name)
             end)
-
-            local state_topic = GetHomiePropertyStateTopic(node_name, prop_name)
-            print("HOMIE: State addres:", state_topic)
-            mqtt:Subscribe(state_topic, function(topic, payload)
-                print(string.format("HOMIE: Importing state value %s.%s=%s", node_name, prop_name, payload))
-                mqtt:Unsubscribe(state_topic)
-                handler:ImportValue(topic, payload, node_name, prop_name)
-            end)
         end
 
         self:PublishNodeProperty(node_name, prop_name, "$settable", values.handler ~= nil)

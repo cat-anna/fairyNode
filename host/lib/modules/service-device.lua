@@ -11,9 +11,26 @@ function DevSrv:BeforeReload()
 end
 
 function DevSrv:AfterReload()
+    self:RegistertDeviceCommand("clear_error", function(...) return self:DeviceCommandClearError(...) end)
 end
 
 function DevSrv:Init()
+    self.device_commands = {}
+end
+
+-------
+
+function DevSrv:RegistertDeviceCommand(command, handler)
+    self.device_commands[command] = handler
+end
+
+function DevSrv:DeviceCommandClearError(device, command, arg)
+    local cb = function(...)
+        self["last_command_result_" .. device.id] = { response = { ... }, timestamp = os.time() }
+    end
+
+    device:ClearError(arg.key)
+    return http.OK, true
 end
 
 -------
@@ -86,12 +103,12 @@ end
 function DevSrv:SendCommand(request, device)
     local dev = self.device:GetDevice(device)
 
-    local cb = function(...)
-        self["last_command_result_" .. dev.id] = { response = { ... }, timestamp = os.time() }
+    local handler = self.device_commands[request.command]
+    if not handler then
+        return http.NotFound
     end
 
-    dev:SendCommand(request.command, cb)
-    return http.OK, true
+    return handler(dev, request.command, request.args)
 end
 
 function DevSrv:GetCommandResult(request, device)

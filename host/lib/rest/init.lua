@@ -39,7 +39,12 @@ function RestPublic.HandlerModule(module, handler_name)
         local invoke_func = function()
             -- print(string.format("REST-REQUEST: %s.%s(%s)", module, handler_name, ConcatRequest(args, "; ")))
             local dev = modules.GetModule(module)
-            code, result, content_type = dev[handler_name](dev, unpack(args))
+            local handler = (dev or {})[handler_name]
+            if not handler then
+                print(string.format("No handler for request : %s.%s(%s)", module, handler_name, ConcatRequest(args, "; ")))
+                return
+            end
+            code, result, content_type = handler(dev, unpack(args))
         end
 
         local s, msg = SafeCall(invoke_func)
@@ -48,11 +53,11 @@ function RestPublic.HandlerModule(module, handler_name)
             code = http.InternalServerError
             result = msg
         end
-        
+
         -- print(string.format("REST-RESPONSE: Code:%d body:%s bytes", code, (type(result) == "string" and result:len() or JSON.encode(result):len())))
         local response = restserver.response()
         response:status(code)
-        response:entity(result)       
+        response:entity(result)
         if content_type then
             response:content_type(content_type)
         end

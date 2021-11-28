@@ -33,12 +33,14 @@ function LuacBuilder:AfterReload()
     -- table.insert(self.build_queue, "master")
 
     self.block_building = true
-    copas.addthread(function()
-        copas.sleep(30)
-        print("LuacBuilder: building is unblocked")
-        self.block_building = nil
-        self:CheckBuildQueue()
-    end)
+    if self.nodemcu_firmware_path then
+        copas.addthread(function()
+            copas.sleep(30)
+            print("LuacBuilder: building is unblocked")
+            self.block_building = nil
+            self:CheckBuildQueue()
+        end)
+    end
 end
 
 function LuacBuilder:Init()

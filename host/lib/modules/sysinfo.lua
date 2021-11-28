@@ -3,6 +3,7 @@ local posix_time = require "posix.time"
 local posix_sys_time = require "posix.sys.time"
 local posix_unistd = require "posix.unistd"
 local lfs = require "lfs"
+local json = require "json"
 
 ----------------------------------------
 
@@ -200,8 +201,16 @@ function SysInfo:GetCpuUsage()
     return cpu_usage
 end
 
-function SysInfo:WatchStatus()
+function SysInfo:ReadSensorsSlow()
+    if self.storage_node then
+        for _,node in ipairs(linux_df()) do
+            self.storage_node:SetValue(node.id, string.format("%d", node.used_procent))
+            self.storage_node:SetValue(node.id.."_remain", string.format("%.1f", node.remain))
+        end
+    end
+end
 
+function SysInfo:ReadSensors()
     collectgarbage()
     local lua_usage = collectgarbage("count")
     local cpu_usage = self:GetCpuUsage()
@@ -225,12 +234,7 @@ function SysInfo:WatchStatus()
         self.sysinfo_node:SetValue("uptime", string.format("%.2f", uptime.uptime))
     end
 
-    if self.storage_node then
-        for _,node in ipairs(linux_df()) do
-            self.storage_node:SetValue(node.id, string.format("%d", node.used_procent))
-            self.storage_node:SetValue(node.id.."_remain", string.format("%.1f", node.remain))
-        end
-    end
+
     if self.thermal_node then
         for id, e in pairs(self.thermal_props) do
             self.thermal_node:SetValue(id, string.format("%.1f", tonumber(read_first_line(e._read_path)) / 1000))
@@ -238,20 +242,17 @@ function SysInfo:WatchStatus()
     end
 end
 
+function SysInfo:SetActiveErrors(data)
+    if self.sysinfo_node then
+        data = data or {}
+        self.sysinfo_node:SetValue("errors", json.encode(data))
+    end
+end
+
 function SysInfo:BeforeReload()
 end
 
 function SysInfo:AfterReload()
-    if not self.watch_thread then
-        self.watch_thread = copas.addthread(function()
-            while true do
-                SafeCall(function()
-                    copas.sleep(60)
-                    self:WatchStatus()
-                end)
-            end
-        end)
-    end
 end
 
 function SysInfo:Init()
@@ -265,7 +266,7 @@ end
 
 function SysInfo:InitSysInfoNode(client)
     self.sysinfo_props = {
-        errors = { name = "Active errors", datatype = "json", },
+        errors = { name = "Active errors", datatype = "string" },
         uptime = { name = "System up time", datatype = "float", unit="s" },
 
         cpu_usage = { name = "Process cpu usage", datatype = "float", unit = "%" },
@@ -281,7 +282,6 @@ function SysInfo:InitSysInfoNode(client)
         name = "System info",
         properties = self.sysinfo_props
     })
-    self.sysinfo_node:SetValue("errors", "[]")
 end
 
 function SysInfo:InitStorageNode(client)
@@ -320,19 +320,21 @@ function SysInfo:InitThermalNode(client)
                 table.insert(self.thermal_props, e)
             end
         end
+        self.thermal_node = client:AddNode("thermal", {
+            name = "Temperatures",
+            properties = self.thermal_props
+        })
     else
+        self.thermal_node = nil
         print("SYSINFO: /sys/class/thermal does not exist")
     end
-
-    self.thermal_node = client:AddNode("thermal", {
-        name = "Temperatures",
-        properties = self.thermal_props
-    })
 end
 
 SysInfo.EventTable = {
     ["homie-client.init-nodes"] = SysInfo.InitHomieNode,
-    ["homie-client.ready"] = SysInfo.WatchStatus
+    ["homie-client.ready"] = SysInfo.WatchStatus,
+    ["timer.sensor-read"] = SysInfo.ReadSensors,
+    ["timer.sensor-read.slow"] = SysInfo.ReadSensorsSlow
 }
 
 return SysInfo

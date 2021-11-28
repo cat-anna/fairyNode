@@ -51,7 +51,6 @@ local function CheckRebootCounter()
   value = value + 1
   print("INIT: Current reboot counter:", value)
 
-
   if value > 8 then
     print("INIT: Reboot threshoold exceeded.")
     print("INIT: Starting in failsafe mode.")
@@ -67,10 +66,10 @@ local function CheckRebootCounter()
         node.restart()
       end
     end)
-  
+
     return false
   end
-  
+
   rtcmem.write32(120, value)
 
   tmr.create():alarm(10 * 60 * 1000, tmr.ALARM_SINGLE, function()

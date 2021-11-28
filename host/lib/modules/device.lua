@@ -1,3 +1,4 @@
+local json = require "json"
 
 local DatatypeParser = {
     boolean = function(v)
@@ -113,6 +114,16 @@ function Device:PushPropertyHistory(node, property, value, timestamp)
         }
     end
 
+    local prop_id = self:GetFullPropertyName(node, property.id)
+    local additional_handlers = self.AdditionalHistoryHandlers[prop_id]
+    if type(additional_handlers) == "table" then
+        for _,handler in ipairs(additional_handlers) do
+            SafeCall(function()
+                handler(self, node, property, value, timestamp)
+            end)
+        end
+    end
+
     local history = self.history[id]
 
     if #history.values > 0 then
@@ -131,6 +142,47 @@ function Device:PushPropertyHistory(node, property, value, timestamp)
     self.cache:UpdateCache(id, history)
 end
 
+function Device:AppendErrorHistory(node, property, value, timestamp)
+    print(self:LogTag() .. string.format("error state changed to '%s'", value))
+    self.active_errors = self.active_errors or {}
+
+    local device_errors = json.decode(value)
+
+    local add_entry = function(operation, key, value)
+        key = key or "<nil>"
+        value = json.encode(value or "")
+        print(self:LogTag() .. string.format("%s error %s=%s", operation, key, value))
+
+
+    end
+
+    local new_active_errors = {}
+
+    for k,v in pairs(self.active_errors) do
+        --remove errors that are still active
+        local error_value = device_errors[k]
+        if error_value[k] == v then
+            device_errors[k] = nil
+            new_active_errors[k]=v
+        else
+            if error_value then
+                add_entry("changed", k, error_value)
+                new_active_errors[k]=error_value
+                device_errors[k] = nil
+            else
+                add_entry("removed", k)
+            end
+        end
+    end
+
+    for k,v in pairs(device_errors) do
+        add_entry("new", k, v)
+    end
+
+
+    self.active_errors = new_active_errors
+end
+
 function Device:GetHistory(node_name, property_name)
     local id = self:GetHistoryId(node_name, property_name)
     local history = self.history[id]
@@ -146,7 +198,7 @@ function Device:HandlePropertyValue(topic, payload)
     local property = node.properties[prop_name]
 
     local changed = true
-    if property.value == payload and property.timestamp ~= nil then
+    if property.timestamp ~= nil and property.raw_value == payload then
         changed = false
     end
 
@@ -182,14 +234,16 @@ function Device:HandlePropertyValue(topic, payload)
         })
     end
 
-    property.value = value
-    property.timestamp = timestamp
     self:PushPropertyHistory(node_name, property, value, timestamp)
     self.cache:UpdateCache(self:GetPropertyId(node_name, prop_name), property)
 
-    if configuration.debug then
-        print(self:LogTag() .. string.format("node %s.%s = %s", node_name, prop_name, tostring(value)))
+    if changed then
+        print(self:LogTag() .. string.format("node %s.%s = %s -> %s", node_name, prop_name, property.raw_value or "", payload or ""))
     end
+
+    property.value = value
+    property.raw_value = payload
+    property.timestamp = timestamp
 end
 
 function Device:HandlePropertyConfigValue(topic, payload)
@@ -214,6 +268,10 @@ function Device:HandlePropertyConfigValue(topic, payload)
 
     property[config_name] = payload
     -- print(self:LogTag() .. string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
+end
+
+function Device:GetFullPropertyName(node_id, prop_id)
+    return string.format("%s.%s",node_id, prop_id)
 end
 
 function Device:GetPropertyId(node_id, prop_id)
@@ -304,6 +362,8 @@ function Device:HandleCommandOutput(topic, payload)
     end
     print(self:LogTag() .. "Got command result: " .. payload)
 
+    self.last_command_result = { response = payload, timestamp = os.time() }
+
     SafeCall(function()
         cb(payload)
     end)
@@ -332,7 +392,7 @@ function Device:AfterReload()
     self.nodes = self.nodes or {}
 
     for _,n in pairs(self.nodes) do
-        setmetatable(n, self:GetNodeMT(self))
+        setmetatable(n, self:GetNodeMT())
         for _,p in pairs(n.properties) do
             setmetatable(p, self:GetPropertyMT(n))
         end
@@ -349,6 +409,15 @@ function Device:AfterReload()
 end
 
 function Device:Init()
+    self.active_errors = {}
+end
+
+Device.AdditionalHistoryHandlers = {
+    ["sysinfo.errors"] = { Device.AppendErrorHistory },
+}
+
+function Device:ClearError(error_id)
+    self:SendCommand("sys,error,clear,"..error_id, nil)
 end
 
 -------------------------------------------------------------------------------

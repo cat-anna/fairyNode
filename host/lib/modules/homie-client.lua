@@ -1,5 +1,6 @@
 local modules = require("lib/modules")
 local socket = require("socket")
+local copas = require "copas"
 
 local NodeObject = {}
 NodeObject.__index = NodeObject
@@ -15,6 +16,7 @@ HomieClient.__index = HomieClient
 HomieClient.Deps = {
     mqtt = "mqtt-provider",
     event_bus = "event-bus",
+    timers = "event-timers",
 }
 
 local DatatypeParser = {
@@ -208,17 +210,15 @@ end
 -------------------------------------------------------------------------------
 
 function HomieClient:BeforeReload()
-
 end
 
 function HomieClient:AfterReload()
-
-
     if self.mqtt:IsConnected() then
         self:EnterInitState()
     end
 
-    --
+    self.sensor_timer = self.timers:RegisterTimer("sensor-read", 60)
+    self.sensor_timer_slow = self.timers:RegisterTimer("sensor-read.slow", 10 * 60)
 end
 
 function HomieClient:Init()

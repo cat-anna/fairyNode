@@ -1,6 +1,7 @@
 
 local function GetWifiSignalQuality()
-    local v = (wifi.sta.getrssi() + 100) * 2
+    local rssi = wifi.sta.getrssi() or (-100)
+    local v = (rssi + 100) * 2
     if v > 100 then
         return 100
     end

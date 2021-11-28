@@ -49,6 +49,9 @@ function FairyNode_InitOverview() {
 }
 
 function SortedKeys(unordered) {
+    if (unordered == null) {
+        return {}
+    }
     return Object.keys(unordered).sort().reduce(
         (obj, key) => {
         obj[key] = unordered[key];
@@ -304,7 +307,11 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                         });
                     }
                 } else {
-                    $("#" + control_id).prop('checked', prop.value == "true")
+                    if (prop.datatype == "boolean") {
+                        $("#" + control_id).prop('checked', prop.value)
+                    } else {
+                        $("#" + control_id).prop('value', prop.value)
+                    }
                 }
             }
         }
@@ -373,18 +380,16 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
     header.html("<div style='float: left; display: block; padding-right:20px;'>Software version</div>")
     jQuery('<div/>', {
         // id: 'some-id',
-        "class": 'ota_trig_btn',
+        "class": 'OtaTriggerButton',
         html: 'Trigger OTA',
-        "data-url" : "/device/" + entry.name + "/ota",
+        "data-url" : "/device/" + entry.name + "/command",
         click: function() {
             body = {
-                command: 'trigger',
+                command: 'sys,ota,update',
             }
             QueryPost($(this).attr("data-url"), body)
         }
     }).appendTo(header);
-
-        // "<div class='ota_trig_btn'>Trigger OTA</div>")
 
     var blocks = [
         ["Configuration", "fw/FairyNode/config/timestamp", ],
@@ -440,20 +445,19 @@ function SetDeviceInfoPageActiveErrors(entry, body_id) {
     var node_id = "ERRORS_" + body_id
     GetOrCreateDiv(node_id, body_id, "DeviceNode")
 
-    var errors = null
+    var error_dict = null
     if (entry.nodes.sysinfo != null && entry.nodes.sysinfo.properties.errors != null) {
-        errors = entry.nodes.sysinfo.properties.errors.value
+        error_dict = entry.nodes.sysinfo.properties.errors.value_parsed
     }
 
     $("#" + node_id).html("")
-    if (errors == null || errors == "[]") {
+    if (error_dict == null) {
         GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader").html("No active errors")
         return
     }
 
     GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader DeviceInfoErrorsActive").html("Active errors")
 
-    var error_dict = JSON.parse(errors)
     var keys = Object.keys(error_dict)
     keys.sort()
     for (var i in SortedKeys(keys)) {
@@ -461,12 +465,31 @@ function SetDeviceInfoPageActiveErrors(entry, body_id) {
         var value = error_dict[key]
 
         var prop_id = i + "_" + node_id
-        GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
-            // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
-        GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: key })
-        GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
-    }
+        GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyErrorContent")
 
+        var title_prop_id = i + "_title_" + node_id
+
+        GetOrCreateDiv(title_prop_id, prop_id, "DeviceNodePropertyErrorTitle")
+
+        var kill = GetOrCreateDiv("KILL_" + prop_id, title_prop_id, "DeviceNodePropertyErrorEntry DeviceNodePropertyErrorBlock DeviceNodePropertyErrorClickableIcon", { html: "&nbsp;"})
+
+        $(kill).attr("device", entry.name)
+        $(kill).attr("key", key)
+        $(kill).click(function() {
+            body = {
+                command: "clear_error",
+                args : {
+                    key : $(this).attr("key"),
+                }
+            }
+            url = "/device/" + $(this).attr("device") + "/command"
+            QueryPost(url, body)
+        })
+
+        GetOrCreateDiv("HEADER_" + prop_id, title_prop_id, "DeviceNodePropertyErrorEntry DeviceNodePropertyErrorBlock", { html: key })
+
+        GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyErrorEntry DeviceNodePropertyErrorMessage").html(value)
+    }
 }
 
 function SetDeviceInfoPage(entry, sub_id, body_id) {
@@ -508,7 +531,19 @@ function UpdateDevice(entry) {
     var err_value = null
     if(sysinfo_props != null && sysinfo_props.errors != null){
         var err_current = sysinfo_props.errors.value
-        if (err_current == "[]" || err_current == null) {
+
+        var error_dict = {}
+        try {
+            error_dict = JSON.parse(err_current)
+        }
+        catch(e) { }
+
+        if (Array.isArray(error_dict) || Object.keys(error_dict).length == 0) {
+            error_dict = null
+        }
+        sysinfo_props.errors.value_parsed = error_dict
+
+        if (error_dict == null) {
             err_caption = "&nbsp;"
         } else {
             err_caption = "Active"

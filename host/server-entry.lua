@@ -5,6 +5,7 @@ local path = require "pl.path"
 local dir = require "pl.dir"
 local json = require("json")
 local copas = require "copas"
+local lfs = require "lfs"
 local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
 package.path = package.path .. ";" .. fairy_node_base .. "/host/?.lua" .. ";" .. fairy_node_base .. "/host/?/init.lua"
 
@@ -13,51 +14,34 @@ FairyNode rest server entry
     --debug                        enter debug mode
 ]]
 
-local conf = { }
+FairyNodeSource = fairy_node_base
+
+local conf = require "host/configuration"
 conf.__index = conf
 conf.__newindex = function()
    error("Attempt to change conf at runtime")
 end
 
-conf.storage_path = fairy_node_base .. "/storage"
-conf.cache_path = args.debug and (fairy_node_base .. "/cache") or "/tmp/fairyNode"
-conf.debug = args.debug
+local function GetNodeMcuPath()
+    local nodemcu_base = path.normpath(fairy_node_base .. "/../nodemcu-firmware")
+    local attr = lfs.attributes(nodemcu_base)
+    if attr and attr.mode == "directory" then
+        return nodemcu_base
+    end
+end
+
+conf.storage_path = conf.storage_path or fairy_node_base .. "/storage"
+conf.cache_path = conf.cache_path or (args.debug and (fairy_node_base .. "/cache") or "/tmp/fairyNode")
+conf.nodemcu_firmware_path = conf.nodemcu_firmware_path or GetNodeMcuPath()
+conf.debug = conf.debug or args.debug
 conf.fairy_node_base = fairy_node_base
+conf.module_black_list = conf.module_black_list or {}
 
 configuration = setmetatable({}, conf)
 
--- function LoadScript(name)
---    return dofile(path.normpath(configuration.fairy_node_base .. "/" .. name))
--- end
-
-
--- function InvokeFile(file, method, ...)
---    local succ, lib = pcall(dofile, configuration.fairy_node_base .. "/" .. file)
---    if not succ then
---       print("ERROR: " .. lib)
---       return restserver.response():status(500):entity("500: " .. lib)
---    end
-
---    local status, result = pcall(lib[method], ...)
---    if not status then
---       print("ERROR: " .. result)
---       return restserver.response():status(500):entity("500: " .. result)
---    end
-
---    -- if type(result) == "table" then
---    --    result = json.encode(result)
---    -- end
-
---    local str = tostring(result)
---    print("RESULT: " .. tostring(#str) .. " bytes")
---    print(str:sub(1,256))
---    return restserver.response():status(200):entity(result)
--- end
-
--- require "lib/rest-ota"
--- require "lib/rest-file"
-
 require "lib/modules"
-require "lib/rest"
+if not conf.disable_rest_api then
+    require "lib/rest"
+end
 
 copas.loop()

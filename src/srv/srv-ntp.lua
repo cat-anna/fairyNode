@@ -11,7 +11,7 @@ local function NTPCheck(t)
     else
         t:unregister()
         if Event then Event("ntp.sync") end
-    end 
+    end
 end
 
 function m.OnSync(sec, usec, server, info)
@@ -22,7 +22,7 @@ end
 
 function m.OnError(err, msg)
     if not sntp then return end
-    print("NTP: Error ", err, msg) 
+    print("NTP: Error ", err, msg)
     tmr.create():alarm(10 * 1000, tmr.ALARM_AUTO, NTPCheck)
     if Event then Event("ntp.error") end
 end
@@ -32,7 +32,7 @@ function m.Sync()
     local ntpcfg = require("sys-config").JSON("ntp.cfg")
     if not ntpcfg then
         print "NTP: No config file"
-        return 
+        return
     end
 
     host = ntpcfg.host

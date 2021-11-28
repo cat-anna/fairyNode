@@ -75,9 +75,9 @@ function OtaCoreMt:BeginUpdate()
   if file.exists(TOKEN_FILE_NAME) then
     file.remove(TOKEN_FILE_NAME)
   end
-  
+
   self.http_handler:SetFinishedCallback(function() self:DownloadCompleted() end)
-  
+
   tmr.create():alarm(5000, tmr.ALARM_SINGLE, function()
     self.http_handler:Start()
   end)
@@ -109,12 +109,14 @@ end
 function OtaCoreMt:CheckWhatToUpdate(remote_status, my_timestamps, ignore_host_disable)
   local any_download = false
 
+  ignore_host_disable = ignore_host_disable or (failsafe == true)
+
   local function compare(remote, my)
-    if not my or not my.hash then 
-      return true 
+    if not my or not my.hash then
+      return true
     end
-    if not remote or not remote.hash then 
-      return false 
+    if not remote or not remote.hash then
+      return false
     end
 
     return my.hash ~= remote.hash
@@ -141,7 +143,7 @@ function OtaCoreMt:CheckWhatToUpdate(remote_status, my_timestamps, ignore_host_d
       print("OTA: ROOT update is needed, but ota is disabled for this device")
     end
   else
-    print("OTA: ROOT is up to date")    
+    print("OTA: ROOT is up to date")
   end
 
   if compare(remote_status.config, my_timestamps.config) then
@@ -153,7 +155,7 @@ function OtaCoreMt:CheckWhatToUpdate(remote_status, my_timestamps, ignore_host_d
       print("OTA: CONFIG update is needed, but ota is disabled for this device")
     end
   else
-    print("OTA: CONFIG is up to date")    
+    print("OTA: CONFIG is up to date")
   end
 
   if not any_download then
@@ -166,7 +168,7 @@ end
 
 function OtaCoreMt:CheckOtaStatus(data, ignore_host_disable)
   print("OTA: Remote status:" .. data)
-  
+
   local succ, remote_status = pcall(sjson.decode, data)
   if not succ then
     print("OTA: Failed to parse status json:" .. tostring(data))

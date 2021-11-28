@@ -50,17 +50,21 @@ function EventBus:ProcessAllEvents()
 end
 
 function EventBus:ProcessEvent(event_info)
-    if configuration.debug then
-        -- print(self:LogTag() .. ": Processing event " .. event_info.event)
-    end
+    -- if configuration.debug then
+    --     print(self:LogTag() .. ": Processing event " .. event_info.event)
+    -- end
+    local run_stats = {
+        handlers_called = 0
+    }
     self.module_enumerator:Enumerate(
         function(name, module)
-            SafeCall(self.ApplyEvent, self, name, module, event_info)
+            SafeCall(self.ApplyEvent, self, name, module, event_info, run_stats)
         end
     )
+    return run_stats.handlers_called
 end
 
-function EventBus:ApplyEvent(module_name, module_instance, event_info)
+function EventBus:ApplyEvent(module_name, module_instance, event_info, run_stats)
     if not module_instance then
         return
     end
@@ -75,6 +79,7 @@ function EventBus:ApplyEvent(module_name, module_instance, event_info)
     end
 
     -- print(self:LogTag() .. ": Apply event " .. event_info.event .. " to " .. module_name)
+    run_stats.handlers_called = run_stats.handlers_called + 1
 
     handler(module_instance, setmetatable({}, { __index = event_info }))
 end

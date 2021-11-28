@@ -107,6 +107,8 @@ local function wsapi_handler_with_self(self, wsapi_env)
    end
 
    local input, err
+
+   err = ""
    if wreq.method == "POST" then
       input, err = decode(wreq.POST.post_data, entry.consumes, entry.input_schema)
    elseif wreq.method == "GET" then
@@ -117,7 +119,7 @@ local function wsapi_handler_with_self(self, wsapi_env)
       error("Other methods not implemented yet.")
    end
    if not input then
-      return fail(self, wreq, 400, "Bad Request - Your request fails schema validation: "..err)
+      return fail(self, wreq, 400, "Bad Request - Your request fails schema validation: ".. (err or "?"))
    end
 
    local placeholder_matches = (entry.rest_path ~= entry.match_path) and { wsapi_env.PATH_INFO:match(entry.match_path) } or {}

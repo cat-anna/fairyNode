@@ -333,6 +333,44 @@ html {
     box-sizing: border-box;
 }
 
+.DeviceNodePropertyErrorContent {
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    clear: both;
+    padding: 5px;
+    min-height: 30px;
+    height: fit-content;
+    box-sizing: border-box;
+}
+
+.DeviceNodePropertyErrorTitle {
+    width: 600px;
+    height: 35px;
+    box-sizing: border-box;
+    margin-bottom: 0;
+}
+
+.DeviceNodePropertyErrorBlock {
+    float: left;
+    display: block;
+}
+
+.DeviceNodePropertyErrorEntry {
+    padding: 5px;
+    height: fit-content;
+    box-sizing: border-box;
+    margin-bottom: 0;
+}
+
+.DeviceNodePropertyErrorMessage {
+    border-radius: 5px;
+    border: 1px solid maroon;
+    margin: 10px;
+    padding: 10px;
+    margin-top: 0;
+    width: max-content;
+}
+
 .DeviceNodePropertySpacer {
     width: 20px;
     height: 20px;
@@ -361,6 +399,15 @@ html {
 .DeviceNodePropertyChart {
     width: 100%;
     height: 400px;
+}
+
+.DeviceNodePropertyErrorClickableIcon {
+    margin-left: 20px;
+    margin-right: 20px;
+    width: 25px;
+    cursor: pointer;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABmJLR0QA/wD/AP+gvaeTAAACCUlEQVR4nO2aoU4DQRCGvzQFBAYBKZDgsJgKQGBwCEJSNKCQvAAvADxAS4LkBXgABKbVWCQQCkGgEFAIoYh2k+boXvf29u622fmScd2Znb/Z//Z2DwRBEARBEARBEAQrDoDumIUzloF3DxoqRIAp4NaDZgoToO5BI4UJsA38etBIIQIsAW8eNFGIAGWg5UEDhQlwalnwC9gFzhxM/gLYAT7zFmAT+LFsfmcgzx7wYZGnAxwO5NlKIUJiKsCrZbHakHxrQDtBjnZ/TJRaHgKUgGvLQl2gock7C9wYjG8B85oc53kIcJyieRWH/7L2KBPvCxfApGZsmi24MavAtwMBvoGNmDpRX4iu9yhr/d9kKsAMcO+geRUvwGJMvSrwADwD6zG/qwBPKedixJXD5lU0gYmYmvPo1zv9sU0H8xjJUQbNq9CZogm2ppdIgBXsntNJIm5963B57qBlGrjLuPkuo00xSlrTMxbgMofmVYwyRYUL09MKUDKYQFDktQQ69PYYplRx60ux+GqC+3kJANk+BusWzSsajuZgRNAbIShmK/yIR1thcPcyNMr0kr4MpTXFRPj6OpzGFBOR9kBEZ3pzmB+ILGhy2JpiYoI+ElMEfSiqOLEs2KH3b7l4jjf6uTI/ERpG8BcjEPjVmCLoy1FF0NfjIB9IAIF/IqMI+iMpQRAEQRAEQRCEseQPCZE7/lFgOk0AAAAASUVORK5CYII=);
+    background-size:cover ;
 }
 
 .DeviceNodePropertyName {
@@ -393,4 +440,8 @@ html {
     background: rgba(0, 0, 0, 0);
     border: 1px silver solid;
     color: white;
+}
+
+.OtaTriggerButton {
+    cursor: pointer;
 }

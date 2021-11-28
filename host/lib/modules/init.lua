@@ -17,6 +17,16 @@ local ReloadWatchers = { }
 local Enumerator = { }
 Enumerator.__index = Enumerator
 
+local function TestBlackList(module_name)
+    for _,v in ipairs(configuration.module_black_list or {}) do
+            if module_name:match(v) then
+            print(string.format("Module '%s' is blacklisted by rule '%s'", module_name, v))
+            return true
+        end
+    end
+    return false
+end
+
 function Enumerator:Enumerate(functor)
     for k,v in pairs(modules) do
         functor(k, v.instance)
@@ -36,13 +46,14 @@ local function ReloadModule(group, name, filename, filetime)
             name = name,
             group = group,
             init_done = false,
-            instance = { }
+            instance = { },
+            black_listed = TestBlackList(name)
          }
     end
 
     local module = modules[name]
 
-    if module.timestamp == filetime then
+    if module.timestamp == filetime or module.black_listed then
         return
     end
 

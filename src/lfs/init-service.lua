@@ -19,12 +19,16 @@ local function InitService()
         print("INIT: Loading " .. name)
         local mod = require(v)
         if mod.Init then
-            srv_cache[name] = mod.Init(add_service)
+            local m_instance = mod.Init(add_service)
+            srv_cache[name] = m_instance
+            if m_instance and m_instance.Init then
+                pcall(m_instance.Init, m_instance)
+            end
         end
     end
 
     services = srv_cache
-    
+
     coroutine.yield()
     if Event then Event("app.init.post-services", services) end
     coroutine.yield()
@@ -32,9 +36,9 @@ local function InitService()
 
     coroutine.yield():interval(2000)
     coroutine.yield()
-    
+
     if Event then Event("app.start") end
-    
+
     coroutine.yield():unregister()
 end
 
