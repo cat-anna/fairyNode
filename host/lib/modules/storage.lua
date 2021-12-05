@@ -114,6 +114,24 @@ function Storage:InitHomieNode(event)
     })
 end
 
+function Storage:ListEntries(regex)
+    local result = { }
+    regex = regex or ".*"
+    for file in lfs.dir(self.storage_path .. "/") do
+        if file ~= "." and file ~= ".." then
+            local f = self.storage_path .. '/' .. file
+            local attr = lfs.attributes(f)
+            if attr and attr.mode == "file" then
+                if not regex or file:match(regex) then
+                    print(string.format("STORAGE: Looking entries with regex '%s' matched '%s'", regex, file))
+                    table.insert(result, file)
+                end
+            end
+        end
+    end
+    return result
+end
+
 Storage.EventTable = {
     ["homie-client.init-nodes"] = Storage.InitHomieNode,
     ["homie-client.ready"] = Storage.CheckStorage,
