@@ -7,7 +7,7 @@ local Module = {}
 Module.__index = Module
 
 function Module:OnOtaStart()
-    tmr.create():alarm(10 * 1000, tmr.ALARM_SINGLE, function() 
+    tmr.create():alarm(10 * 1000, tmr.ALARM_SINGLE, function()
         self:Close()
     end)
 end
@@ -36,7 +36,11 @@ Module.EventHandlers = {
 
 function Module:Publish(topic, payload, retain, qos)
     payload = tostring(payload)
-    print("MQTT: " .. topic .. " <- " .. (payload or "<NIL>"))
+
+    if debugMode then
+        print("MQTT: " .. topic .. " <- " .. (payload or "<NIL>"))
+    end
+
     if not self.is_connected then
         print("MQTT: Publish: Not connected")
         return false
@@ -48,7 +52,7 @@ function Module:Publish(topic, payload, retain, qos)
     end)
     if not r then
         print("MQTT: Publish failed")
-    end    
+    end
     return r
 end
 
@@ -57,7 +61,7 @@ function Module:Subscribe(topics, handler)
         print("MQTT: Subscribe: Not connected")
         return
     end
-    
+
     if type(topics) == "string" then
         topics = { topics }
     end
@@ -95,12 +99,12 @@ function Module:Unsubscribe(topics)
     for _,v in ipairs(topics) do
         local regex = topic2regexp(v)
         subs[v] = 0
-        
+
         -- print("MQTT: Unsubscribe ", v)
-        
+
         self.subscriptions[regex] = nil
     end
-    
+
     return self.mqttClient:unsubscribe(subs, function(client) print("MQTT: Unsubscription successful") end)
 end
 
@@ -176,9 +180,9 @@ function Module:Connect()
         self.mqttClient:lwt("homie/" .. wifi.sta.gethostname() .. "/$state", "lost", 0, 1)
     end
 
-    self.mqttClient:connect(cfg.host, cfg.port or 1883, 
-        function(...) self:Connected(...) end, 
-        function(...) self:HandleError(...) end 
+    self.mqttClient:connect(cfg.host, cfg.port or 1883,
+        function(...) self:Connected(...) end,
+        function(...) self:HandleError(...) end
     )
 end
 
