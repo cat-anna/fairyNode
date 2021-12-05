@@ -244,17 +244,6 @@ function HomieClient:AddNode(node_name, node)
         property.id=prop_name
 
         -- print(string.format("HOMIE: %s.%s", node_name or "?", prop_name or "?"))
-        if property.handler then
-            local settable_topic = self:GetHomiePropertySetTopic(node_name, prop_name)
-            print("HOMIE: Settable address:", settable_topic)
-
-            local function proxy_handler(topic, payload)
-                return property:ImportValue(topic, payload)
-            end
-            self.mqtt:WatchTopic(self:WatchTopicId(settable_topic), proxy_handler, settable_topic)
-        end
-
-        self:PublishNodeProperty(node_name, prop_name, "$settable", property.handler ~= nil)
 
         local ignored_entries = {
             value=true,
@@ -268,11 +257,23 @@ function HomieClient:AddNode(node_name, node)
                 self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
             end
         end
+
         self:PublishNodeProperty(node_name, prop_name, "$retained", property.retained and "true" or "false")
+        self:PublishNodeProperty(node_name, prop_name, "$settable", property.handler ~= nil or property.settable)
 
         property.controller = self
         property.node = node
         setmetatable(property, PropertyMT)
+
+        if property.handler then
+            local settable_topic = self:GetHomiePropertySetTopic(node_name, prop_name)
+            print("HOMIE: Settable address:", settable_topic)
+
+            local function proxy_handler(topic, payload)
+                return property:ImportValue(topic, payload)
+            end
+            self.mqtt:WatchTopic(self:WatchTopicId(settable_topic), proxy_handler, settable_topic)
+        end
 
         if property.value then
             property:SetValue(property.value, true)
