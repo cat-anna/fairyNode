@@ -284,9 +284,6 @@ function HomieClient:AfterReload()
     if self.mqtt:IsConnected() then
         self:EnterInitState()
     end
-
-    self.sensor_timer = self.timers:RegisterTimer("sensor.read", 60)
-    self.sensor_timer_slow = self.timers:RegisterTimer("sensor.read.slow", 10 * 60)
 end
 
 function HomieClient:Init()

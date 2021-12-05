@@ -135,7 +135,7 @@ end
 Storage.EventTable = {
     ["homie-client.init-nodes"] = Storage.InitHomieNode,
     ["homie-client.ready"] = Storage.CheckStorage,
-    ["timer.sensor-read.slow"] = Storage.CheckStorage
+    ["timer.sensor.read.slow"] = Storage.CheckStorage
 }
 
 return Storage

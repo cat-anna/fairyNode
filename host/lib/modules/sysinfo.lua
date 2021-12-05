@@ -234,7 +234,6 @@ function SysInfo:ReadSensors()
         self.sysinfo_node:SetValue("uptime", string.format("%.2f", uptime.uptime))
     end
 
-
     if self.thermal_node then
         for id, e in pairs(self.thermal_props) do
             self.thermal_node:SetValue(id, string.format("%.1f", tonumber(read_first_line(e._read_path)) / 1000))
@@ -333,8 +332,8 @@ end
 SysInfo.EventTable = {
     ["homie-client.init-nodes"] = SysInfo.InitHomieNode,
     ["homie-client.ready"] = SysInfo.WatchStatus,
-    ["timer.sensor-read"] = SysInfo.ReadSensors,
-    ["timer.sensor-read.slow"] = SysInfo.ReadSensorsSlow
+    ["timer.sensor.read.fast"] = SysInfo.ReadSensors,
+    ["timer.sensor.read.slow"] = SysInfo.ReadSensorsSlow
 }
 
 return SysInfo

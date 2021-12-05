@@ -136,7 +136,7 @@ end
 Cache.EventTable = {
     ["homie-client.init-nodes"] = Cache.InitHomieNode,
     ["homie-client.ready"] = Cache.CheckCache,
-    ["timer.sensor-read.slow"] = Cache.CheckCache
+    ["timer.sensor.read.slow"] = Cache.CheckCache
 }
 
 return Cache
