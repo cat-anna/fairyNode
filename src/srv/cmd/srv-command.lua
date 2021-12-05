@@ -12,8 +12,11 @@ local Module = { }
 Module.__index = Module
 
 local function HandleCommand(cmdLine, outputFunctor)
+    if not cmdLine then
+        return
+    end
     local args = {}
-    for k in (cmdLine .. ","):gmatch("([^,]*),") do  
+    for k in (cmdLine .. ","):gmatch("([^,]*),") do
         table.insert(args, k)
     end
 
