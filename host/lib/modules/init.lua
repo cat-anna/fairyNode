@@ -4,7 +4,8 @@ require "lib/ext"
 local lfs = require "lfs"
 local copas = require "copas"
 
-local debug = configuration.debug
+local debug = require("configuration").debug
+
 local module_dir = {
     fw = configuration.fairy_node_base .. "/host/lib/modules",
     user = "./host/lib/modules",
@@ -40,7 +41,7 @@ end
 local function ReloadModule(group, name, filename, filetime)
     -- print("MODULES: Checking module:",name, filename, filetime)
 
-    if not modules[name] then
+    if not modules[name] or not modules[name].instance then
         modules[name] = {
             timestamp = 0,
             name = name,
@@ -69,8 +70,8 @@ local function ReloadModule(group, name, filename, filetime)
 
     if new_metatable.Deps ~= nil then
         for member, dep_name in pairs(new_metatable.Deps) do
-            local dep = modules[dep_name] or {}
-            if not dep.instance and dep_name ~= "module-enumerator" then
+            local dep = modules[dep_name]
+            if (not dep or not dep.instance) and dep_name ~= "module-enumerator" then
                 print("MODULES: Module ".. name .. " dependency " .. dep_name ..  " are not yet satisfied")
                 return
             else
@@ -89,13 +90,14 @@ local function ReloadModule(group, name, filename, filetime)
 
     if not module.init_done then
         if module.instance.Init then
-            local success = pcall(function ()
+            local success, errm = pcall(function ()
                 module.instance:Init()
             end)
 
             if not success then
                 module.instance = nil
                 print("MODULES: Failed to initialize module:", name)
+                print("MODULES: Error:", errm)
                 return
             else
                 module.init_done = true

@@ -1,22 +1,44 @@
 #!/usr/bin/lua
 
-local lapp = require 'pl.lapp'
-local path = require "pl.path"
-local dir = require "pl.dir"
-local json = require("json")
 local copas = require "copas"
 local lfs = require "lfs"
+local path = require "pl.path"
+
+local config_base = path.abspath(path.currentdir())
 local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
 package.path = package.path .. ";" .. fairy_node_base .. "/host/?.lua" .. ";" .. fairy_node_base .. "/host/?/init.lua"
 
+function require_alternative(wanted, alternatives)
+    local got_it, module = pcall(require, wanted)
+    if got_it then
+        return module
+    end
+
+    assert(alternatives)
+    while #alternatives > 0 do
+        local to_test = table.remove(alternatives)
+        local got_it, module = pcall(require, to_test)
+        if got_it then
+            package.loaded[wanted] = module
+            print(string.format("Using alternative %s for %s", to_test, wanted))
+            return module
+        end
+    end
+    error(string.format("No vialbe alternative for %s", wanted))
+end
+
+local lapp = require 'pl.lapp'
+
+require_alternative("json", {"cjson"})
+require_alternative("dkjson", {"json", "cjson"})
+
 local args = lapp [[
-FairyNode rest server entry
+FairyNode server entry
     --debug                        enter debug mode
 ]]
 
-FairyNodeSource = fairy_node_base
+local conf = require("host/configuration").GetConfig(config_base, fairy_node_base)
 
-local conf = require "host/configuration"
 conf.__index = conf
 conf.__newindex = function()
    error("Attempt to change conf at runtime")
@@ -28,7 +50,12 @@ local function GetNodeMcuPath()
     if attr and attr.mode == "directory" then
         return nodemcu_base
     end
+    return nil
 end
+
+conf.path = conf.path or { }
+conf.path.config = config_base
+conf.path.fairy_node = fairy_node_base
 
 conf.storage_path = conf.storage_path or fairy_node_base .. "/storage"
 conf.cache_path = conf.cache_path or (args.debug and (fairy_node_base .. "/cache") or "/tmp/fairyNode")
@@ -38,6 +65,9 @@ conf.fairy_node_base = fairy_node_base
 conf.module_black_list = conf.module_black_list or {}
 
 configuration = setmetatable({}, conf)
+
+assert(package.loaded.configuration == nil)
+package.loaded.configuration = configuration
 
 require "lib/modules"
 if not conf.disable_rest_api then
