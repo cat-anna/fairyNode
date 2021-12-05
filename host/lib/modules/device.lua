@@ -209,7 +209,7 @@ function Device:HandlePropertyValue(topic, payload)
 
     if changed then
         self.event_bus:PushEvent({
-                event = "device.property_change",
+                event = "device.property.change",
                 argument = {
                     device = self.name,
                     node = node_name,
@@ -378,9 +378,14 @@ function Device:SendCommand(cmd, callback)
         cmd = table.concat(cmd, ",")
     end
 
-    self.command_pending = callback
+    self.command_pending = callback or function () end
     print(self:LogTag() .. "Sending command: " .. cmd)
     self.mqtt:PublishMessage(self:BaseTopic() .. "/$cmd", cmd, false)
+end
+
+function Device:SendEvent(event)
+    print(self:LogTag() .. "Sending event: " .. event)
+    self.mqtt:PublishMessage(self:BaseTopic() .. "/$event", event, false)
 end
 
 function Device:BeforeReload()
@@ -418,6 +423,10 @@ Device.AdditionalHistoryHandlers = {
 
 function Device:ClearError(error_id)
     self:SendCommand("sys,error,clear,"..error_id, nil)
+end
+
+function Device:ForceOta()
+    self:SendCommand("sys,ota,update", nil)
 end
 
 -------------------------------------------------------------------------------
@@ -509,7 +518,7 @@ function DevState:GetDevice(name)
     if d then
         return d
     end
-    error("There is no device " .. name)
+    error("There is no device " .. tostring(name))
 end
 
 function DevState:FindDeviceById(id)

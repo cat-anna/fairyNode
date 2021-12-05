@@ -11,7 +11,8 @@ function DevSrv:BeforeReload()
 end
 
 function DevSrv:AfterReload()
-    self:RegistertDeviceCommand("clear_error", function(...) return self:DeviceCommandClearError(...) end)
+    self:RegisterDeviceCommand("clear_error", function(...) return self:DeviceCommandClearError(...) end)
+    self:RegisterDeviceCommand("force_ota_update", function(...) return self:DeviceCommandForceOta(...) end)
 end
 
 function DevSrv:Init()
@@ -20,16 +21,17 @@ end
 
 -------
 
-function DevSrv:RegistertDeviceCommand(command, handler)
+function DevSrv:RegisterDeviceCommand(command, handler)
     self.device_commands[command] = handler
 end
 
 function DevSrv:DeviceCommandClearError(device, command, arg)
-    local cb = function(...)
-        self["last_command_result_" .. device.id] = { response = { ... }, timestamp = os.time() }
-    end
-
     device:ClearError(arg.key)
+    return http.OK, true
+end
+
+function DevSrv:DeviceCommandForceOta(device, command, arg)
+    device:ForceOta()
     return http.OK, true
 end
 

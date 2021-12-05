@@ -61,9 +61,9 @@ function PropertyMT:IsRetained()
     return (self.retained ~= nil) and self.retained or self.controller.retain
 end
 
-function PropertyMT:SetValue(value)
+function PropertyMT:SetValue(value, force)
     self.timestamp = os.time()
-    if self.value and self:IsRetained() and self.value == value then
+    if (not force) and self.value and self:IsRetained() and self.value == value then
         print(string.format("HOMIE: Skipping update %s - retained value not changed", self:GetFullId()))
         return
     end
@@ -256,8 +256,15 @@ function HomieClient:AddNode(node_name, node)
 
         self:PublishNodeProperty(node_name, prop_name, "$settable", property.handler ~= nil)
 
+        local ignored_entries = {
+            value=true,
+            settable=true,
+            retained=true,
+            handler=true,
+        }
         for k,v in pairs(property or {}) do
-            if k[1] ~= "_" then
+            local t = type(v)
+            if k[1] ~= "_" and not ignored_entries[k] and t ~= "table" and t ~= "function" then
                 self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
             end
         end
@@ -266,6 +273,10 @@ function HomieClient:AddNode(node_name, node)
         property.controller = self
         property.node = node
         setmetatable(property, PropertyMT)
+
+        if property.value then
+            property:SetValue(property.value, true)
+        end
     end
 
     self:PublishNode(node_name, "$name", node.name)
