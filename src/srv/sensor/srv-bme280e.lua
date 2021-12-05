@@ -52,8 +52,8 @@ function Sensor:Readout(event, sensors)
         if SetError then
             SetError("bme280e", "readout failed")
         end
-        sensors.bme280e = nil
-        return 
+        bme280.setup()
+        return
     else
         if SetError then
             SetError("bme280e", nil)
@@ -76,8 +76,8 @@ function Sensor:Readout(event, sensors)
     self.node:SetValue("pressure_qnh", fmt:format(QNH))
     self.node:SetValue("dew_point", fmt:format(D))
     self.node:SetValue("altitude", fmt:format(altitude))
-   
-    sensors.bme280e = { 
+
+    sensors.bme280e = {
         temperature = T,
         humidity = H,
         pressure_qfe = P,
