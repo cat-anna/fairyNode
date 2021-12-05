@@ -58,7 +58,7 @@ local function ReloadModule(group, name, filename, filetime)
         return
     end
 
-    -- print("MODULES: Reloading module:", name, filename, filetime)
+    print("MODULES: Reloading module:", name, filename, filetime)
 
     local success, new_metatable = pcall(dofile, filename)
 
@@ -66,6 +66,17 @@ local function ReloadModule(group, name, filename, filetime)
         print("MODULES: Cannot reload module:", name)
         print("MODULES: Message:", new_metatable)
         return
+    end
+
+    local alias = new_metatable.__module_alias
+    if alias then
+        if modules[alias] then
+            assert(modules[alias].name == name)
+        else
+            module.alias = alias
+            modules[alias] = module
+        end
+        print("MODULES: module " .. name .. " aliased to " .. alias)
     end
 
     if new_metatable.Deps ~= nil then

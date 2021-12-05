@@ -1,60 +1,40 @@
-local copas = require "copas"
-local lapp = require 'pl.lapp'
-local path = require "pl.path"
-local dir = require "pl.dir"
-local mqtt = require("mqtt")
-local modules = require("lib/modules")
 
-local mqtt_client_cfg = configuration.credentials.mqtt
-local mqttloop = mqtt:get_ioloop()
-
-local MqttProvider = {}
-MqttProvider.__index = MqttProvider
-MqttProvider.Deps = {
-    event_bus = "event-bus",
-    -- mqtt_last_will = "mqtt-provider-last-will",
-}
 
 local function topic2regexp(topic)
     return "^" .. topic:gsub("+", "([^/]+)"):gsub("#", "(.*)") .. "$"
 end
 
-function MqttProvider:ResetClient()
-    if self.mqtt_client then
-        --todo
-        print("MQTT-PROVIDER: Connecting:", self.mqtt_client:start_connecting())
-        return
-    end
+-------------------------------------------------------------------------------
 
-    local last_will
-    SafeCall(function()
-        last_will = modules.GetModule("mqtt-provider-last-will")
-    end)
+local MqttProvider = {}
+MqttProvider.__index = MqttProvider
+MqttProvider.Deps = {
+    mqtt_client = "mqtt-client",
+    event_bus = "event-bus",
+}
 
-    local mqtt_client = mqtt.client{
-        uri = mqtt_client_cfg.host,
-        username = mqtt_client_cfg.user,
-        password = mqtt_client_cfg.password,
-        clean = true,
-        reconnect = 1,
-        keep_alive = 10,
-        version = mqtt.v311,
-        will = last_will
-    }
-    mqtt_client:on {
-        connect = function(...) self:HandleConnect(...) end,
-        message = function(...) self:HandleMessage(...) end,
-        error = function(...) self:HandleError(...) end,
-        close = function(...) self:HandleClose(...) end,
-    }
-    self.mqtt_client = mqtt_client
+-------------------------------------------------------------------------------
+
+function MqttProvider:AfterReload()
 end
+
+function MqttProvider:BeforeReload()
+end
+
+function MqttProvider:Init()
+    self.subscriptions = { }
+    self.cache = { }
+    self.regex_watchers = { }
+end
+
+-------------------------------------------------------------------------------
 
 function MqttProvider:AddSubscription(id, regex)
     if not self.subscriptions[regex] then
         print("MQTT-PROVIDER: Adding subscription " .. regex)
         self.subscriptions[regex] = {
             subscribed = false,
+            subscription_pending = false,
             regex = regex,
             watchers = { }
         }
@@ -62,23 +42,15 @@ function MqttProvider:AddSubscription(id, regex)
 
     local sub = self.subscriptions[regex]
     sub.watchers[id] = true
-
     self:RestoreSubscription(sub)
 end
 
-function MqttProvider:RestoreSubscription(sub)
-    if not self.connected or sub.subscribed then
-        return
-    end
-    print("MQTT-PROVIDER: Restoring subscription " .. sub.regex)
-    assert(self.mqtt_client:subscribe{ topic=sub.regex, qos=0, callback=function(suback)
-        print("MQTT-PROVIDER: Scubscribed to " .. sub.regex)
-        sub.subscribed = true
-    end})
+function MqttProvider:PublishMessage(topic, payload, retain)
+    return self.mqtt_client:PublishMessage(topic, payload, retain)
 end
 
 function MqttProvider:RestoreSubscriptions()
-    if not self.connected then
+    if not self.mqtt_connected then
         return
     end
     for k,v in pairs(self.subscriptions) do
@@ -86,23 +58,21 @@ function MqttProvider:RestoreSubscriptions()
     end
 end
 
-function MqttProvider:HandleConnect(connack)
-    if connack.rc ~= 0 then
-        error("MQTT-PROVIDER: Connection to broker failed: " .. tostring(connack))
+function MqttProvider:RestoreSubscription(sub)
+    if not self.mqtt_connected or sub.subscribed or sub.subscription_pending then
+        return
     end
-    print("MQTT-PROVIDER: Connected")
-    self.connected = true
-    self:RestoreSubscriptions()
-
-    self.event_bus:PushEvent({
-        event = "mqtt-provider.connected",
-        argument = {}
-    })
+    print("MQTT-PROVIDER: Restoring subscription " .. sub.regex)
+    sub.subscription_pending = true
+    sub.subscribed = false
+    self.mqtt_client:Subscribe(sub.regex)
 end
 
-function MqttProvider:HandleMessage(msg)
-    local topic = msg.topic
-    local payload = msg.payload
+-------------------------------------------------------------------------------
+
+function MqttProvider:OnMqttMessage(event)
+    local topic = event.argument.topic
+    local payload = event.argument.payload
 
     if not self.cache[topic] then
         self.cache[topic] = {}
@@ -116,72 +86,33 @@ function MqttProvider:HandleMessage(msg)
     -- print("MQTT-PROVIDER: changed:", topic, payload)
 
     self:NotifyWatchers(topic, payload)
-    self.event_bus:PushEvent({
-        event = "mqtt-provider.message",
-        argument = {topic=topic,payload=payload}
-    })
 end
 
-function MqttProvider:PublishMessage(topic, payload, retain)
-    if retain == nil then
-        retain = false
-    end
+function MqttProvider:OnMqttSubscribed(event)
+    local regex = event.argument.regex
+    print("MQTT-PROVIDER: Subscription " .. regex .. " is confirmed")
 
-    self.mqtt_client:publish{
-        topic = topic,
-        payload = payload,
-        qos = 0,
-        retain = retain,
-    }
-
-    -- self:NotifyWatchers(topic, payload)
-
-    self.event_bus:PushEvent({
-        event = "mqtt-provider.publish",
-        argument = {topic=topic,payload=payload}
-    })
+    local sub = self.subscriptions[regex]
+    sub.subscribed = true
+    sub.subscription_pending = false
 end
 
-function MqttProvider:HandleError(err)
-    print("MQTT-PROVIDER: client error:", err)
-    self.event_bus:PushEvent({
-        event = "mqtt-provider.error",
-        argument = {error=err}
-    })
+function MqttProvider:OnMqttConnected()
+    print("MQTT-PROVIDER: Mqtt client is connected")
+    self.mqtt_connected = true
+    self:RestoreSubscriptions()
 end
 
-function MqttProvider:HandleClose()
-    print("MQTT-PROVIDER: Disconnected")
-    self.connected = false
+function MqttProvider:OnMqttDisconnected()
+    print("MQTT-PROVIDER: Mqtt client disconnected")
+    self.mqtt_connected = false
     for _,v in pairs(self.subscriptions) do
+        v.subscription_pending = false
         v.subscribed = false
     end
-    self.event_bus:PushEvent({
-        event = "mqtt-provider.disconnected",
-        argument = {}
-    })
 end
 
-function MqttProvider:CallWatchers(watchers, topic, payload)
-    for i,v in ipairs(watchers) do
-        SafeCall(function()
-            v.handler(topic, payload)
-        end)
-    end
-end
-
-function MqttProvider:NotifyWatchers(topic, payload)
-    local cached = self.cache[topic]
-    if cached and cached.watchers then
-        self:CallWatchers(cached.watchers, topic, payload)
-    end
-
-    for _,v in pairs(self.regex_watchers) do
-        if topic:match(v.regex) then
-            self:CallWatchers(v.watchers, topic, payload)
-        end
-    end
-end
+-------------------------------------------------------------------------------
 
 function MqttProvider:StopWatching(id)
     local function FilterWatcherList(list, id)
@@ -203,7 +134,7 @@ function MqttProvider:StopWatching(id)
     for k,v in pairs(self.cache) do
         v.watchers = FilterWatcherList(v.watchers, id)
     end
-    -- print("MQTT-PROVIDER: Unsubscribed:", id)
+    -- print("MQTT-WATCHER: Unsubscribed:", id)
 end
 
 function MqttProvider:WatchTopic(id, handler, topics)
@@ -230,9 +161,7 @@ function MqttProvider:WatchTopic(id, handler, topics)
 
         if entry.content then
             -- print("MQTT-PROVIDER: Calling handler for registering topic:", topic, entry.content)
-            SafeCall(function()
-                handler(topic, entry.content)
-            end)
+            SafeCall(handler, topic, entry.content)
         end
     end
 end
@@ -262,42 +191,46 @@ function MqttProvider:WatchRegex(id, handler, topics)
         for t,info in pairs(self.cache) do
             if t:match(entry.regex) and info.content then
                 -- print("MQTT-PROVIDER: Calling regex handler for registering topic:", mqtt_regex, t, info.content)
-                SafeCall(function()
-                    handler(t, info.content)
-                end)
+                SafeCall(handler, t, info.content)
             end
         end
     end
 end
 
+function MqttProvider:NotifyWatchers(topic, payload)
+    local cached = self.cache[topic]
+    if cached and cached.watchers then
+        self:CallWatchers(cached.watchers, topic, payload)
+    end
+
+    for _,v in pairs(self.regex_watchers) do
+        if topic:match(v.regex) then
+            self:CallWatchers(v.watchers, topic, payload)
+        end
+    end
+end
+
+function MqttProvider:CallWatchers(watchers, topic, payload)
+    for i,v in ipairs(watchers) do
+        SafeCall(function()
+            v.handler(topic, payload)
+        end)
+    end
+end
+
+-------------------------------------------------------------------------------
+
 function MqttProvider:IsConnected()
     return self.connected
 end
 
-function MqttProvider:Init()
-    self.connected = false
-    self.cache = { }
-    self.subscriptions = { }
-    self.regex_watchers = { }
+-------------------------------------------------------------------------------
 
-    copas.addthread(function()
-        copas.sleep(1)
-        print("MQTT-PROVIDER: starting...")
-        self:ResetClient()
-        mqttloop:add(self.mqtt_client)
-
-        while true do
-            mqttloop:iteration()
-            copas.sleep(0.001)
-        end
-    end)
-
-    copas.addthread(function()
-        while true do
-            copas.sleep(10)
-            self.mqtt_client:send_pingreq()
-        end
-    end)
-end
+MqttProvider.EventTable = {
+    ["mqtt-client.disconnected"] = MqttProvider.OnMqttDisconnected,
+    ["mqtt-client.connected"] = MqttProvider.OnMqttConnected,
+    ["mqtt-client.subscribed"] = MqttProvider.OnMqttSubscribed,
+    ["mqtt-client.message"] = MqttProvider.OnMqttMessage,
+}
 
 return MqttProvider

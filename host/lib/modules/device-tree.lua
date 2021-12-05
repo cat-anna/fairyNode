@@ -34,9 +34,7 @@ function DeviceTree:IndexTreeRoot(dev_name)
     })
 end
 
-
 function DeviceTree:IndexDeviceNode(dev, node_name)
-
     local node = dev.nodes[node_name]
     if not node then
         error(string.format("Device %s does not have node %s", dev.id, node_name))

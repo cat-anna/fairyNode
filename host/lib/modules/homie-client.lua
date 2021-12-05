@@ -1,6 +1,5 @@
 local modules = require("lib/modules")
 local socket = require("socket")
-local copas = require "copas"
 
 -------------------------------------------------------------------------------
 
@@ -97,9 +96,12 @@ function PropertyMT:ImportValue(topic, payload)
         print("HOMIE: no handler for " .. topic)
         return
     end
-    self.value = FromHomieValue(self.datatype, payload)
-    self.timestamp = os.time()
-    self.handler:SetNodeValue(topic, payload, self.node.id, self.id, self.value)
+
+    self:SetValue(FromHomieValue(self.datatype, payload))
+
+    if self.handler.SetNodeValue then
+        self.handler:SetNodeValue(topic, payload, self.node.id, self.id, self.value)
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -108,6 +110,7 @@ local HomieClient = {}
 HomieClient.__index = HomieClient
 HomieClient.Deps = {
     mqtt = "mqtt-provider",
+    mqtt_client = "mqtt-client",
     event_bus = "event-bus",
     timers = "event-timers",
 }
@@ -296,21 +299,18 @@ function HomieClient:AfterReload()
     if self.mqtt:IsConnected() then
         self:EnterInitState()
     end
+    self.mqtt:AddSubscription("HomieClient", "homie/#")
 end
 
 function HomieClient:Init()
     self.client_name = socket.dns.gethostname()
     self.base_topic = "homie/" .. self.client_name
     self.retain = true
-
-    local lwt = modules.CreateModule("mqtt-provider-last-will")
-    lwt.topic = self.base_topic.."/$state"
-    lwt.payload = "lost"
 end
 
 HomieClient.EventTable = {
     ["homie-client.enter-ready"] = HomieClient.EnterReadyState,
-    ["mqtt-provider.connected"] = HomieClient.EnterInitState,
+    ["mqtt-client.connected"] = HomieClient.EnterInitState,
     ["module.reloaded"] = HomieClient.EnterInitState
 }
 

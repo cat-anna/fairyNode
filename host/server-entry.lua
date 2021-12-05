@@ -63,6 +63,7 @@ conf.nodemcu_firmware_path = conf.nodemcu_firmware_path or GetNodeMcuPath()
 conf.debug = conf.debug or args.debug
 conf.fairy_node_base = fairy_node_base
 conf.module_black_list = conf.module_black_list or {}
+conf.mqtt_backend = "mosquitto"
 
 configuration = setmetatable({}, conf)
 
