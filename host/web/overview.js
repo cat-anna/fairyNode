@@ -382,12 +382,14 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         // id: 'some-id',
         "class": 'OtaTriggerButton',
         html: 'Trigger OTA',
-        "data-url" : "/device/" + entry.name + "/command",
+        "device" : entry.name,
         click: function() {
             body = {
-                command: 'sys,ota,update',
+                command: 'force_ota_update',
+                args: { }
             }
-            QueryPost($(this).attr("data-url"), body)
+            url = "/device/" + $(this).attr("device") + "/command"
+            QueryPost(url, body)
         }
     }).appendTo(header);
 
