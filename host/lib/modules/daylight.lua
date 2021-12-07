@@ -128,11 +128,11 @@ function Daylight:BeforeReload()
 end
 
 function Daylight:AfterReload()
+    self.sunset_elevation_threshold = self.sunset_elevation_threshold or 0
     self:UpdateSunPosition()
 end
 
 function Daylight:Init()
-    self:AfterReload()
 end
 
 -------------------------------------------------------------------------------
@@ -188,7 +188,7 @@ function Daylight:UpdateSunPosition()
 
     self:UpdateProperty("sun_azimuth", azimuth.value)
     self:UpdateProperty("sun_elevation", elevation.value)
-    self:UpdateProperty("daylight", elevation.value > 0)
+    self:UpdateProperty("daylight", elevation.value > self.sunset_elevation_threshold)
 end
 
 function Daylight:UpdateProperty(name, updated)
@@ -207,11 +207,17 @@ function Daylight:InitHomieNode(event)
         sun_azimuth = { name = "Sun azimuth", datatype = "float" },
         sun_elevation = { name = "Sun elevation", datatype = "float" },
         daylight = { name = "Daylight", datatype = "boolean" },
+        sunset_elevation_threshold = { name = "Sunset elevation threshold", datatype = "float", handler = self, value = self.sunset_elevation_threshold },
     }
     self.daylight_node = event.client:AddNode("daylight", {
         name = "Daylight",
         properties = self.daylight_props
     })
+end
+
+function Daylight:SetNodeValue(topic, payload, node_id, prop_id, value)
+    self.sunset_elevation_threshold = value
+    self:UpdateSunPosition()
 end
 
 -------------------------------------------------------------------------------
