@@ -1,38 +1,5 @@
 local json = require "json"
 
-local DatatypeParser = {
-    boolean = function(v)
-        local t = type(v)
-        if t == "string" then return v == "true" end
-        if t == "number" then return v > 0 end
-        if t == "boolean" then return v end
-        return v ~= nil
-    end,
-    string = tostring,
-    number = tonumber, --TODO
-    float = tonumber,
-    integer = function(v)
-        return math.floor(tonumber(v))
-    end,
-}
-
-local function FormatPropertyValue(prop, value)
-    local fmt = DatatypeParser[prop.datatype]
-
-    if fmt then
-        value = fmt(value)
-    end
-    return tostring(value)
-end
-
-local function DecodePropertyValue(prop, value)
-    local fmt = DatatypeParser[prop.datatype]
-    if fmt then
-        return fmt(value)
-    end
-    return tostring(value)
-end
-
 local Device = {}
 Device.__index = Device
 
@@ -72,10 +39,13 @@ function Device:GetPropertyMT(parent_node)
         if not property.settable then
             error(self:LogTag() .. string.format(" %s.%s is not settable", parent_node.id, property.id))
         end
-        value = FormatPropertyValue(property, value)
+        value = self.homie_common.ToHomieValue(property.datatype, value)
         local topic = property:GetValueSetTopic()
         self.mqtt:PublishMessage(topic, value, property.retained)
         -- print(self:LogTag() .. string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
+    end
+    function mt.GetId(property)
+        return string.format("%s.%s.%s", self.id, parent_node.id, property.id)
     end
     return mt
 end
@@ -205,7 +175,7 @@ function Device:HandlePropertyValue(topic, payload)
     local old_value = property.value
 
     local timestamp = os.time()
-    local value = DecodePropertyValue(property, payload)
+    local value = self.homie_common.FromHomieValue(property.datatype, payload)
 
     if changed then
         self.event_bus:PushEvent({
@@ -436,7 +406,8 @@ DevState.__index = DevState
 DevState.Deps = {
     mqtt = "mqtt-provider",
     event_bus = "event-bus",
-    cache = "cache"
+    cache = "cache",
+    homie_common = "homie-common",
 }
 
 function DevState:BeforeReload()
@@ -457,6 +428,7 @@ function DevState:AfterReload()
         print("DEVICE: Updating metatable of device " .. name)
         setmetatable(v, Device)
         v.event_bus = self.event_bus
+        v.homie_common = self.homie_common
         v.cache = self.cache
         v.configuration = self.configuration
         if not self.history[name] then
@@ -493,6 +465,7 @@ function DevState:AddDevice(topic, payload)
         homie_version = homie_version,
         mqtt = self.mqtt,
         event_bus = self.event_bus,
+        homie_common = self.homie_common,
         cache = self.cache,
         configuration = self.configuration,
         history = self.history[device_name]

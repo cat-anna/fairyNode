@@ -4,6 +4,8 @@ local coxpcall = require "coxpcall"
 
 local current_error_handler = nil
 
+local is_debug_mode = require("configuration").debug
+
 function SafeCall(f, ...)
     if not f then
         return false
@@ -15,7 +17,7 @@ function SafeCall(f, ...)
     end
     local function errh(msg)
         print("Call failed: ", msg)
-        if current_error_handler then
+        if current_error_handler and not is_debug_mode then
             copas.addthread(function()
                 local id = msg:match("([%w%d:%./]+):")
                 current_error_handler:OnError{
