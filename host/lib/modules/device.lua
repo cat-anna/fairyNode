@@ -1,4 +1,5 @@
 local json = require "json"
+local tablex = require "pl.tablex"
 
 local Device = {}
 Device.__index = Device
@@ -35,6 +36,9 @@ function Device:GetPropertyMT(parent_node)
     function mt.GetValueSetTopic(property)
         return parent_node:BaseTopic() .. "/" .. property.id .. "/set"
     end
+    function mt.GetValue(property)
+        return property.value
+    end
     function mt.SetValue(property, value)
         if not property.settable then
             error(self:LogTag() .. string.format(" %s.%s is not settable", parent_node.id, property.id))
@@ -46,6 +50,24 @@ function Device:GetPropertyMT(parent_node)
     end
     function mt.GetId(property)
         return string.format("%s.%s.%s", self.id, parent_node.id, property.id)
+    end
+    function mt.Subscribe(property, id, handler)
+        print(self:LogTag() .. "Adding subscription to " .. id)
+        self.subscriptions = self.subscriptions or { }
+        local my_id = property:GetId()
+        self.subscriptions[my_id] = self.subscriptions[my_id] or { }
+        local prop_subs = self.subscriptions[my_id]
+        prop_subs[id] = handler
+        if property.value ~= nil then
+            handler:PropertyStateChanged(property)
+        end
+    end
+    function mt.CallSubscriptions(property)
+        if self.subscriptions then
+            for _,v in pairs(self.subscriptions[property:GetId()] or { }) do
+                SafeCall(function() v:PropertyStateChanged(property) end)
+            end
+        end
     end
     return mt
 end
@@ -122,8 +144,6 @@ function Device:AppendErrorHistory(node, property, value, timestamp)
         key = key or "<nil>"
         value = json.encode(value or "")
         print(self:LogTag() .. string.format("%s error %s=%s", operation, key, value))
-
-
     end
 
     local new_active_errors = {}
@@ -175,9 +195,21 @@ function Device:HandlePropertyValue(topic, payload)
     local old_value = property.value
 
     local timestamp = os.time()
-    local value = self.homie_common.FromHomieValue(property.datatype, payload)
+    local value = payload
+    if property.datatype then
+        value = self.homie_common.FromHomieValue(property.datatype, payload)
+    end
 
     if changed then
+        -- print(self:LogTag() .. string.format("node %s.%s = %s -> %s", node_name, prop_name, property.raw_value or "", payload or ""))
+    end
+
+    property.value = value
+    property.raw_value = payload
+    property.timestamp = timestamp
+
+    if changed then
+        property:CallSubscriptions()
         self.event_bus:PushEvent({
                 event = "device.property.change",
                 argument = {
@@ -207,13 +239,6 @@ function Device:HandlePropertyValue(topic, payload)
     self:PushPropertyHistory(node_name, property, value, timestamp)
     self.cache:UpdateCache(self:GetPropertyId(node_name, prop_name), property)
 
-    if changed then
-        print(self:LogTag() .. string.format("node %s.%s = %s -> %s", node_name, prop_name, property.raw_value or "", payload or ""))
-    end
-
-    property.value = value
-    property.raw_value = payload
-    property.timestamp = timestamp
 end
 
 function Device:HandlePropertyConfigValue(topic, payload)

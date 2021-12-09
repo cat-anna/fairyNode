@@ -3,47 +3,64 @@ return function(server)
     server:add_resource( "rule",{
             {
                 method = "GET",
-                path = "/",
-                produces = "application/json",
-                handler = rest.HandlerModule("service-rule", "ListRules"),
-            },
-
-            {
-                method = "GET",
-                path = "simple/get",
+                path = "state/get",
                 produces = "text/plain",
-                handler = rest.HandlerModule("service-rule", "GetSimpleRule"),
+                handler = rest.HandlerModule("service-rule", "GetStateRule"),
             },
             {
                 method = "POST",
-                path = "simple/set",
+                path = "state/set",
                 consumes = "text/plain",
                 produces = "application/json",
-                handler = rest.HandlerModule("service-rule", "SetSimpleRule"),
+                handler = rest.HandlerModule("service-rule", "SetStateRule"),
             },
             {
                 method = "GET",
-                path = "/simple/stats",
+                path = "/state/stats",
                 produces = "application/json",
-                handler = rest.HandlerModule("service-rule", "GetSimpleRuleStats"),
+                handler = rest.HandlerModule("service-rule", "GetStateRuleStats"),
             },
-
             {
                 method = "GET",
-                path = "complex/{[A-Z0-9]+}/get",
+                path = "/state/status",
+                produces = "application/json",
+                handler = rest.HandlerModule("service-rule", "GetStateRuleStatus"),
+            },
+            {
+                method = "GET",
+                path = "/state/graph/text",
+                produces = "text/plain",
+                handler = rest.HandlerModule("service-rule", "GetGraphText"),
+            },
+            {
+                method = "GET",
+                path = "/state/graph/url",
+                produces = "application/json",
+                handler = rest.HandlerModule("service-rule", "GetGraphUrl"),
+            },
+-------------------------------------------------------------------------------------
+            {
+                method = "GET",
+                path = "script/",
+                produces = "application/json",
+                handler = rest.HandlerModule("service-rule", "ListRules"),
+            },
+            {
+                method = "GET",
+                path = "script/{[A-Z0-9]+}/get",
                 produces = "text/plain",
                 handler = rest.HandlerModule("service-rule", "GetComplexRule"),
             },
             {
                 method = "POST",
-                path = "complex/{[A-Z0-9]+}/set",
+                path = "script/{[A-Z0-9]+}/set",
                 consumes = "text/plain",
                 produces = "application/json",
                 handler = rest.HandlerModule("service-rule", "SetComplexRule"),
             },
             {
                 method = "GET",
-                path = "/complex/{[A-Z0-9]+}/stats",
+                path = "/script/{[A-Z0-9]+}/stats",
                 produces = "application/json",
                 handler = rest.HandlerModule("service-rule", "GetComplexRuleStats"),
             }

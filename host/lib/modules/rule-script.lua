@@ -20,30 +20,33 @@ end
 
 -----------------
 
-local ComplexRules = {}
-ComplexRules.__index = ComplexRules
-ComplexRules.Deps = {
+local RuleScript = {}
+RuleScript.__disable_module = true
+RuleScript.__index = RuleScript
+RuleScript.Deps = {
     event_bus = "event-bus",
     timers = "event-timers",
     storage = "storage",
     rules_common = "rules-common",
+    datetime_utils = "datetime-utils",
+    device_tree = "device-tree",
 }
 
-function ComplexRules:Init()
+function RuleScript:Init()
     self.rules = self.rules or {}
     self:ReloadRules()
 end
 
-function ComplexRules:BeforeReload()
+function RuleScript:BeforeReload()
 end
 
-function ComplexRules:AfterReload()
+function RuleScript:AfterReload()
     self:Init()
 end
 
 -----------------
 
-function ComplexRules:LoadScriptMetatable(rule)
+function RuleScript:LoadScriptMetatable(rule)
     local text_script = string.format(RULE_SCRIPT, rule.name, rule.text)
     local success, script = pcall(loadstring, text_script)
     if not success or not script then
@@ -54,7 +57,8 @@ function ComplexRules:LoadScriptMetatable(rule)
         error("Cannot load rule script")
     end
 
-    setfenv(script, self.rules_common:CreateScriptEnv(rule.print_prefix))
+    rule.env = self:CreateScriptEnv(rule.print_prefix)
+    setfenv(script, rule.env)
 
     local success, mt = pcall(script)
     if not success or not mt then
@@ -70,7 +74,35 @@ end
 
 -----------------
 
-function ComplexRules:GetOrCreateRule(rule_name)
+function RuleScript:CreateScriptEnv(print_prefix)
+    local datetime_utils = self.datetime_utils
+    local env = {
+        print = function(...) print(print_prefix, ...) end,
+
+        json = json,
+        math = math,
+        table = table,
+        string = string,
+        time = {
+            CreateTimeSchedule = datetime_utils.CreateTimeSchedule,
+            TestTimeSchedule = datetime_utils.TestTimeSchedule
+        },
+        os = {
+            time = os.time,
+            date = os.date,
+        },
+
+        tostring = tostring,
+        tonumber = tonumber,
+        type=type,
+
+        homie = self.device_tree:GetTree()
+    }
+
+    return env
+end
+
+function RuleScript:GetOrCreateRule(rule_name)
     if not self.rules[rule_name] then
         self.rules[rule_name] = {
             name = rule_name,
@@ -86,7 +118,7 @@ function ComplexRules:GetOrCreateRule(rule_name)
     return self.rules[rule_name]
 end
 
-function ComplexRules:ReloadRuleText(rule, rule_text)
+function RuleScript:ReloadRuleText(rule, rule_text)
     if rule.instance.BeforeReload then
         SafeCall(function () rule.instance:BeforeReload() end)
     end
@@ -108,7 +140,7 @@ function ComplexRules:ReloadRuleText(rule, rule_text)
     print("RULE-MGR: reloaded rule " .. rule.name)
 end
 
-function ComplexRules:UpdateRuleTriggers(rule)
+function RuleScript:UpdateRuleTriggers(rule)
     print("RULE-MGR: reloaded rule triggers " .. rule.name)
     rule.triggers = { }
 
@@ -146,13 +178,13 @@ end
 
 -----------------
 
-function ComplexRules:SetRuleText(rule_name, rule_text)
+function RuleScript:SetRuleText(rule_name, rule_text)
     local rule = self:GetOrCreateRule(rule_name)
     self:ReloadRuleText(rule, rule_text)
     self:SaveRule(rule)
 end
 
-function ComplexRules:SaveRule(rule)
+function RuleScript:SaveRule(rule)
     local entry = {
         text = rule.text,
         name = rule.name,
@@ -165,16 +197,16 @@ function ComplexRules:SaveRule(rule)
     self.storage:WriteStorage(id, serialized)
 end
 
-function ComplexRules:GetRuleId(rule)
+function RuleScript:GetRuleId(rule)
     return string.format("rule.complex.%s", rule.name)
 end
 
-function ComplexRules:RuleError(rule, error_key, message)
+function RuleScript:RuleError(rule, error_key, message)
     print(string.format("RULE-COMPLEX(%s): ERROR: %s -> %s", rule.name, error_key, message))
     --TODO
 end
 
-function ComplexRules:ResetTriggers()
+function RuleScript:ResetTriggers()
     self.timer_triggers = {}
     self.property_triggers = {}
     for _,rule in pairs(self.rules) do
@@ -184,7 +216,7 @@ function ComplexRules:ResetTriggers()
     end
 end
 
-function ComplexRules:ReloadRules()
+function RuleScript:ReloadRules()
     self.timer_triggers = {}
     self.property_triggers = {}
     self.rules = { }
@@ -219,15 +251,15 @@ end
 
 -----------------
 
-function ComplexRules:RunMinuteTimers(rule)
+function RuleScript:RunMinuteTimers(rule)
     self:RunTimerTrigger("periodic.minute")
 end
 
-function ComplexRules:RunSecondTimers(rule)
+function RuleScript:RunSecondTimers(rule)
     self:RunTimerTrigger("periodic.second")
 end
 
-function ComplexRules:RunTimerTrigger(timer_id)
+function RuleScript:RunTimerTrigger(timer_id)
     local timer = self.timer_triggers[timer_id] or {}
     local to_remove = {}
 
@@ -250,7 +282,7 @@ function ComplexRules:RunTimerTrigger(timer_id)
     end
 end
 
-function ComplexRules:BuildTimerTrigger(rule, trigger_params)
+function RuleScript:BuildTimerTrigger(rule, trigger_params)
     local timer_id = trigger_params.value
     local handler = trigger_params.handler
 
@@ -268,7 +300,7 @@ end
 
 -----------------
 
-function ComplexRules:BuildPropertyTrigger(rule, trigger_params)
+function RuleScript:BuildPropertyTrigger(rule, trigger_params)
     local property_id = trigger_params.value
     local handler = trigger_params.handler
 
@@ -284,7 +316,7 @@ function ComplexRules:BuildPropertyTrigger(rule, trigger_params)
    self.property_triggers[property_id][rule.name] = subscription
 end
 
-function ComplexRules:HandlePropertyChangeEvent(event)
+function RuleScript:HandlePropertyChangeEvent(event)
     if event.event ~= "device.property.change" then
         return
     end
@@ -307,7 +339,7 @@ function ComplexRules:HandlePropertyChangeEvent(event)
     self:RunPropertyChangeTriggers(trigger_id, arg)
 end
 
-function ComplexRules:RunPropertyChangeTriggers(trigger_id, argument)
+function RuleScript:RunPropertyChangeTriggers(trigger_id, argument)
     local trigger = self.property_triggers[trigger_id] or {}
     local to_remove = {}
 
@@ -334,10 +366,10 @@ end
 
 -----------------
 
-function ComplexRules:ReloadRuleModule(rule_module_name)
+function RuleScript:ReloadRuleModule(rule_module_name)
 end
 
-function ComplexRules:ModuleReloaded(event)
+function RuleScript:ModuleReloaded(event)
     if event.event ~= "module.reloaded" then
         return
     end
@@ -348,15 +380,15 @@ function ComplexRules:ModuleReloaded(event)
     end
 end
 
-ComplexRules.TriggerBuilders = {
-    property = ComplexRules.BuildPropertyTrigger,
-    timer = ComplexRules.BuildTimerTrigger,
+RuleScript.TriggerBuilders = {
+    property = RuleScript.BuildPropertyTrigger,
+    timer = RuleScript.BuildTimerTrigger,
 }
 
-ComplexRules.EventTable = {
-    ["module.reloaded"] = ComplexRules.ModuleReloaded,
-    ["timer.basic.minute"] = ComplexRules.RunMinuteTimers,
-    ["device.property.change"] = ComplexRules.HandlePropertyChangeEvent,
+RuleScript.EventTable = {
+    ["module.reloaded"] = RuleScript.ModuleReloaded,
+    ["timer.basic.minute"] = RuleScript.RunMinuteTimers,
+    ["device.property.change"] = RuleScript.HandlePropertyChangeEvent,
 }
 
-return ComplexRules
+return RuleScript

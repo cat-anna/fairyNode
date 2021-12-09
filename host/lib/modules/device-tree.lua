@@ -9,19 +9,18 @@ function DeviceTree:AfterReload()
     self.tree = self:GetTree(false)
 end
 
-function DeviceTree:GetTree(enable_tracking)
+function DeviceTree:GetTree(tracking, wrapping)
     local mt = {
         __newindex = error,
-        read_entries = enable_tracking and {} or nil,
-        write_entries = enable_tracking and {} or nil,
+        tracking = tracking,
+        wrapping = wrapping,
     }
+    if mt.tracking then
+        mt.tracking.device_read = mt.tracking.device_read or {}
+        mt.tracking.device_write = mt.tracking.device_write or {}
+    end
     function mt.DisableTracking()
-        local r = mt.read_entries
-        local w = mt.write_entries
-        mt.read_entries = nil
-        mt.write_entries = nil
-        mt.DisableTracking = nil
-        return r,w
+        mt.tracking = nil
     end
     function mt.__index(t, key)
         return self:IndexTreeRoot(mt, key)
@@ -57,22 +56,79 @@ function DeviceTree:IndexDeviceNode(root_mt, dev, node_name)
     return setmetatable({}, {
         __newindex = function (table, key, value)
             local prop = node.properties[key]
-            if root_mt.write_entries then
-                root_mt.write_entries[prop:GetId()] = true
+            local prop_id = prop:GetId()
+            if root_mt.tracking then
+                root_mt.tracking.device_write[prop_id] = true
             end
-            print(string.format("DEVICE-TREE: Set %s.%s.%s <- %s", dev.id, node.id, prop.id, tostring(value)))
+
+            if root_mt.wrapping then
+                value = root_mt.wrapping:ValueSink(value, "device", prop_id)
+            end
+
+            print(string.format("DEVICE-TREE: Set %s <- %s", prop_id, tostring(value)))
             prop:SetValue(value)
+
         end,
         __index = function (t, key)
             local prop = node.properties[key]
             local v = prop.value
-            if root_mt.read_entries then
-                root_mt.read_entries[prop:GetId()] = true
+            local prop_id = prop:GetId()
+
+            if root_mt.tracking then
+                root_mt.tracking.device_read[prop_id] = true
             end
-            print(string.format("DEVICE-TREE: Get %s.%s.%s -> %s", dev.id, node.id, prop.id, tostring(v)))
+            print(string.format("DEVICE-TREE: Get %s -> %s", prop_id, tostring(v)))
+
+            if root_mt.wrapping then
+                v = root_mt.wrapping:ValueSource(v, "device", prop_id)
+            end
+
             return v
         end,
     })
+end
+
+-------------------------------------------------------------------------------------
+
+function DeviceTree:GetPropertyPath(result_wrapper)
+    local function IndexDeviceNode(dev, node_name)
+        local node = dev.nodes[node_name]
+        if not node then
+            error(string.format("Device %s does not have node %s", dev.id, node_name))
+        end
+
+        return setmetatable({}, {
+            __newindex = error,
+            __index = function (t, key)
+                local prop = node.properties[key]
+                if not prop then
+                    error(string.format("Device %s.%s does not have property %s", dev.id, node_name, key))
+                end
+                if result_wrapper then
+                    return result_wrapper(prop)
+                end
+                return prop
+            end,
+        })
+    end
+
+    local function IndexRoot(t, dev_name)
+        local dev = self.device:GetDevice(dev_name)
+        if not dev then
+            error(string.format("Device %s does not exists", dev_name))
+        end
+        return setmetatable({}, {
+            __newindex = error,
+            __index = function (_, key)
+                return IndexDeviceNode(dev, key)
+            end
+        })
+    end
+    local root_mt = {
+        __newindex = error,
+        __index = IndexRoot,
+    }
+    return setmetatable({}, root_mt)
 end
 
 return DeviceTree

@@ -3,44 +3,38 @@ local json = require "json"
 -------------------------------------------------------------------------------------
 
 local RULE_SCRIPT = [===[
-local rule = {}
-rule.__index = rule
 
-rule.name = "simple"
-
-function rule:Execute()
 %s
-end
 
-return rule
+return true
 
 ]===]
 
 -------------------------------------------------------------------------------------
 
-local SimpleRule = {}
-SimpleRule.__index = SimpleRule
-SimpleRule.Deps = {
+local RuleState = {}
+RuleState.__index = RuleState
+RuleState.Deps = {
     event_bus = "event-bus",
     timers = "event-timers",
     storage = "storage",
-    rules_common = "rules-common",
+    rule_import = "rule-state-import",
 }
 
-function SimpleRule:Init()
+function RuleState:Init()
     self.statistics = {}
     self:ReloadRule()
 end
 
-function SimpleRule:BeforeReload()
+function RuleState:BeforeReload()
 end
 
-function SimpleRule:AfterReload()
+function RuleState:AfterReload()
 end
 
 -------------------------------------------------------------------------------------
 
-function SimpleRule:LoadScriptMetatable()
+function RuleState:LoadScript()
     local rule = self.rule
     local text_script = string.format(RULE_SCRIPT, rule.text)
     local success, script = pcall(loadstring, text_script)
@@ -52,53 +46,72 @@ function SimpleRule:LoadScriptMetatable()
         error("Cannot load rule script")
     end
 
-    rule.env = self.rules_common:CreateScriptEnv("SIMPLE-RULE-INSTANCE: ", true)
-    setfenv(script, rule.env)
+    local env = self.rule_import:CreateStateEnv()
+    setfenv(script, env.env)
 
     local success, mt = pcall(script)
     if not success or not mt then
-        print("Failed to load rule script:")
+        print("Failed to call rule script:")
         print(text_script)
         print("Message:")
         print(mt)
         error("Cannot build rule script")
     end
 
-    return mt
+    self.states_by_id = env.states
+
+    self.pending_states = {}
+    for k,v in pairs(self.states_by_id) do
+        if not v:IsReady() then
+            table.insert(self.pending_states, v)
+        end
+    end
+
+    self:CheckUpdateQueue()
+end
+
+function RuleState:CheckUpdateQueue()
+    if #self.pending_states > 0 then
+        local t = {}
+        for _,v in ipairs(self.pending_states) do
+            local call_success, r = SafeCall(v.Update, v)
+            if (not call_success) or (not r) then
+                print("RULE-SIMPLE: State " .. v.global_id .. " is not yet ready")
+                table.insert(t, v)
+            else
+                print("RULE-SIMPLE: State " .. v.global_id .. " became ready")
+            end
+        end
+        self.pending_states = t
+    end
 end
 
 -------------------------------------------------------------------------------------
 
-function SimpleRule:ExecuteRule()
-    local rule = self.rule
-    print("RULE-SIMPLE: Executing rule")
-    SafeCall(function () rule.instance:Execute() end)
-    print("RULE-SIMPLE: Execution finished")
+function RuleState:ExecuteRule()
 end
 
-function SimpleRule:ReloadRuleText()
-    local rule = self.rule
-
-    rule.metatable = self:LoadScriptMetatable()
-    setmetatable(rule.instance, rule.metatable)
-
-    self:ExecuteRule()
-
-    local r,w = rule.env.device:DisableTracking()
-    rule.read_triggers = r
-    rule.write_triggers = w
+function RuleState:ReloadRuleText()
+    -- local rule = self.rule
+    self:LoadScript()
+    -- setmetatable(rule.instance, rule.metatable)
+    -- self:ExecuteRule()
 
     print("RULE-SIMPLE: reloaded simple rule")
 end
 
 -------------------------------------------------------------------------------------
 
-function SimpleRule:SetRuleText(rule_text)
+function RuleState:GetStates()
+    return self.states_by_id
+end
+
+function RuleState:SetRuleText(rule_text)
     self:SaveRule(rule_text)
     self:ReloadRule()
 end
 
-function SimpleRule:SaveRule(rule_text)
+function RuleState:SaveRule(rule_text)
     local entry = {
         text = rule_text,
         statistics = self.statistics,
@@ -109,15 +122,15 @@ function SimpleRule:SaveRule(rule_text)
     self.storage:WriteStorage(id, serialized)
 end
 
-function SimpleRule:GetRuleId()
+function RuleState:GetRuleId()
     return string.format("rule.simple")
 end
 
-function SimpleRule:RuleError(rule, error_key, message)
+function RuleState:RuleError(rule, error_key, message)
     print(string.format("RULE-SIMPLE: ERROR: %s -> %s", error_key, message))
 end
 
-function SimpleRule:ReloadRule()
+function RuleState:ReloadRule()
     local rule_storage_content = self.storage:GetFromStorage(self:GetRuleId())
     if not rule_storage_content then
         return
@@ -136,8 +149,9 @@ end
 
 -------------------------------------------------------------------------------------
 
-SimpleRule.EventTable = {
-    ["timer.basic.minute"] = SimpleRule.ExecuteRule,
+RuleState.EventTable = {
+    ["timer.basic.10_second"] = RuleState.CheckUpdateQueue,
+    ["timer.basic.minute"] = RuleState.ExecuteRule,
 }
 
-return SimpleRule
+return RuleState
