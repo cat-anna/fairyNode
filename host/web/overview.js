@@ -258,7 +258,11 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                 GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
             }
 
-            GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: prop.name })
+            GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", {
+                html: prop.name,
+                hint: entry.name + "." + node.id + "." + prop.id,
+            })
+
             GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(check_value(prop.value) + " " + check_value(prop.unit, "") )
             var timestamp = null
             if (prop.timestamp != null){
@@ -339,7 +343,6 @@ function SetDeviceInfoPageStatus(entry, body_id) {
             blocks.push(["Uptime", FormatSeconds(sysinfo_props.uptime.value), ])
         }
     }
-
 
     if (sysinfo_props != null && sysinfo_props.free_space != null) {
         free_space = (sysinfo_props.free_space.value / 1024).toFixed(1) + " kib"

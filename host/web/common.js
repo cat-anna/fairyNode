@@ -21,16 +21,23 @@ function GetOrCreateDiv(id, parent_id, classes, cfg) {
                 classes = classes + " " + cfg.classes
         }
         $element = $('<' + element_type + ' id="' + id + '" class="' + classes + '"></' + element_type + '>').appendTo('#' + parent_id);
-        if (cfg != null) {
-            if (cfg.html != null) {
-                $element.html(cfg.html)
+    }
+    if (cfg != null) {
+        if (cfg.html != null) {
+            $element.html(cfg.html)
+        }
+        if (cfg.data != null) {
+            $element.attr("data", cfg.data)
+        }
+        if (cfg.hint != null) {
+            var $hint_element = $('#' + id + "_tooltip");
+            if (!$hint_element.length) {
+               $hint_element=$('<span id="' + id + '_tooltip" class="FN_tooltiptext"></' + element_type + '>').appendTo($element);
             }
-            if (cfg.data != null) {
-                $element.attr("data", cfg.data)
-            }
+            $hint_element.html(cfg.hint)
+            $element.addClass("FN_tooltip")
         }
     }
-
     return $element
 }
 

@@ -13,22 +13,24 @@ html {
 
 .FN_tooltip .FN_tooltiptext {
     visibility: hidden;
-    width: 120px;
+    /* width: 120px; */
     background-color: black;
     color: #fff;
     text-align: center;
-    border-radius: 6px;
-    padding: 5px 0;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 10px;
+    /* height: 30px; */
     /* Position the tooltip */
     position: absolute;
     z-index: 1;
     box-sizing: border-box;
+    overflow: visible;
 }
 
 .FN_tooltip:hover .FN_tooltiptext {
     visibility: visible;
 }
-
 
 /* Style the tab */
 
@@ -322,7 +324,7 @@ html {
     clear: both;
     padding: 5px;
     height: 30px;
-    overflow: hidden;
+    overflow: visible;
     box-sizing: border-box;
 }
 
