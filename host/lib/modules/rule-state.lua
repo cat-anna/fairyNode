@@ -14,7 +14,7 @@ return true
 
 local RuleState = {}
 RuleState.__index = RuleState
-RuleState.Deps = {
+RuleState.__deps = {
     event_bus = "event-bus",
     timers = "event-timers",
     storage = "storage",

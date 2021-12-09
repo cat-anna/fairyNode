@@ -5,7 +5,7 @@ local path = require "pl.path"
 
 local LoggerModule = {}
 LoggerModule.__index = LoggerModule
-LoggerModule.Deps = {
+LoggerModule.__deps = {
 }
 
 function LoggerModule:LogTag()

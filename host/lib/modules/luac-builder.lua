@@ -9,7 +9,7 @@ local lpty = require "lpty"
 
 local LuacBuilder = {}
 LuacBuilder.__index = LuacBuilder
-LuacBuilder.Deps = {
+LuacBuilder.__deps = {
     storage = "storage",
     cache = "cache"
 }

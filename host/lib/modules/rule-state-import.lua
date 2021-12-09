@@ -2,7 +2,7 @@ local json = require "json"
 
 local RuleStateImport = {}
 RuleStateImport.__index = RuleStateImport
-RuleStateImport.Deps = {
+RuleStateImport.__deps = {
     device_tree = "device-tree",
     datetime_utils = "datetime-utils",
     state_class_reg = "state-class-reg",

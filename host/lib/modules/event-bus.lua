@@ -3,7 +3,7 @@ local modules = require("lib/modules")
 
 local EventBus = {}
 EventBus.__index = EventBus
-EventBus.Deps = {
+EventBus.__deps = {
     module_enumerator = "module-enumerator"
 }
 

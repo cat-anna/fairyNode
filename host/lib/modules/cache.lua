@@ -7,7 +7,7 @@ local configuration = require("configuration")
 
 local Cache = {}
 Cache.__index = Cache
-Cache.Deps = { }
+Cache.__deps = { }
 
 if not configuration.path.cache then
     Cache.__disable_module = true

@@ -67,7 +67,7 @@ end
 
 local HomieClient = {}
 HomieClient.__index = HomieClient
-HomieClient.Deps = {
+HomieClient.__deps = {
     mqtt = "mqtt-provider",
     mqtt_client = "mqtt-client",
     event_bus = "event-bus",

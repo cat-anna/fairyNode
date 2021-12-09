@@ -169,7 +169,7 @@ end
 
 local SysInfo = {}
 SysInfo.__index = SysInfo
-SysInfo.Deps = {}
+SysInfo.__deps = {}
 
 function SysInfo:LogTag()
     return "SysInfo"

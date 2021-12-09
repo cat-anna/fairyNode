@@ -5,7 +5,7 @@ local json = require "json"
 
 local Daylight = {}
 Daylight.__index = Daylight
-Daylight.Deps = { }
+Daylight.__deps = { }
 
 local config = require "configuration"
 

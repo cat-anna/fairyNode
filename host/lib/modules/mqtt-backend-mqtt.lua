@@ -15,7 +15,7 @@ local mqttloop = mqtt:get_ioloop()
 local MqttClient = {}
 MqttClient.__index = MqttClient
 MqttClient.__module_alias = "mqtt-client"
-MqttClient.Deps = {
+MqttClient.__deps = {
     event_bus = "event-bus",
     last_will = "mqtt-client-last-will",
 }

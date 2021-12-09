@@ -50,7 +50,7 @@ return {
     Class = StateHomie,
     BaseClass = "State",
 
-    Deps = {
+    __deps = {
         class_reg = "state-class-reg",
         state = "state-base",
     },

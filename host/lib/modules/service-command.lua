@@ -4,7 +4,7 @@ local modules = require("lib/modules")
 
 local ServiceCommand = {}
 ServiceCommand.__index = ServiceCommand
-ServiceCommand.Deps = {
+ServiceCommand.__deps = {
     event_bus = "event-bus",
     -- mqtt = "mqtt-provider"
 }

@@ -133,10 +133,8 @@ return {
     Class = State,
     -- BaseClass = nil,
 
-    Deps = {
-        class_reg = "state-class-reg"
-    },
+    __deps = {class_reg = "state-class-reg"},
     AfterReload = function(instance)
         instance.class_reg:RegisterStateClass(instance)
-    end,
+    end
 }

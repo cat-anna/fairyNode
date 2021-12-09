@@ -5,7 +5,7 @@ local path = require "pl.path"
 
 local ServiceFile = {}
 ServiceFile.__index = ServiceFile
-ServiceFile.Deps = {
+ServiceFile.__deps = {
 }
 
 local FileSearchPaths = {

@@ -1,7 +1,7 @@
 local SensorsManager = {}
 
 SensorsManager.__index = SensorsManager
-SensorsManager.Deps = {
+SensorsManager.__deps = {
     event_bus = "event-bus",
     timers = "event-timers",
 }

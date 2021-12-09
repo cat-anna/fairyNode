@@ -428,7 +428,7 @@ end
 
 local DevState = {}
 DevState.__index = DevState
-DevState.Deps = {
+DevState.__deps = {
     mqtt = "mqtt-provider",
     event_bus = "event-bus",
     cache = "cache",

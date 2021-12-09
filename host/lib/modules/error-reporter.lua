@@ -36,7 +36,7 @@ end
 
 local ErrorHandler = {}
 ErrorHandler.__index = ErrorHandler
-ErrorHandler.Deps = {
+ErrorHandler.__deps = {
     sysinfo = "sysinfo",
     timers = "event-timers",
 }

@@ -23,7 +23,7 @@ end
 local RuleScript = {}
 RuleScript.__disable_module = true
 RuleScript.__index = RuleScript
-RuleScript.Deps = {
+RuleScript.__deps = {
     event_bus = "event-bus",
     timers = "event-timers",
     storage = "storage",

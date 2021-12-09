@@ -11,7 +11,7 @@ TimerMt.__index = TimerMt
 
 local EventTimer = {}
 EventTimer.__index = EventTimer
-EventTimer.Deps = {
+EventTimer.__deps = {
     event_bus = "event-bus",
 }
 

@@ -1,7 +1,7 @@
 local DeviceTree = {}
 
 DeviceTree.__index = DeviceTree
-DeviceTree.Deps = {
+DeviceTree.__deps = {
     device = "device"
 }
 

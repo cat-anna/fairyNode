@@ -8,7 +8,7 @@ end
 
 local MqttProvider = {}
 MqttProvider.__index = MqttProvider
-MqttProvider.Deps = {
+MqttProvider.__deps = {
     mqtt_client = "mqtt-client",
     event_bus = "event-bus",
 }

@@ -1,7 +1,7 @@
 
 local StateClassReg = {}
 StateClassReg.__index = StateClassReg
-StateClassReg.Deps = {}
+StateClassReg.__deps = {}
 
 function StateClassReg:BeforeReload()
 end

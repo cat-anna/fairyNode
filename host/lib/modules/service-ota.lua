@@ -5,7 +5,7 @@ local pretty = require 'pl.pretty'
 
 local ServiceOta = {}
 ServiceOta.__index = ServiceOta
-ServiceOta.Deps = {
+ServiceOta.__deps = {
     project = "project",
     device = "device"
 }

@@ -23,10 +23,7 @@ end
 
 local RuleService = {}
 RuleService.__index = RuleService
-RuleService.Deps = {
-    rule_script = "rules-script",
-    rule_state = "rule-state"
-}
+RuleService.__deps = {rule_script = "rules-script", rule_state = "rule-state"}
 
 function RuleService:BeforeReload() end
 

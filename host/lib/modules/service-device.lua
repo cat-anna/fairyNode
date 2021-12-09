@@ -3,7 +3,7 @@ local http = require "lib/http-code"
 
 local DevSrv = {}
 DevSrv.__index = DevSrv
-DevSrv.Deps = {
+DevSrv.__deps = {
     device = "device"
 }
 

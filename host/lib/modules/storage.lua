@@ -6,7 +6,7 @@ local configuration = require("configuration")
 
 local Storage = {}
 Storage.__index = Storage
-Storage.Deps = { }
+Storage.__deps = { }
 
 if not configuration.path.storage then
     Storage.__disable_module = true

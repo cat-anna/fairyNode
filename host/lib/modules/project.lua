@@ -310,7 +310,7 @@ end
 
 local ProjectModule = {}
 ProjectModule.__index = ProjectModule
-ProjectModule.Deps = {
+ProjectModule.__deps = {
    devconfig = "project-config",
    fwconfig = "fw-config",
    luac = "luac-builder",
