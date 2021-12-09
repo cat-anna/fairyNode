@@ -95,8 +95,8 @@ local function ReloadModule(group, name, filename, filetime)
 
     module.instance = setmetatable(module.instance or {}, new_metatable)
 
-    if new_metatable.Deps ~= nil then
-        for member, dep_name in pairs(new_metatable.Deps) do
+    if new_metatable.__deps ~= nil then
+        for member, dep_name in pairs(new_metatable.__deps) do
             local dep = modules[dep_name]
             if (not dep or not dep.instance) and dep_name ~= "module-enumerator" then
                 print(

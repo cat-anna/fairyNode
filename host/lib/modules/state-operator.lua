@@ -45,7 +45,7 @@ function StateOperator:RetireValue()
 end
 
 function StateOperator:SourceChanged(source, source_value)
-    print(self:GetLogTag(), "SourceChanged")
+    -- print(self:GetLogTag(), "SourceChanged")
     self:RetireValue()
     self:Update()
 end
@@ -55,7 +55,7 @@ function StateOperator:IsReady()
 end
 
 function StateOperator:Update()
-    print(self:GetLogTag(), "StateOperator Update")
+    -- print(self:GetLogTag(), "StateOperator Update")
     if self.cached_value_valid then
         return true
     end
@@ -84,6 +84,12 @@ function StateOperator:Update()
     self:CallSinkListeners(result_value)
 
     return result_value
+end
+
+function StateOperator:GetDescription()
+    local r = self.BaseClass.GetDescription(self)
+    table.insert(r, "operator: " .. self.operator)
+    return r
 end
 
 -------------------------------------------------------------------------------------

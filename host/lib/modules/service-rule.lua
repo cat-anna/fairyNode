@@ -44,32 +44,13 @@ function RuleService:GenerateStateDiagram()
         local color_false = "#9696ce"
 
         local r_value
-        if state:IsReady() then
-            r_value = state:GetValue()
-        end
+        if state:IsReady() then r_value = state:GetValue() end
 
         if r_value ~= nil then
             state_style = r_value and color_true or color_false
         end
 
-        local desc = {
-            string.format("class: %s", state.__class:gsub("State", "")),
-            --     "<b>result_value=" .. tostring(state:ResultValue()),
-            --     "local_value=" .. tostring(state:LocalValue()),
-        }
-
-        -- if state.provider then
-        --     table.insert(desc, "provider=" .. state.provider.name)
-        -- end
-        if state.operator then
-            table.insert(desc, "operator: " .. state.operator)
-        end
-        -- local state_desc = state:GetDescription()
-        -- if state_desc ~= nil and #state_desc > 0 then
-        --     table.insert(desc, "")
-        --     tablex.icopy(desc, state_desc, #desc+1)
-        -- end
-
+        local desc = state:GetDescription()
         local state_name = state:GetName()
 
         local state_line = string.format([[state %s as "%s" %s : %s]], --
@@ -86,10 +67,9 @@ function RuleService:GenerateStateDiagram()
         -- end
 
         for _, dep in ipairs(state:GetSinkDependencyList() or {}) do
-            table.insert(lines,
-                         string.format([[ %s --> %s ]],
-                                       name_to_id(state.global_id),
-                                       name_to_id(dep)))
+            table.insert(lines, string.format([[ %s --> %s ]],
+                                              name_to_id(state.global_id),
+                                              name_to_id(dep)))
         end
     end
 
@@ -142,9 +122,7 @@ end
 function RuleService:ListRules(request)
     local rule_list = {}
 
-    for k, _ in pairs(self.rule_script.rules) do
-        script.insert(rule_list, k)
-    end
+    for k, _ in pairs(self.rule_script.rules) do script.insert(rule_list, k) end
 
     return http.OK, rule_list
 end
