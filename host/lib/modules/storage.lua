@@ -2,10 +2,16 @@ local copas = require "copas"
 local lfs = require "lfs"
 local file = require "pl.file"
 local json = require "json"
+local configuration = require("configuration")
 
 local Storage = {}
 Storage.__index = Storage
 Storage.Deps = { }
+
+if not configuration.path.storage then
+    Storage.__disable_module = true
+    return Storage
+end
 
 -------------------------------------------------------------------------------
 
@@ -17,7 +23,7 @@ function Storage:BeforeReload()
 end
 
 function Storage:AfterReload()
-    self.storage_path = configuration.storage_path
+    self.storage_path = configuration.path.storage
     os.execute("mkdir -p " .. self.storage_path)
 end
 

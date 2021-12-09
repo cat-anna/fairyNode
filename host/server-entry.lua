@@ -57,8 +57,6 @@ conf.path = conf.path or { }
 conf.path.config = config_base
 conf.path.fairy_node = fairy_node_base
 
-conf.storage_path = conf.storage_path or fairy_node_base .. "/storage"
-conf.cache_path = conf.cache_path or (args.debug and (fairy_node_base .. "/cache") or "/tmp/fairyNode")
 conf.nodemcu_firmware_path = conf.nodemcu_firmware_path or GetNodeMcuPath()
 conf.debug = conf.debug or args.debug
 conf.fairy_node_base = fairy_node_base

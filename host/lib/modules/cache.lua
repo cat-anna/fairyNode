@@ -2,10 +2,17 @@ local copas = require "copas"
 local lfs = require "lfs"
 local file = require "pl.file"
 local json = require "json"
+local configuration = require("configuration")
+
 
 local Cache = {}
 Cache.__index = Cache
 Cache.Deps = { }
+
+if not configuration.path.cache then
+    Cache.__disable_module = true
+    return  Cache
+end
 
 -------------------------------------------------------------------------------
 
@@ -17,7 +24,7 @@ function Cache:BeforeReload()
 end
 
 function Cache:AfterReload()
-    self.cache_path = configuration.cache_path
+    self.cache_path = configuration.path.cache
     self.configuration = self.configuration or {
         cache_ttl = 24 * 3600,
     }
@@ -33,10 +40,13 @@ function Cache:CacheFile(id)
 end
 
 function Cache:UpdateCache(id, data)
-    SafeCall(function()
+    local r = SafeCall(function()
         -- print("UPDATE CACHE:", id)
         file.write(self:CacheFile(id), json.encode(data))
     end)
+    if not r then
+        print("FAILED TO WRITE CACHE " .. id)
+    end
 end
 
 function Cache:AddFile(id, source_file)
