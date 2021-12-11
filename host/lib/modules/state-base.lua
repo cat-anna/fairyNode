@@ -133,6 +133,7 @@ function State:GetDependencyList(list)
     return r
 end
 
+
 function State:Create(config)
     assert(self.global_id)
     self.name = config.name
@@ -163,7 +164,6 @@ return {
     -- BaseClass = nil,
 
     __deps = {class_reg = "state-class-reg"},
-    AfterReload = function(instance)
-        instance.class_reg:RegisterStateClass(instance)
-    end
+
+    AfterReload = function(instance) end,
 }

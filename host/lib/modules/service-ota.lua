@@ -7,7 +7,7 @@ local ServiceOta = {}
 ServiceOta.__index = ServiceOta
 ServiceOta.__deps = {
     project = "project",
-    device = "device"
+    device = "homie-host",
 }
 
 function ServiceOta:LogTag()

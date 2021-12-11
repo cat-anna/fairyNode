@@ -68,6 +68,7 @@ configuration = setmetatable({}, conf)
 assert(package.loaded.configuration == nil)
 package.loaded.configuration = configuration
 
+require "lib/logging"
 require "lib/modules"
 if not conf.disable_rest_api then
     require "lib/rest"

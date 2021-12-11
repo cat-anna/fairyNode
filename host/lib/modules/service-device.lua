@@ -4,7 +4,7 @@ local http = require "lib/http-code"
 local DevSrv = {}
 DevSrv.__index = DevSrv
 DevSrv.__deps = {
-    device = "device"
+    device = "homie-host"
 }
 
 function DevSrv:BeforeReload()

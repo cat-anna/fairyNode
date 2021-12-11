@@ -2,7 +2,7 @@ local DeviceTree = {}
 
 DeviceTree.__index = DeviceTree
 DeviceTree.__deps = {
-    device = "device"
+    device = "homie-host",
 }
 
 function DeviceTree:AfterReload()
