@@ -17,7 +17,7 @@ end
 function EventBus:AfterReload()
     self.event_queue = {}
     self.process_thread = nil
-    modules:RegisterReloadWatcher(self:LogTag(), function(...) self:OnModuleReloaded(...) end)
+    modules:RegisterWatcher(self:LogTag(), self)
 
     if not self.process_thread then
         self.process_thread = copas.addthread(function()
@@ -32,14 +32,24 @@ end
 function EventBus:Init()
 end
 
-function EventBus:OnModuleReloaded(module_name)
+function EventBus:ModuleReloaded(module_name)
     self:PushEvent({
         event = "module.reloaded",
         argument = { name = module_name }
     })
 end
 
+function EventBus:AllModulesInitialized()
+    self:PushEvent({
+        event = "module.initialized",
+        argument = {  }
+    })
+end
+
 function EventBus:PushEvent(event_info)
+    if configuration.debug and not event_info.silent then
+        print(self:LogTag() .. ": Push event " .. event_info.event)
+    end
     table.insert(self.event_queue, event_info)
 end
 
@@ -50,17 +60,20 @@ function EventBus:ProcessAllEvents()
 end
 
 function EventBus:ProcessEvent(event_info)
-    -- if configuration.debug then
-    --     print(self:LogTag() .. ": Processing event " .. event_info.event)
-    -- end
+    if configuration.debug and not event_info.silent then
+        print(self:LogTag() .. ": Processing event " .. event_info.event)
+    end
     local run_stats = {
         handlers_called = 0
     }
     self.module_enumerator:Enumerate(
         function(name, module)
-            SafeCall(self.ApplyEvent, self, name, module, event_info, run_stats)
+            self:ApplyEvent(name, module, event_info, run_stats)
         end
     )
+    -- if configuration.debug then
+    --     print(self:LogTag() .. ": Retire event " .. event_info.event)
+    -- end
     return run_stats.handlers_called
 end
 

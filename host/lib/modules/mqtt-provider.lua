@@ -221,7 +221,7 @@ end
 -------------------------------------------------------------------------------
 
 function MqttProvider:IsConnected()
-    return self.connected
+    return self.mqtt_connected
 end
 
 -------------------------------------------------------------------------------

@@ -15,11 +15,10 @@ function StateHomie:SetValue(v)
 end
 
 function StateHomie:GetName()
-    return self.property_instance:GetId()
+    return self.property_instance.name
 end
 
 function StateHomie:Update()
-    -- print(self:GetLogTag(), "Update")
     if not self.is_ready then
         self.property_instance:Subscribe(self.global_id, self)
     end
@@ -35,7 +34,6 @@ function StateHomie:PropertyStateChanged(property)
 end
 
 function StateHomie:SourceChanged(source, source_value)
-    -- print(self:GetLogTag(), "SourceChanged")
     self:SetValue(source_value)
 end
 

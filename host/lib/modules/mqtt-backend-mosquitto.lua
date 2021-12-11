@@ -2,9 +2,8 @@ local has_mosquitto, mosquitto = pcall(require, "mosquitto")
 local configuration = require("configuration")
 
 if not has_mosquitto or
-    (configuration.mqtt_backend ~= nil and configuration.mqtt_backend ~= "mosquitto") then
-     return { }
-end
+    (configuration.mqtt_backend ~= nil and configuration.mqtt_backend ~=
+        "mosquitto") then return {} end
 
 local copas = require "copas"
 
@@ -15,47 +14,51 @@ MosquittoClient.__index = MosquittoClient
 MosquittoClient.__module_alias = "mqtt-client"
 MosquittoClient.__deps = {
     event_bus = "event-bus",
-    last_will = "mqtt-client-last-will",
+    last_will = "mqtt-client-last-will"
 }
 
 function MosquittoClient:ResetClient()
     print("MOSQUITTO: Resetting client")
-    if self.mosquitto_client then
-        self.mosquitto_client:disconnect()
-    end
+    -- if self.mosquitto_client and self:IsConnected() then
+    --     self.mosquitto_client:disconnect()
+    -- end
 
     self.mosquitto_client = mosquitto.new()
 
-    self.mosquitto_client.ON_CONNECT = function(...) self:OnMosquittoConnect(...) end
-    self.mosquitto_client.ON_DISCONNECT = function(...) self:OnMosquittoDisconnect(...) end
-    self.mosquitto_client.ON_MESSAGE = function(...) self:OnMosquittoMessage(...) end
-    self.mosquitto_client.ON_PUBLISH = function(...) self:OnMosquittoPublish(...) end
-    self.mosquitto_client.ON_SUBSCRIBE = function(...) self:OnMosquittoSubscribe(...) end
-    self.mosquitto_client.ON_UNSUBSCRIBE = function(...) self:OnMosquittoUnsubscribe(...) end
+    self.mosquitto_client.ON_CONNECT = function(...)
+        self:OnMosquittoConnect(...)
+    end
+    self.mosquitto_client.ON_DISCONNECT = function(...)
+        self:OnMosquittoDisconnect(...)
+    end
+    self.mosquitto_client.ON_MESSAGE = function(...)
+        self:OnMosquittoMessage(...)
+    end
+    self.mosquitto_client.ON_PUBLISH = function(...)
+        self:OnMosquittoPublish(...)
+    end
+    self.mosquitto_client.ON_SUBSCRIBE = function(...)
+        self:OnMosquittoSubscribe(...)
+    end
+    self.mosquitto_client.ON_UNSUBSCRIBE = function(...)
+        self:OnMosquittoUnsubscribe(...)
+    end
     self.mosquitto_client.ON_LOG = function(...) self:OnMosquittoLog(...) end
 
     self:CheckMosquittoResult({
-        self.mosquitto_client:login_set (
-            mqtt_client_cfg.user,
-            mqtt_client_cfg.password
-        )
+        self.mosquitto_client:login_set(mqtt_client_cfg.user,
+                                        mqtt_client_cfg.password)
     })
 
     self:CheckMosquittoResult({
-        self.mosquitto_client:will_set (
-            self.last_will.topic,
-            self.last_will.payload,
-            0,
-            true
-        )
+        self.mosquitto_client:will_set(self.last_will.topic,
+                                       self.last_will.payload, 0, true)
     })
 
     self:CheckMosquittoResult({
-        self.mosquitto_client:connect_async(
-            mqtt_client_cfg.host,
-            mqtt_client_cfg.port or 1883,
-            mqtt_client_cfg.keepalive or 10
-        )
+        self.mosquitto_client:connect_async(mqtt_client_cfg.host,
+                                            mqtt_client_cfg.port or 1883,
+                                            mqtt_client_cfg.keepalive or 10)
     })
 end
 
@@ -73,9 +76,7 @@ function MosquittoClient:OnMosquittoSubscribe(mid)
     print("MOSQUITTO: Subscribed to " .. ctx.regex)
     self.event_bus:PushEvent({
         event = "mqtt-client.subscribed",
-        argument = {
-            regex=ctx.regex,
-        }
+        argument = {regex = ctx.regex}
     })
 end
 
@@ -90,45 +91,36 @@ end
 function MosquittoClient:OnMosquittoConnect()
     print("MOSQUITTO: Connected")
     self.connected = true
-    self.event_bus:PushEvent({
-        event = "mqtt-client.connected",
-        argument = {}
-    })
+    self.event_bus:PushEvent({event = "mqtt-client.connected", argument = {}})
 end
 
 function MosquittoClient:OnMosquittoDisconnect()
     print("MOSQUITTO: Disconnected")
     self.connected = false
-    self.event_bus:PushEvent({
-        event = "mqtt-client.disconnected",
-        argument = {}
-    })
+    self.event_bus:PushEvent({event = "mqtt-client.disconnected", argument = {}})
+    self:ResetClient()
 end
 
 function MosquittoClient:OnMosquittoMessage(mid, topic, payload)
     -- print("MOSQUITTO: OnMosquittoMessage")
     self.event_bus:PushEvent({
+        silent = true,
         event = "mqtt-client.message",
-        argument = {topic=topic,payload=payload}
+        argument = {topic = topic, payload = payload}
     })
 end
 
 function MosquittoClient:CheckMosquittoResult(call_result, context)
     local mid, code, message = table.unpack(call_result)
     if mid ~= nil then
-        if context then
-            self.calls_on_fly[tostring(mid)] = context
-        end
+        if context then self.calls_on_fly[tostring(mid)] = context end
         return true
     end
 
     print("MOSQUITTO: OnMosquittoError " .. message)
     self.event_bus:PushEvent({
         event = "mqtt-client.error",
-        argument = {
-            code=code,
-            message=message,
-        }
+        argument = {code = code, message = message}
     })
     return false
 end
@@ -145,40 +137,37 @@ end
 -------------------------------------------------------------------------------
 
 function MosquittoClient:Subscribe(regex)
-    if not self.connected then
-        return
-    end
+    if not self.connected then return end
 
     print("MOSQUITTO: Subscribing to " .. regex)
-    self:CheckMosquittoResult(
-        {self.mosquitto_client:subscribe(regex, 0)},
-        { regex = regex }
-    )
+    self:CheckMosquittoResult({self.mosquitto_client:subscribe(regex, 0)},
+                              {regex = regex})
 end
 
 function MosquittoClient:PublishMessage(topic, payload, retain)
-    if retain == nil then
-        retain = false
-    end
+    if retain == nil then retain = false end
     local qos = 0
 
     self:CheckMosquittoResult({
         self.mosquitto_client:publish(topic, payload, qos, retain)
     })
 
+    -- print("MOSQUITTO: " .. topic .. " <-- " .. payload)
     self.event_bus:PushEvent({
+        silent = true,
         event = "mqtt-client.publish",
-        argument = { topic=topic, payload=payload }
+        argument = {topic = topic, payload = payload}
     })
 end
 
-function MosquittoClient:IsConnected()
-    return self.connected
+function MosquittoClient:IsConnected() return self.connected end
+
+function MosquittoClient:AfterReload()
 end
 
 function MosquittoClient:Init()
     self.connected = false
-    self.calls_on_fly = { }
+    self.calls_on_fly = {}
 
     copas.addthread(function()
         copas.sleep(1)

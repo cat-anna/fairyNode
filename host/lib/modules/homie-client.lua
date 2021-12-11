@@ -1,5 +1,6 @@
 local modules = require("lib/modules")
 local socket = require("socket")
+local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------
 
@@ -91,6 +92,8 @@ end
 -------------------------------------------------------------------------------
 
 function HomieClient:EnterInitState()
+    self.ready_pending = nil
+    self.ready_state = nil
     self:Publish("/$homie", "3.0.0")
 
     self:Publish("/$state", "init")
@@ -131,6 +134,7 @@ function HomieClient:EnterInitState()
 
     self.nodes = {}
 
+    self.ready_pending = true
     self.event_bus:PushEvent({
         event = "homie-client.init-nodes",
         client = self,
@@ -143,13 +147,36 @@ function HomieClient:EnterInitState()
 end
 
 function HomieClient:EnterReadyState()
-    self:Publish("/$nodes", table.concat(self.nodes, ","))
+    if self.ready_state or not self.ready_pending then
+        return
+    end
+
+    for k,v in pairs(self.nodes) do
+        if not v.ready then
+            print(string.format("HOMIE: Cannot enter ready state, node '%s' is not yet ready", k))
+            return
+        end
+    end
+
+    local nodes=  table.concat(tablex.keys(self.nodes), ",")
+    self:Publish("/$nodes",nodes)
     self:Publish("/$state", "ready")
+    self.ready_state = true
+    self.ready_pending = nil
 
     self.event_bus:PushEvent({
         event = "homie-client.ready",
         client = self,
     })
+end
+
+function HomieClient:CheckStatus()
+    if self.ready_pending then
+        self.event_bus:PushEvent({
+            event = "homie-client.enter-ready",
+            client = self,
+        })
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -183,9 +210,10 @@ function HomieClient:WatchTopicId(topic)
 end
 
 function HomieClient:AddNode(node_name, node)
-    table.insert(self.nodes, node_name)
+    self.nodes[node_name]= node
     -- --[[
     -- node = {
+    --     ready = true,
     --     name = "some prop name",
     --     properties = {
     --         temperature = {
@@ -199,6 +227,10 @@ function HomieClient:AddNode(node_name, node)
     -- ]]
 
     node.id = node_name
+
+    if not node.ready then
+        return
+    end
 
     local prop_names = { }
     node.properties = node.properties or {}
@@ -239,7 +271,7 @@ function HomieClient:AddNode(node_name, node)
             self.mqtt:WatchTopic(self:WatchTopicId(settable_topic), proxy_handler, settable_topic)
         end
 
-        if property.value then
+        if property.value ~= nil then
             property:SetValue(property.value, true)
         end
     end
@@ -272,7 +304,8 @@ end
 HomieClient.EventTable = {
     ["homie-client.enter-ready"] = HomieClient.EnterReadyState,
     ["mqtt-client.connected"] = HomieClient.EnterInitState,
-    ["module.reloaded"] = HomieClient.EnterInitState
+    ["module.initialized"] = HomieClient.EnterInitState,
+    ["timer.basic.10_second"] = HomieClient.CheckStatus,
 }
 
 return HomieClient

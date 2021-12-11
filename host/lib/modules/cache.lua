@@ -4,49 +4,38 @@ local file = require "pl.file"
 local json = require "json"
 local configuration = require("configuration")
 
-
 local Cache = {}
 Cache.__index = Cache
-Cache.__deps = { }
+Cache.__deps = {}
 
 if not configuration.path.cache then
     Cache.__disable_module = true
-    return  Cache
+    return Cache
 end
 
 -------------------------------------------------------------------------------
 
-function Cache:LogTag()
-    return "Cache"
-end
+function Cache:LogTag() return "Cache" end
 
-function Cache:BeforeReload()
-end
+function Cache:BeforeReload() end
 
 function Cache:AfterReload()
     self.cache_path = configuration.path.cache
-    self.configuration = self.configuration or {
-        cache_ttl = 24 * 3600,
-    }
+    self.configuration = self.configuration or {cache_ttl = 24 * 3600}
 
     os.execute("mkdir -p " .. self.cache_path)
 end
 
-function Cache:Init()
-end
+function Cache:Init() end
 
-function Cache:CacheFile(id)
-    return string.format("%s/%s", self.cache_path, id)
-end
+function Cache:CacheFile(id) return string.format("%s/%s", self.cache_path, id) end
 
 function Cache:UpdateCache(id, data)
     local r = SafeCall(function()
         -- print("UPDATE CACHE:", id)
         file.write(self:CacheFile(id), json.encode(data))
     end)
-    if not r then
-        print("FAILED TO WRITE CACHE " .. id)
-    end
+    if not r then print("FAILED TO WRITE CACHE " .. id) end
 end
 
 function Cache:AddFile(id, source_file)
@@ -120,7 +109,8 @@ function Cache:CheckCache()
         end
     end
     if self.homie_node then
-        self.homie_node:SetValue("cache_size", string.format("%.1f", total_size / 1024))
+        self.homie_node:SetValue("cache_size",
+                                 string.format("%.1f", total_size / 1024))
         self.homie_node:SetValue("cache_entries", tostring(entry_count))
     end
 end
@@ -133,11 +123,17 @@ end
 
 function Cache:InitHomieNode(event)
     self.homie_node = event.client:AddNode("cache_control", {
+        ready = true,
         name = "Server cache",
         properties = {
-            cache_ttl = { name = "Cache ttl", datatype = "integer", unit="s", handler = self },
-            cache_size = { name = "Cache size", datatype = "float", unit="KiB" },
-            cache_entries = { name = "Cache entries", datatype = "integer" },
+            cache_ttl = {
+                name = "Cache ttl",
+                datatype = "integer",
+                unit = "s",
+                handler = self
+            },
+            cache_size = {name = "Cache size", datatype = "float", unit = "KiB"},
+            cache_entries = {name = "Cache entries", datatype = "integer"}
         }
     })
     self.homie_node:SetValue("cache_ttl", tostring(self.configuration.cache_ttl))

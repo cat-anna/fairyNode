@@ -128,7 +128,7 @@ function Daylight:BeforeReload()
 end
 
 function Daylight:AfterReload()
-    self.sunset_elevation_threshold = self.sunset_elevation_threshold or 0
+    self.last_update_timestamp=nil
     self:UpdateSunPosition()
 end
 
@@ -183,12 +183,17 @@ function Daylight:UpdateSunPosition()
     end
 
     local current_time = os.time()
+    if self.last_update_timestamp ~= nil and current_time - self.last_update_timestamp < 10 then
+        return
+    end
+
     local elevation = LookUpValue(self.current_entry.elevation, current_time)
     local azimuth = LookUpValue(self.current_entry.azimuth, current_time)
 
     self:UpdateProperty("sun_azimuth", azimuth.value)
     self:UpdateProperty("sun_elevation", elevation.value)
-    self:UpdateProperty("daylight", elevation.value > self.sunset_elevation_threshold)
+
+    self.last_update_timestamp = current_time
 end
 
 function Daylight:UpdateProperty(name, updated)
@@ -206,18 +211,12 @@ function Daylight:InitHomieNode(event)
     self.daylight_props = {
         sun_azimuth = { name = "Sun azimuth", datatype = "float" },
         sun_elevation = { name = "Sun elevation", datatype = "float" },
-        daylight = { name = "Daylight", datatype = "boolean" },
-        sunset_elevation_threshold = { name = "Sunset elevation threshold", datatype = "float", handler = self, value = self.sunset_elevation_threshold },
     }
     self.daylight_node = event.client:AddNode("daylight", {
+        ready = true,
         name = "Daylight",
         properties = self.daylight_props
     })
-end
-
-function Daylight:SetNodeValue(topic, payload, node_id, prop_id, value)
-    self.sunset_elevation_threshold = value
-    self:UpdateSunPosition()
 end
 
 -------------------------------------------------------------------------------

@@ -11,15 +11,34 @@ State.__is_state_class = true
 
 function State:AfterReload() end
 
+-------------------------------------------------------------------------------------
+
+function State:OnTimer()
+end
+
+function State:LocallyOwned()
+    return false
+end
+
+function State:Settable()
+    return false
+end
+
+-------------------------------------------------------------------------------------
+
 function State:GetDescription()
     local r = tablex.copy(self.description or {})
     if #r > 0 then table.insert(r, "") end
     if self:IsReady() then
-        table.insert(r, "value: " .. tostring(self:GetValue()))
+        tablex.icopy(r, {
+            "value: " .. tostring(self:GetValue()), "", self.global_id
+        }, #r + 1)
     end
-    table.insert(r, string.format("class: %s", self.__class:gsub("State", "")))
+    -- table.insert(r, string.format("class: %s", self.__class:gsub("State", "")))
     return r
 end
+
+function State:GetSourceDependencyDescription() return "[updates]" end
 
 function State:SetValue(v) error(self:GetLogTag() .. "abstract method called") end
 
@@ -36,9 +55,7 @@ function State:GetLogTag()
     return self.log_tag
 end
 
-
 function State:Update()
-    print(self:GetLogTag(), "Update")
     return self:IsReady()
 end
 
@@ -60,6 +77,20 @@ end
 
 function State:HasSourceDependencies() return #self.source_dependencies > 0 end
 
+function State:GetDependantValues()
+    local dependant_values = {}
+    for _, v in pairs(self.source_dependencies) do
+        if not v:IsReady() then
+            print(self:GetLogTag(),"Dependency " .. v.global_id .. " is not yet ready")
+            return nil
+        end
+        SafeCall(function()
+            table.insert(dependant_values, { value = v:GetValue(), id = v.global_id})
+        end)
+    end
+    return dependant_values
+end
+
 -------------------------------------------------------------------------------------
 
 function State:AddSinkDependency(listener)
@@ -73,9 +104,9 @@ function State:AddSinkDependency(listener)
 end
 
 function State:CallSinkListeners(result_value)
-    print(self:GetLogTag(), "CallSinkListeners")
+    -- print(self:GetLogTag(), "CallSinkListeners")
     for _, v in pairs(self.sink_dependencies) do
-        print(self:GetLogTag(), "Calling listener " .. v.global_id)
+        -- print(self:GetLogTag(), "Calling listener " .. v.global_id)
         SafeCall(function() v:SourceChanged(self, result_value) end)
     end
 end
@@ -87,11 +118,14 @@ end
 function State:HasSinkDependencies() return #self.sink_dependencies > 0 end
 
 function State:SourceChanged(source, source_value)
-    print(self:GetLogTag(), "SourceChanged")
     self:Update()
 end
 
 -------------------------------------------------------------------------------------
+
+function State:SetError(...)
+    -- local message = string.format(...)
+end
 
 function State:GetDependencyList(list)
     local r = {}
@@ -109,7 +143,6 @@ function State:Create(config)
     end
 
     local weak_mt = {__mode = "v"}
-
     self.sink_dependencies = setmetatable({}, weak_mt)
     self.source_dependencies = setmetatable({}, weak_mt)
 
@@ -122,6 +155,8 @@ function State:Create(config)
 
     self.is_ready = nil
 end
+
+-------------------------------------------------------------------------------------
 
 return {
     Class = State,

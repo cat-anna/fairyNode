@@ -33,6 +33,7 @@ function SensorsManager:InitHomieNode(event)
         read_slow_interval = { name = "Slow read interval", datatype = "integer", value = self.intervals.slow },
     }
     self.sensor_node = event.client:AddNode("sensor_read", {
+        ready = true,
         name = "Sensor config",
         properties = self.sensor_props
     })

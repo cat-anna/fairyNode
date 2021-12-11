@@ -112,6 +112,7 @@ end
 
 function Storage:InitHomieNode(event)
     self.homie_node = event.client:AddNode("storage_control", {
+        ready = true,
         name = "Server storage",
         properties = {
             storage_size = { name = "Storage size", datatype = "float", unit="KiB" },

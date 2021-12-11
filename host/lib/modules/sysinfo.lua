@@ -178,7 +178,6 @@ end
 function SysInfo:GetCpuUsage()
     local self_stat = read_linux_self_stat()
     local proc_stat = read_linux_proc_stat()
-    -- local timeval = posix_sys_time.gettimeofday()
 
     local time_diff
     if self.last_time then
@@ -278,6 +277,7 @@ function SysInfo:InitSysInfoNode(client)
         -- SwapFree:         217184 kB
     }
     self.sysinfo_node = client:AddNode("sysinfo", {
+        ready = true,
         name = "System info",
         properties = self.sysinfo_props
     })
@@ -298,6 +298,7 @@ function SysInfo:InitStorageNode(client)
         }
     end
     self.storage_node = client:AddNode("storage", {
+        ready = true,
         name = "Storage",
         properties = self.storage_props
     })
@@ -320,6 +321,7 @@ function SysInfo:InitThermalNode(client)
             end
         end
         self.thermal_node = client:AddNode("thermal", {
+            ready = true,
             name = "Temperatures",
             properties = self.thermal_props
         })
@@ -331,7 +333,7 @@ end
 
 SysInfo.EventTable = {
     ["homie-client.init-nodes"] = SysInfo.InitHomieNode,
-    ["homie-client.ready"] = SysInfo.WatchStatus,
+    -- ["homie-client.ready"] = SysInfo.WatchStatus,
     ["timer.sensor.read.fast"] = SysInfo.ReadSensors,
     ["timer.sensor.read.slow"] = SysInfo.ReadSensorsSlow
 }

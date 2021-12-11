@@ -29,18 +29,37 @@ local function TestBlackList(module_name)
 end
 
 function Enumerator:Enumerate(functor)
-    for k, v in pairs(modules) do functor(k, v.instance) end
+    for k, v in pairs(modules) do
+        if v.instance then
+            SafeCall(functor, k, v.instance)
+        end
+    end
 end
 
-function ModulesPublic:RegisterReloadWatcher(name, functor)
+function ModulesPublic:RegisterWatcher(name, functor)
     ReloadWatchers[name] = functor
+end
+
+local function DisableModule(module, filetime)
+    module.instance = nil
+    module.timestamp = filetime
+    module.init_done = false
+    module.disabled = true
 end
 
 local function ReloadModule(group, name, filename, filetime)
     -- print("MODULES: Checking module:",name, filename, filetime)
 
-    if not modules[name] or not modules[name].instance then
-        modules[name] = {
+    local module = modules[name]
+
+    if module and (module.timestamp == filetime or module.disabled) then
+        --
+        return false,false
+    end
+
+    if not module or not module.instance then
+        print("MODULES: New module:",name, filename, filetime)
+        module = {
             timestamp = 0,
             name = name,
             group = group,
@@ -48,30 +67,27 @@ local function ReloadModule(group, name, filename, filetime)
             instance = nil,
             black_listed = TestBlackList(name)
         }
-        modules[name].disabled = modules[name].black_listed
+        modules[name] = module
+        if module.black_listed then
+            DisableModule(module, filetime)
+            return false,true
+        end
     end
 
-    local module = modules[name]
-
-    if module.timestamp == filetime or module.black_listed then return end
-
-    print("MODULES: Reloading module:", name, filename, filetime)
+    -- print("MODULES: Reloading module:", name, filename, filetime)
 
     local success, new_metatable = pcall(dofile, filename)
-
     if not success or not new_metatable then
         print("MODULES: Cannot reload module:", name)
         print("MODULES: Message:", new_metatable)
-        return
+        return true,true
     end
 
     if new_metatable.__disable_module then
-        -- Module is disabled. Pretend to be not loaded (yet)
-        module.instance = nil
-        module.timestamp = filetime
-        module.init_done = false
-        module.disabled = true
-        return true
+        print("MODULES: Disabled module:", name, filename, filetime)
+        -- Module is disabled. Pretend to be not loaded
+        DisableModule(module, filetime)
+        return false,false
     end
 
     if not new_metatable.__index then
@@ -102,7 +118,7 @@ local function ReloadModule(group, name, filename, filetime)
                 print(
                     "MODULES: Module " .. name .. " dependency " .. dep_name ..
                         " are not yet satisfied")
-                return
+                return true,false
             else
                 module.instance[member] = ModulesPublic.GetModule(dep_name)
             end
@@ -119,7 +135,7 @@ local function ReloadModule(group, name, filename, filetime)
                 module.instance = nil
                 print("MODULES: Failed to initialize module:", name)
                 print("MODULES: Error:", errm)
-                return
+                return true,false
             else
                 module.init_done = true
             end
@@ -133,11 +149,12 @@ local function ReloadModule(group, name, filename, filetime)
     print("MODULES: Reloaded module:", name)
     module.timestamp = filetime
 
-    return true
+    return false,true
 end
 
 local function ReloadModuleDirectory(group, base_dir, first_reload)
     local all_loaded = true
+    local changed_modules = 0
     local files = {}
     for file in lfs.dir(base_dir .. "/") do
         if file ~= "." and file ~= ".." and file ~= "init.lua" then
@@ -147,6 +164,7 @@ local function ReloadModuleDirectory(group, base_dir, first_reload)
             if attr.mode == "file" then
                 local name = file:match("([^%.]+).lua")
                 local timestamp = attr.modification
+
                 table.insert(files,
                              {name = name, timestamp = timestamp, path = f})
             end
@@ -154,17 +172,21 @@ local function ReloadModuleDirectory(group, base_dir, first_reload)
     end
     table.sort(files, function(a, b) return a.path < b.path end)
     for _, f in ipairs(files) do
-        if not ReloadModule(group, f.name, f.path, f.timestamp) then
+        local fail, changed = ReloadModule(group, f.name, f.path, f.timestamp)
+        if fail then
             all_loaded = false
         else
-            if not first_reload then
+            if changed then
+                changed_modules = changed_modules + 1
+            end
+            if not first_reload and changed then
                 for _, functor in pairs(ReloadWatchers) do
-                    SafeCall(function() functor(f.name) end)
+                    SafeCall(function() functor:ModuleReloaded(f.name) end)
                 end
             end
         end
     end
-    return all_loaded
+    return all_loaded,changed_modules
 end
 
 local function ReloadModules(first_reload)
@@ -172,26 +194,36 @@ local function ReloadModules(first_reload)
     if first_reload then attempts = 10 end
 
     local done = false
+    local changed_modules = 0
     while attempts > 0 and not done do
         done = true
         attempts = attempts - 1
         for group, dir in pairs(module_dir) do
-            if not ReloadModuleDirectory(group, dir, first_reload) then
+            local all_loaded, changed = ReloadModuleDirectory(group, dir, first_reload)
+            changed_modules = math.max(changed, changed_modules)
+            if not all_loaded then
                 done = false
             end
         end
     end
 
-    -- local event = ModulesPublic.GetModule("")
-    -- TODO: publish init done
+    if not first_reload and changed_modules > 0 then
+        for _, functor in pairs(ReloadWatchers) do
+            SafeCall(function() functor:AllModulesInitialized() end)
+        end
+    end
+
+    return not done
 end
 
 copas.addthread(function()
     copas.sleep(1)
     ReloadModules(true)
-    while true do
+    local done = false
+    while not done do
         copas.sleep(1)
-        ReloadModules(false)
+        -- done =
+            ReloadModules(false)
         if debug then
             copas.sleep(1)
         else

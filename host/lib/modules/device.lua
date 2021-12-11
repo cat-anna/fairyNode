@@ -46,16 +46,20 @@ function Device:GetPropertyMT(parent_node)
         value = self.homie_common.ToHomieValue(property.datatype, value)
         local topic = property:GetValueSetTopic()
         self.mqtt:PublishMessage(topic, value, property.retained)
-        -- print(self:LogTag() .. string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
+        print(self:LogTag() .. string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
     end
     function mt.GetId(property)
         return string.format("%s.%s.%s", self.id, parent_node.id, property.id)
     end
     function mt.Subscribe(property, id, handler)
         print(self:LogTag() .. "Adding subscription to " .. id)
-        self.subscriptions = self.subscriptions or { }
+
         local my_id = property:GetId()
-        self.subscriptions[my_id] = self.subscriptions[my_id] or { }
+        self.subscriptions = self.subscriptions or {}
+        if not self.subscriptions[my_id] then
+            self.subscriptions[my_id] = setmetatable({}, { __mode = "v" })
+        end
+
         local prop_subs = self.subscriptions[my_id]
         prop_subs[id] = handler
         if property.value ~= nil then
@@ -64,8 +68,11 @@ function Device:GetPropertyMT(parent_node)
     end
     function mt.CallSubscriptions(property)
         if self.subscriptions then
-            for _,v in pairs(self.subscriptions[property:GetId()] or { }) do
-                SafeCall(function() v:PropertyStateChanged(property) end)
+            local list = self.subscriptions[property:GetId()]
+            if list then
+                for _,v in pairs(list) do
+                    SafeCall(function() v:PropertyStateChanged(property) end)
+                end
             end
         end
     end
@@ -201,7 +208,7 @@ function Device:HandlePropertyValue(topic, payload)
     end
 
     if changed then
-        -- print(self:LogTag() .. string.format("node %s.%s = %s -> %s", node_name, prop_name, property.raw_value or "", payload or ""))
+        print(self:LogTag() .. string.format("node %s.%s = %s -> %s", node_name, prop_name, property.raw_value or "", payload or ""))
     end
 
     property.value = value
@@ -211,21 +218,23 @@ function Device:HandlePropertyValue(topic, payload)
     if changed then
         property:CallSubscriptions()
         self.event_bus:PushEvent({
-                event = "device.property.change",
-                argument = {
-                    device = self.name,
-                    node = node_name,
-                    property = prop_name,
-                    value = value,
-                    timestamp = timestamp,
-                    old_value = old_value,
-                }
+            event = "device.property.change",
+            silent=true,
+            argument = {
+                device = self.name,
+                node = node_name,
+                property = prop_name,
+                value = value,
+                timestamp = timestamp,
+                old_value = old_value,
+            }
         })
     end
 
     if property.value ~= nil and node_name == "sysinfo" and prop_name == "event" then
         self.event_bus:PushEvent({
             event = "device.event",
+            silent=true,
             argument = {
                 device = self.name,
                 event = payload,
@@ -536,6 +545,7 @@ end
 
 function DevState:InitHomieNode(event)
     self.homie_node = event.client:AddNode("device_server_control", {
+        ready = true,
         name = "Device server control",
         properties = {
             max_history_entries = { name = "Size of property value history", datatype = "integer", handler = self },

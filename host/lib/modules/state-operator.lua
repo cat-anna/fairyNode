@@ -3,39 +3,105 @@ StateOperator.__index = StateOperator
 StateOperator.__class = "StateOperator"
 
 StateOperator.OperatorFunctors = {
-    ["and"] = function(values)
-        for i = 1,#values do
-            if not values[i].value then
-                return false
+    ["and"] = {
+        handler = function(calee, values)
+            for i = 1, #values do
+                if not values[i].value then
+                    return {result = false}
+                end
             end
+            return {result = true}
         end
-        return true
-    end,
-    ["or"] = function(values)
-        for i = 1,#values do
-            if values[i].value then
-                return true
+    },
+    ["or"] = {
+        handler = function(calee, values)
+            for i = 1, #values do
+                if values[i].value then return {result = true} end
             end
+            return {result = false}
         end
-        return false
-    end,
-    ["not"] = function(values)
-        if #values ~= 1 then
-            error("'Not' operator expects exactly 1 argument, but " .. tostring(#values) .. " were provided")
+    },
+    ["not"] = {
+        handler = function(calee, values)
+            if #values ~= 1 then
+                calee:SetError(
+                    "'Not' operator expects exactly 1 argument, but %d were provided",
+                    #values)
+                return nil
+            end
+            return {result = not values[1].value}
         end
-        return not values[1].value
-    end
+    },
+    ["eq"] = {
+        name = function(calee) return "== " .. tostring(calee.range.threshold) end,
+        handler = function(calee, values)
+            if #values ~= 1 then
+                calee:SetError(
+                    "'Not' operator expects exactly 1 argument, but %d were provided",
+                    #values)
+                return nil
+            end
+            if not calee.range or calee.range.threshold == nil then
+                calee:SetError(
+                    "'Equal' operator requires value to compare with")
+                return nil
+            end
+            return {result = values[1].value == calee.range.threshold }
+        end
+    },
+    ["threshold"] = {
+        name = function(calee) return "> " .. tostring(calee.range.threshold) end,
+        handler = function(calee, values)
+            if #values ~= 1 then
+                calee:SetError(
+                    "'Threshold' operator expects exactly 1 argument, but %d were provided",
+                    #values)
+                return nil
+            end
+            if not calee.range or calee.range.threshold == nil then
+                calee:SetError(
+                    "'Threshold' operator requires threshold value to be set")
+                return nil
+            end
+            return {result = values[1].value > calee.range.threshold}
+        end
+    },
+    ["range"] = {
+        name = function(calee)
+            local range = calee.range
+            return
+                tostring(range.min) .. " <= X < " .. tostring(range.max)
+        end,
+        handler = function(calee, values)
+            if #values ~= 1 then
+                calee:SetError(
+                    "'Range' operator expects exactly 1 argument, but %d were provided",
+                    #values)
+                return nil
+            end
+            if not calee.range or calee.range.min == nil or calee.range.max ==
+                nil then
+                calee:SetError(
+                    "'Range' operator requires min and max value to be set")
+                return nil
+            end
+            local val = values[1].value
+            local range = calee.range
+            return {result = (range.min <= val) and (val < range.max)}
+        end
+    }
 }
+
+function StateOperator:LocallyOwned()
+    return true,"boolean"
+end
 
 function StateOperator:SetValue(v)
     error("Setting value of StateOperator instance is not possible")
 end
 
 function StateOperator:GetValue()
-    if not self.cached_value_valid then
-        self:Update()
-    end
-
+    if not self.cached_value_valid then self:Update() end
     return self.cached_value
 end
 
@@ -50,33 +116,23 @@ function StateOperator:SourceChanged(source, source_value)
     self:Update()
 end
 
-function StateOperator:IsReady()
-    return self.cached_value_valid
-end
+function StateOperator:IsReady() return self.cached_value_valid end
 
 function StateOperator:Update()
-    -- print(self:GetLogTag(), "StateOperator Update")
-    if self.cached_value_valid then
-        return true
-    end
+    if self.cached_value_valid then return true end
 
     self:RetireValue()
 
-    local dependant_values = { }
-    for _,v in pairs(self.source_dependencies) do
-        if not v:IsReady() then
-            print(self:GetLogTag(), "Dependency " .. v.global_id  .. " is not yet ready")
-            return nil
-        end
-        -- print(self:GetLogTag(), "Getting value of " .. v.global_id)
-        SafeCall(function () table.insert(dependant_values, { value = v:GetValue() }) end)
+    local dependant_values = self:GetDependantValues()
+    if not dependant_values then
+        return
     end
 
     local operator_func = self.OperatorFunctors[self.operator]
-    local result_value = operator_func(dependant_values)
-    if result_value == self.cached_value then
-        return result_value
-    end
+    local result_value = operator_func.handler(self, dependant_values)
+    if not result_value then return nil end
+    result_value = result_value.result
+    if result_value == self.cached_value then return result_value end
 
     print(self:GetLogTag(), "Changed to value " .. tostring(result_value))
     self.cached_value = result_value
@@ -92,11 +148,20 @@ function StateOperator:GetDescription()
     return r
 end
 
+function StateOperator:GetSourceDependencyDescription()
+    local operator_func = self.OperatorFunctors[self.operator]
+    if operator_func.name then
+        return operator_func.name(self)
+    end
+    return self.operator
+end
+
 -------------------------------------------------------------------------------------
 
 function StateOperator:Create(config)
     self.BaseClass.Create(self, config)
     self.operator = config.operator
+    self.range = config.range
     self:RetireValue()
 end
 
@@ -104,15 +169,12 @@ return {
     Class = StateOperator,
     BaseClass = "State",
 
-    __deps = {
-        class_reg = "state-class-reg",
-        state = "state-base",
-    },
+    __deps = {class_reg = "state-class-reg", state = "state-base"},
 
     AfterReload = function(instance)
         local BaseClass = instance.state.Class
         StateOperator.BaseClass = BaseClass
-        setmetatable(StateOperator, { __index = BaseClass })
+        setmetatable(StateOperator, {__index = BaseClass})
         instance.class_reg:RegisterStateClass(StateOperator)
-    end,
+    end
 }

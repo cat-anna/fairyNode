@@ -22,8 +22,7 @@ RuleState.__deps = {
 }
 
 function RuleState:Init()
-    self.statistics = {}
-    self:ReloadRule()
+    self.pending_states = {}
 end
 
 function RuleState:BeforeReload()
@@ -71,6 +70,11 @@ function RuleState:LoadScript()
 end
 
 function RuleState:CheckUpdateQueue()
+    if not self.rule then
+        self:ReloadRule()
+        return
+    end
+
     if #self.pending_states > 0 then
         local t = {}
         for _,v in ipairs(self.pending_states) do
@@ -88,18 +92,6 @@ end
 
 -------------------------------------------------------------------------------------
 
-function RuleState:ExecuteRule()
-end
-
-function RuleState:ReloadRuleText()
-    -- local rule = self.rule
-    self:LoadScript()
-    -- setmetatable(rule.instance, rule.metatable)
-    -- self:ExecuteRule()
-
-    print("RULE-SIMPLE: reloaded simple rule")
-end
-
 -------------------------------------------------------------------------------------
 
 function RuleState:GetStates()
@@ -114,7 +106,7 @@ end
 function RuleState:SaveRule(rule_text)
     local entry = {
         text = rule_text,
-        statistics = self.statistics,
+        statistics = (self.rule or {}).statistics,
     }
 
     local serialized = json.encode(entry)
@@ -131,6 +123,10 @@ function RuleState:RuleError(rule, error_key, message)
 end
 
 function RuleState:ReloadRule()
+    self.rule = nil
+    self.homie_node = nil
+    self.homie_props = nil
+
     local rule_storage_content = self.storage:GetFromStorage(self:GetRuleId())
     if not rule_storage_content then
         return
@@ -142,16 +138,67 @@ function RuleState:ReloadRule()
         text = content.text,
         instance = {},
         metatable = {},
+        statistics = content.statistics or {},
     }
-    self.statistics = content.statistics
-    self:ReloadRuleText()
+
+    self:LoadScript()
+end
+
+-------------------------------------------------------------------------------------
+
+function RuleState:InitHomieNode(event)
+    if event.client then
+        self.homie_client = event.client
+    end
+
+    if self.homie_node and self.homie_node.ready then
+        return
+    end
+
+
+    local function to_homie_id(n)
+        local r = n:gsub("[%.-/]", "_")
+        return r
+    end
+
+    self.homie_props = {}
+    local ready = self.rule ~= nil and #self.pending_states == 0
+
+    if ready then
+        for id,state in pairs(self.states_by_id or {}) do
+            local locally_owned, datatype = state:LocallyOwned()
+            if locally_owned then
+                local prop = {
+                    name = state:GetName(),
+                    datatype = datatype,
+                    value = state:GetValue(),
+                }
+                self.homie_props[to_homie_id(id)] = prop
+            end
+        end
+    end
+
+    self.homie_node = self.homie_client:AddNode("state_rule", {
+        ready = ready,
+        name = "State rules",
+        properties = self.homie_props
+    })
+end
+
+-------------------------------------------------------------------------------------
+
+function RuleState:OnAppInitialized()
+    self:ReloadRule()
 end
 
 -------------------------------------------------------------------------------------
 
 RuleState.EventTable = {
+    ["module.initialized"] = RuleState.OnAppInitialized,
+    ["homie-client.init-nodes"] = RuleState.InitHomieNode,
+    ["homie-client.enter-ready"] = RuleState.InitHomieNode,
+
     ["timer.basic.10_second"] = RuleState.CheckUpdateQueue,
-    ["timer.basic.minute"] = RuleState.ExecuteRule,
 }
 
 return RuleState

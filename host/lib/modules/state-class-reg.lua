@@ -1,7 +1,8 @@
 
 local StateClassReg = {}
 StateClassReg.__index = StateClassReg
-StateClassReg.__deps = {}
+StateClassReg.__deps = {
+}
 
 function StateClassReg:BeforeReload()
 end
@@ -50,6 +51,18 @@ function StateClassReg:Create(opt)
     state:Create(opt)
     return state
 end
+
+function StateClassReg:HandleTimer()
+    for _,state in pairs(self.created_states) do
+        SafeCall(state.OnTimer, state)
+    end
+end
+
+-------------------------------------------------------------------------------
+
+StateClassReg.EventTable = {
+    ["timer.basic.30_second"] = StateClassReg.HandleTimer,
+}
 
 return StateClassReg
 

@@ -76,7 +76,11 @@ function EventTimer:TimerTick(timer)
         if timer.interval >= 60 then
             print("Timer: running: " .. timer.id)
         end
-        local cnt = self.event_bus:ProcessEvent({ event = timer.event_id, timer = timer })
+        local cnt = self.event_bus:ProcessEvent({
+            silent = timer.interval < 60,
+            event = timer.event_id,
+            timer = timer ,
+        })
         if cnt == 0 and not timer.persistent then
             print("Timer: timer " .. timer.id .. " is not handled by anything. Stopping.")
             timer.running = false

@@ -5,7 +5,7 @@ HomieCommon.__index = HomieCommon
 
 ------------------------------------------------------------------------------
 
-local function format_integer(v)
+local function FormatInteger(v)
     return string.format(math.floor(tonumber(v)))
 end
 
@@ -21,26 +21,37 @@ local function toboolean(v)
     return v ~= nil
 end
 
-local function format_boolean(v)
+local function FormatBoolean(v)
     return v and "true" or "false"
 end
 
+local function FormatFloat(v)
+    return string.format("%.2f", v)
+end
+
 local DatatypeParser = {
-    boolean = { to_homie = format_boolean, from_homie = toboolean },
+    boolean = { to_homie = FormatBoolean, from_homie = toboolean },
     string = { to_homie = tostring, from_homie = tostring },
-    float = { to_homie = tostring, from_homie = tonumber },
-    integer = { to_homie = format_integer, from_homie = tointeger },
+    float = { to_homie = FormatFloat, from_homie = tonumber },
+    integer = { to_homie = FormatInteger, from_homie = tointeger },
+    number = { to_homie = FormatFloat, from_homie = tonumber },
 }
 
 function HomieCommon.FromHomieValue(datatype, value)
     local fmt = DatatypeParser[datatype]
-    assert(fmt)
+    if not fmt then
+        print(string.format("HOMIE-COMMON: FromHomieValue: No datatype '%s' handler for '%s'", datatype, tostring(value)))
+        return value
+    end
     return fmt.from_homie(value)
 end
 
 function HomieCommon.ToHomieValue(datatype, value)
     local fmt = DatatypeParser[datatype]
-    assert(fmt)
+    if not fmt then
+        print(string.format("HOMIE-COMMON: ToHomieValue: No datatype '%s' handler for '%s'", datatype, tostring(value)))
+        return value
+    end
     return fmt.to_homie(value)
 end
 
