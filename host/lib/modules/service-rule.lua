@@ -1,6 +1,6 @@
-local modules = require("lib/modules")
 local http = require "lib/http-code"
 local tablex = require "pl.tablex"
+local zlib_wrap = require 'lib/zlib-wrap'
 
 -------------------------------------------------------------------------------------
 
@@ -37,7 +37,7 @@ function RuleService:Init() end
 
 -------------------------------------------------------------------------------------
 
-local StateClassMapping = {StateHomie = "annotation", StateTime = "abstract"}
+local StateClassMapping = {StateHomie = "interface", StateTime = "abstract"}
 
 function RuleService:GenerateStateDiagram()
     local lines = {
@@ -113,9 +113,7 @@ end
 
 function RuleService:EncodedStateDiagram()
     local diagram = table.concat(self:GenerateStateDiagram(), "\n")
-    local zlib = require 'zlib'
-    local deflate = zlib.deflate(zlib.BEST_COMPRESSION)
-    local out = deflate(diagram, "finish")
+    local out = zlib_wrap.compress(diagram)
     return "http://www.plantuml.com/plantuml/svg/~1" .. plantuml_encode(out)
 end
 

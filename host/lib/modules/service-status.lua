@@ -1,7 +1,5 @@
 local http = require "lib/http-code"
-local copas = require "copas"
-local file = require "pl.file"
-local path = require "pl.path"
+local zlib_wrap = require 'lib/zlib-wrap'
 
 local ServiceStatus = {}
 ServiceStatus.__index = ServiceStatus
@@ -62,9 +60,7 @@ end
 
 function ServiceStatus:EncodedStateDiagram()
     local diagram = table.concat(self:GenerateStateDiagram(), "\n")
-    local zlib = require 'zlib'
-    local deflate = zlib.deflate(zlib.BEST_COMPRESSION)
-    local out = deflate(diagram, "finish")
+    local out = zlib_wrap.compress(diagram)
     return "http://www.plantuml.com/plantuml/svg/~1" .. plantuml_encode(out)
 end
 
