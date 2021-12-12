@@ -1,7 +1,7 @@
 
 var kMissingValueBlock = "<span class='MissingValue'>&lt;&nbsp;?&nbsp;&gt;<span>"
 
-var ActivePage = "Rules"
+var ActivePage = "Devices"
 
 function FairyNode_InitOverview() {
     bootstrap_code = `
