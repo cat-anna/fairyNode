@@ -18,6 +18,11 @@ MosquittoClient.__deps = {
 }
 
 function MosquittoClient:ResetClient()
+    if os.time() - (self.state_change_timestamp or 0) < 10 then
+        return
+    end
+    self:ConnectionStatusChanged()
+
     print("MOSQUITTO: Resetting client")
     -- if self.mosquitto_client and self:IsConnected() then
     --     self.mosquitto_client:disconnect()
@@ -61,7 +66,6 @@ function MosquittoClient:ResetClient()
                                             mqtt_client_cfg.keepalive or 10)
     })
 
-    self:ConnectionStatusChanged()
 end
 
 -------------------------------------------------------------------------------
@@ -99,9 +103,11 @@ end
 
 function MosquittoClient:OnMosquittoDisconnect()
     print("MOSQUITTO: Disconnected")
-    self.connected = false
-    self.event_bus:PushEvent({event = "mqtt-client.disconnected", argument = {}})
-    self:ResetClient()
+    if self.connected then
+        self.connected = false
+        self.event_bus:PushEvent({event = "mqtt-client.disconnected", argument = {}})
+    end
+    copas.addthread(function() self:CheckConnectionStatus() end)
 end
 
 function MosquittoClient:OnMosquittoMessage(mid, topic, payload)
@@ -125,10 +131,33 @@ function MosquittoClient:CheckMosquittoResult(call_result, context)
         event = "mqtt-client.error",
         argument = {code = code, message = message}
     })
+--[==[
+    enum mosq_err_t {
+        MOSQ_ERR_CONN_PENDING = -1,
+        MOSQ_ERR_SUCCESS = 0,
+        MOSQ_ERR_NOMEM = 1,
+        MOSQ_ERR_PROTOCOL = 2,
+        MOSQ_ERR_INVAL = 3,
+        MOSQ_ERR_NO_CONN = 4,
+        MOSQ_ERR_CONN_REFUSED = 5,
+        MOSQ_ERR_NOT_FOUND = 6,
+        MOSQ_ERR_CONN_LOST = 7,
+        MOSQ_ERR_TLS = 8,
+        MOSQ_ERR_PAYLOAD_SIZE = 9,
+        MOSQ_ERR_NOT_SUPPORTED = 10,
+        MOSQ_ERR_AUTH = 11,
+        MOSQ_ERR_ACL_DENIED = 12,
+        MOSQ_ERR_UNKNOWN = 13,
+        MOSQ_ERR_ERRNO = 14,
+        MOSQ_ERR_EAI = 15,
+        MOSQ_ERR_PROXY = 16,
+            /* added because of CVE-2017-7653 */
+            MOSQ_ERR_MALFORMED_UTF8 = 18
+    };
 
-    if code == 4 then
-        copas.addthread(function() self:OnMosquittoDisconnect() end)
-    end
+    ]==]
+
+    copas.addthread(function() self:OnMosquittoDisconnect() end)
 
     return false
 end
@@ -195,7 +224,7 @@ function MosquittoClient:ConnectionStatusChanged()
 end
 
 function MosquittoClient:CheckConnectionStatus()
-    if not self:IsConnected() then
+    if self:IsConnected() then
         return
     end
     if os.time() - (self.state_change_timestamp or 0) < 10 then
@@ -209,7 +238,7 @@ MosquittoClient.EventTable = {
     -- ["module.initialized"] = RuleState.OnAppInitialized,
     -- ["homie-client.init-nodes"] = RuleState.InitHomieNode,
     -- ["homie-client.enter-ready"] = RuleState.InitHomieNode,
-    ["timer.basic.30_second"] = MosquittoClient.CheckConnectionStatus,
+    ["timer.basic.10_second"] = MosquittoClient.CheckConnectionStatus,
 }
 
 return MosquittoClient
