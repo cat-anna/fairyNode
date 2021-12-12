@@ -31,7 +31,7 @@ end
 
 local function MakeBooleanOperator(env, operator, limit)
     return function(data)
-        if type(limit) ~= nil then
+        if type(limit) ~= "nil" then
             env.assert(#data <= limit, "Operator '%s' requires %d argument(s)",
                        operator, limit)
         end

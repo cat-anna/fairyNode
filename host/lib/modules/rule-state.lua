@@ -36,12 +36,12 @@ end
 function RuleState:LoadScript()
     local rule = self.rule
     local text_script = string.format(RULE_SCRIPT, rule.text)
-    local success, script = pcall(loadstring, text_script)
-    if not success or not script then
+    local script, err_msg = loadstring(text_script)
+    if not script or err_mesg then
         print("Failed to load rule script:")
         print(text_script)
         print("Message:")
-        print(script)
+        print(err_msg)
         error("Cannot load rule script")
     end
 
