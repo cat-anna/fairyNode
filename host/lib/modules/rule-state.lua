@@ -54,7 +54,8 @@ function RuleState:LoadScript()
         print(text_script)
         print("Message:")
         print(mt)
-        error("Cannot build rule script")
+        print("Cannot build rule script")
+        return
     end
 
     self.states_by_id = env.states

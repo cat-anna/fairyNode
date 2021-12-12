@@ -716,7 +716,6 @@ function HandleRuleChartResponse(data) {
     if($("#RuleStateChartImg").attr("src") != data.url) {
         console.log("Url changed")
         AsyncRequest(data.url, function(response){
-            console.log(response)
             $("#RuleStateChartImg").html(response)
             $("#RuleStateChartImg").attr("src", data.url)
         })

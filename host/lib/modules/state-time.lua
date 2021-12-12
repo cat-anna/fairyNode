@@ -2,9 +2,7 @@ local StateTime = {}
 StateTime.__index = StateTime
 StateTime.__class = "StateTime"
 
-function StateTime:LocallyOwned()
-    return true, "boolean"
-end
+function StateTime:LocallyOwned() return true, "boolean" end
 
 function StateTime:GetValue()
     self:Update()
@@ -13,8 +11,9 @@ end
 
 function StateTime:GetName()
     local r = self.range
-    return string.format("Time between %d:%02d and %d:%02d", r.from / 100,
-                         r.from % 100, r.to / 100, r.to % 100)
+    return string.format("Time between %d:%02d and %d:%02d",
+                         math.floor(r.from / 100), math.floor(r.from % 100),
+                         math.floor(r.to / 100), math.floor(r.to % 100))
 end
 
 function StateTime:Update()
@@ -29,12 +28,6 @@ end
 
 function StateTime:IsReady() return true end
 
-function StateTime:Create(config)
-    self.BaseClass.Create(self, config)
-    self.range = config.range
-    self.current_value = self:CheckSchedule()
-end
-
 function StateTime:OnTimer(config) self:Update() end
 
 function StateTime:CheckSchedule()
@@ -46,6 +39,12 @@ function StateTime:CheckSchedule()
     else
         return time < r.from or r.to > time
     end
+end
+
+function StateTime:Create(config)
+    self.BaseClass.Create(self, config)
+    self.range = config.range
+    self.current_value = self:CheckSchedule()
 end
 
 return {
