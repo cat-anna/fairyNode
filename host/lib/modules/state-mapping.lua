@@ -36,7 +36,7 @@ function StateMapping:Update()
     if not dependant_values then return end
 
     if #dependant_values ~= 1 then
-        print(self:GetLogTag(),
+        print(self:LogTag(),
               "Mapping requires exactly single dependency, but got " ..
                   tostring(#dependant_values))
         return
@@ -44,7 +44,7 @@ function StateMapping:Update()
 
     local foreign_value = dependant_values[1].value
     if foreign_value == nil then
-        print(self:GetLogTag(), "Mapping does not have value")
+        print(self:LogTag(), "Mapping does not have value")
         -- TODO
     end
 
@@ -54,7 +54,7 @@ function StateMapping:Update()
         return true
     end
 
-    print(self:GetLogTag(), "Changed to value " .. tostring(new_value))
+    print(self:LogTag(), "Changed to value " .. tostring(new_value))
     self.cached_value = new_value
     self.cached_value_valid = true
 

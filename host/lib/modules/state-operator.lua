@@ -2,83 +2,56 @@ local StateOperator = {}
 StateOperator.__index = StateOperator
 StateOperator.__class = "StateOperator"
 
+local function OperatorAnd(calee, values)
+    for i = 1, #values do
+        if not values[i].value then return {result = false} end
+    end
+    return {result = true}
+end
+
+local function OperatorOr(calee, values)
+    for i = 1, #values do if values[i].value then return {result = true} end end
+    return {result = false}
+end
+
+local function MakeNumericOperator(op, func)
+    return {
+        limit = 1,
+        name = function(calee)
+            return string.format("X %s %s", op, tostring(calee.range.threshold))
+        end,
+        handler = loadstring(string.format([[
+return function(calee, values)
+    return { result = values[1].value < calee.range.threshold }
+end
+]], op))(),
+    }
+end
+
+-------------------------------------------------------------------------------------
+
 StateOperator.OperatorFunctors = {
-    ["and"] = {
-        handler = function(calee, values)
-            for i = 1, #values do
-                if not values[i].value then
-                    return {result = false}
-                end
-            end
-            return {result = true}
-        end
-    },
-    ["or"] = {
-        handler = function(calee, values)
-            for i = 1, #values do
-                if values[i].value then return {result = true} end
-            end
-            return {result = false}
-        end
-    },
+    ["and"] = {handler = OperatorAnd},
+    ["or"] = {handler = OperatorOr},
     ["not"] = {
+        limit = 1,
         handler = function(calee, values)
-            if #values ~= 1 then
-                calee:SetError(
-                    "'Not' operator expects exactly 1 argument, but %d were provided",
-                    #values)
-                return nil
-            end
             return {result = not values[1].value}
         end
     },
-    ["eq"] = {
-        name = function(calee) return "X == " .. tostring(calee.range.threshold) end,
-        handler = function(calee, values)
-            if #values ~= 1 then
-                calee:SetError(
-                    "'Not' operator expects exactly 1 argument, but %d were provided",
-                    #values)
-                return nil
-            end
-            if not calee.range or calee.range.threshold == nil then
-                calee:SetError(
-                    "'Equal' operator requires value to compare with")
-                return nil
-            end
-            return {result = values[1].value == calee.range.threshold }
-        end
-    },
-    ["threshold"] = {
-        name = function(calee) return "X > " .. tostring(calee.range.threshold) end,
-        handler = function(calee, values)
-            if #values ~= 1 then
-                calee:SetError(
-                    "'Threshold' operator expects exactly 1 argument, but %d were provided",
-                    #values)
-                return nil
-            end
-            if not calee.range or calee.range.threshold == nil then
-                calee:SetError(
-                    "'Threshold' operator requires threshold value to be set")
-                return nil
-            end
-            return {result = values[1].value > calee.range.threshold}
-        end
-    },
+
+    ["=="] = MakeNumericOperator("=="),
+    ["<"] = MakeNumericOperator("<"),
+    ["<="] = MakeNumericOperator("<="),
+    [">"] = MakeNumericOperator(">"),
+    [">="] = MakeNumericOperator(">="),
+
     ["range"] = {
         name = function(calee)
             local range = calee.range
-            return
-                tostring(range.min) .. " <= X < " .. tostring(range.max)
+            return tostring(range.min) .. " <= X < " .. tostring(range.max)
         end,
         handler = function(calee, values)
-            if #values ~= 1 then
-                calee:SetError(
-                    "'Range' operator expects exactly 1 argument, but %d were provided",
-                    #values)
-                return nil
-            end
             if not calee.range or calee.range.min == nil or calee.range.max ==
                 nil then
                 calee:SetError(
@@ -92,9 +65,7 @@ StateOperator.OperatorFunctors = {
     }
 }
 
-function StateOperator:LocallyOwned()
-    return true,"boolean"
-end
+function StateOperator:LocallyOwned() return true, "boolean" end
 
 function StateOperator:SetValue(v)
     error("Setting value of StateOperator instance is not possible")
@@ -111,7 +82,7 @@ function StateOperator:RetireValue()
 end
 
 function StateOperator:SourceChanged(source, source_value)
-    -- print(self:GetLogTag(), "SourceChanged")
+    -- print(self:LogTag(), "SourceChanged")
     self:RetireValue()
     self:Update()
 end
@@ -124,17 +95,25 @@ function StateOperator:Update()
     self:RetireValue()
 
     local dependant_values = self:GetDependantValues()
-    if not dependant_values then
-        return
-    end
+    if not dependant_values then return end
 
     local operator_func = self.OperatorFunctors[self.operator]
+
+    if operator_func.limit ~= nil then
+        if #dependant_values ~= operator_func.limit then
+            self:SetError(
+                "'%s' operator expects exactly %d argument, but %d were provided",
+                operator_func.limit, #dependant_values)
+            return nil
+        end
+    end
+
     local result_value = operator_func.handler(self, dependant_values)
     if not result_value then return nil end
     result_value = result_value.result
     if result_value == self.cached_value then return result_value end
 
-    print(self:GetLogTag(), "Changed to value " .. tostring(result_value))
+    print(self:LogTag(), "Changed to value " .. tostring(result_value))
     self.cached_value = result_value
     self.cached_value_valid = true
     self:CallSinkListeners(result_value)
@@ -144,17 +123,19 @@ end
 
 function StateOperator:GetDescription()
     local r = self.BaseClass.GetDescription(self)
-    table.insert(r, "function: " .. self:GetSourceDependencyDescription())
-    table.insert(r, "operator: " .. self.operator)
+    table.insert(r, "function: " .. self:GetFunctionDescription())
+    -- table.insert(r, "operator: " .. self.operator)
     return r
 end
 
-function StateOperator:GetSourceDependencyDescription()
+function StateOperator:GetFunctionDescription()
     local operator_func = self.OperatorFunctors[self.operator]
-    if operator_func.name then
-        return operator_func.name(self)
-    end
+    if operator_func.name then return operator_func.name(self) end
     return self.operator
+end
+
+function StateOperator:GetSourceDependencyDescription()
+    return "X"
 end
 
 -------------------------------------------------------------------------------------
@@ -162,6 +143,7 @@ end
 function StateOperator:Create(config)
     self.BaseClass.Create(self, config)
     self.operator = config.operator
+    assert(self.OperatorFunctors[self.operator])
     self.range = config.range
     self:RetireValue()
 end

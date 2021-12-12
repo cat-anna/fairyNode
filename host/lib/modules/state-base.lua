@@ -32,15 +32,15 @@ end
 
 function State:GetSourceDependencyDescription() return "[updates]" end
 
-function State:SetValue(v) error(self:GetLogTag() .. "abstract method called") end
+function State:SetValue(v) error(self:LogTag() .. "abstract method called") end
 
-function State:GetValue() error(self:GetLogTag() .. "abstract method called") end
+function State:GetValue() error(self:LogTag() .. "abstract method called") end
 
 function State:GetName() return self.name end
 
 function State:IsReady() return self.is_ready end
 
-function State:GetLogTag()
+function State:LogTag()
     if not self.log_tag then
         self.log_tag = string.format("%s(%s): ", self.__class, self.global_id)
     end
@@ -54,7 +54,7 @@ end
 -------------------------------------------------------------------------------------
 
 function State:AddSourceDependency(dependant_state)
-    print(self:GetLogTag(), "Added dependency " .. dependant_state.global_id ..
+    print(self:LogTag(), "Added dependency " .. dependant_state.global_id ..
               " to " .. self.global_id)
 
     self.source_dependencies[dependant_state.global_id] = dependant_state
@@ -73,7 +73,7 @@ function State:GetDependantValues()
     local dependant_values = {}
     for _, v in pairs(self.source_dependencies) do
         if not v:IsReady() then
-            print(self:GetLogTag(),"Dependency " .. v.global_id .. " is not yet ready")
+            print(self:LogTag(),"Dependency " .. v.global_id .. " is not yet ready")
             return nil
         end
         SafeCall(function()
@@ -86,7 +86,7 @@ end
 -------------------------------------------------------------------------------------
 
 function State:AddSinkDependency(listener)
-    print(self:GetLogTag(), "Added listener " .. listener.global_id)
+    print(self:LogTag(), "Added listener " .. listener.global_id)
 
     self.sink_dependencies[listener.global_id] = listener
 
@@ -96,9 +96,9 @@ function State:AddSinkDependency(listener)
 end
 
 function State:CallSinkListeners(result_value)
-    -- print(self:GetLogTag(), "CallSinkListeners")
+    -- print(self:LogTag(), "CallSinkListeners")
     for _, v in pairs(self.sink_dependencies) do
-        -- print(self:GetLogTag(), "Calling listener " .. v.global_id)
+        -- print(self:LogTag(), "Calling listener " .. v.global_id)
         SafeCall(function() v:SourceChanged(self, result_value) end)
     end
 end
@@ -116,7 +116,8 @@ end
 -------------------------------------------------------------------------------------
 
 function State:SetError(...)
-    -- local message = string.format(...)
+    local message = string.format(...)
+    print(self, message)
 end
 
 function State:GetDependencyList(list)

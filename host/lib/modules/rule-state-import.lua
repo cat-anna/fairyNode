@@ -19,13 +19,17 @@ TrackedValue.__tracked_value = true
 
 -------------------------------------------------------------------------------------
 
+local function IsState(env, state)
+    return type(state) == "table" and  state.__is_state_class
+end
+
 -------------------------------------------------------------------------------------
 
 local function WrapCall(object, func, argument)
     return function(...) return func(object, argument, ...) end
 end
 
-local function MakeImportOperator(env, operator, limit)
+local function MakeBooleanOperator(env, operator, limit)
     return function(data)
         if type(limit) ~= nil then
             env.assert(#data <= limit, "Operator '%s' requires %d argument(s)",
@@ -43,16 +47,40 @@ local function MakeImportOperator(env, operator, limit)
     end
 end
 
-local function MakeThresholdOperator(env, operator)
+local function MakeNumericOperator(env, operator)
     return function(data)
         if #data ~= 2 then
             env.error("Operator '%s' requires two arguments", operator)
+            return
+        end
+        if not IsState(env, data[1]) then
+            env.error("Operator '%s' requires state as first argument", operator)
+            return
+        end
+        local deps = { data[1] }
+        local threshold = data[2]
+        -- local threshold_is_state  = IsState(env, threshold)
+        local threshold_as_num = tonumber(threshold)
+        -- if not threshold_is_state and threshold_as_num == nil then
+        --     env.error("Operator '%s' requires two arguments", operator)
+        --     return
+        -- end
+        -- if threshold_as_num ~= nil then
+        --     threshold = threshold_as_num
+        -- end
+        -- if threshold_is_state then
+        --     table.insert(deps, threshold)
+        --     threshold = nil
+        -- end
+        if threshold_as_num == nil then
+            env.error("Operator '%s' requires number as second argument arguments", operator)
+            return
         end
         return {
             class = "StateOperator",
             operator = operator,
-            source_dependencies = {data[1]},
-            range = {threshold = tonumber(data[2])}
+            source_dependencies = deps,
+            range = {threshold = threshold}
         }
     end
 end
@@ -236,13 +264,16 @@ function RuleStateImport:CreateStateEnv()
                                                           self.ImportHomieState,
                                                           object))
 
-    env.Or = MakeImportOperator(env, "or")
-    env.And = MakeImportOperator(env, "and")
-    env.Not = MakeImportOperator(env, "not", 1)
-    env.AnyOf = env.Or
+    env.Or = MakeBooleanOperator(env, "or")
+    env.And = MakeBooleanOperator(env, "and")
+    env.Not = MakeBooleanOperator(env, "not", 1)
 
-    env.Eq = MakeThresholdOperator(env, "eq")
-    env.Threshold = MakeThresholdOperator(env, "threshold")
+    env.Equal = MakeNumericOperator(env, "==")
+    env.Lesser = MakeNumericOperator(env, "<")
+    env.LesserEqual = MakeNumericOperator(env, "<=")
+    env.Greater = MakeNumericOperator(env, ">")
+    env.GreaterEqual = MakeNumericOperator(env, ">=")
+
     env.Range = MakeRangeOperator(env)
 
     env.TimeSchedule = MakeTimeSchedule(env)
