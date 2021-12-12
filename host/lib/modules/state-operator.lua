@@ -22,7 +22,7 @@ local function MakeNumericOperator(op, func)
         end,
         handler = loadstring(string.format([[
 return function(calee, values)
-    return { result = values[1].value < calee.range.threshold }
+    return { result = values[1].value %s calee.range.threshold }
 end
 ]], op))(),
     }
