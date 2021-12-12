@@ -143,24 +143,27 @@ end
 
 local function linux_df()
     local shell = require "lib/shell"
-    local lines = shell.LinesOf("df -x tmpfs -B 1M --output=source,fstype,size,used,pcent,target")
+    local lines = shell.LinesOf("df -B 1M --output=source,fstype,size,used,pcent,target")
     table.remove(lines, 1)
 
     local r = {}
     for _,line in ipairs(lines) do
-        local parts = line:split(" ")
-        local e =  {
-            id = parts[6]:gsub("/", "_"),
-            name = parts[1],
-            type = parts[2],
-            size = tonumber(parts[3]),
-            used = tonumber(parts[4]),
-            used_procent = tonumber(parts[5]:sub(1,parts[5]:len()-1)),
-            mountpoint = parts[6],
-            unit = "MiB",
-        }
-        e.remain = e.size - e.used
-        table.insert(r, e)
+        if line:match("tmpfs") then
+        else
+            local parts = line:split(" ")
+            local e =  {
+                id = parts[6]:gsub("/", "_"),
+                name = parts[1],
+                type = parts[2],
+                size = tonumber(parts[3]),
+                used = tonumber(parts[4]),
+                used_procent = tonumber(parts[5]:sub(1,parts[5]:len()-1)),
+                mountpoint = parts[6],
+                unit = "MiB",
+            }
+            e.remain = e.size - e.used
+            table.insert(r, e)
+        end
     end
     return r
 end

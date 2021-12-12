@@ -1,5 +1,4 @@
 local copas = require "copas"
-local timer = require "copas.timer"
 local lfs = require "lfs"
 local file = require "pl.file"
 local json = require "json"
