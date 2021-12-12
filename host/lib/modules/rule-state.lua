@@ -103,6 +103,13 @@ function RuleState:SetRuleText(rule_text)
     self:ReloadRule()
 end
 
+function RuleState:GetRuleText()
+    if not self.rule then
+        return nil
+    end
+    return self.rule.text
+end
+
 function RuleState:SaveRule(rule_text)
     local entry = {
         text = rule_text,

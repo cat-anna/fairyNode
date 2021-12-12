@@ -14,6 +14,7 @@ return function(server)
                 produces = "application/json",
                 handler = rest.HandlerModule("service-rule", "SetStateRule"),
             },
+
             {
                 method = "GET",
                 path = "/state/stats",

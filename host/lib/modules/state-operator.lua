@@ -33,7 +33,7 @@ StateOperator.OperatorFunctors = {
         end
     },
     ["eq"] = {
-        name = function(calee) return "== " .. tostring(calee.range.threshold) end,
+        name = function(calee) return "X == " .. tostring(calee.range.threshold) end,
         handler = function(calee, values)
             if #values ~= 1 then
                 calee:SetError(
@@ -50,7 +50,7 @@ StateOperator.OperatorFunctors = {
         end
     },
     ["threshold"] = {
-        name = function(calee) return "> " .. tostring(calee.range.threshold) end,
+        name = function(calee) return "X > " .. tostring(calee.range.threshold) end,
         handler = function(calee, values)
             if #values ~= 1 then
                 calee:SetError(
@@ -144,6 +144,7 @@ end
 
 function StateOperator:GetDescription()
     local r = self.BaseClass.GetDescription(self)
+    table.insert(r, "function: " .. self:GetSourceDependencyDescription())
     table.insert(r, "operator: " .. self.operator)
     return r
 end

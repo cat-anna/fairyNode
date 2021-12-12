@@ -1,11 +1,26 @@
 
 var kMissingValueBlock = "<span class='MissingValue'>&lt;&nbsp;?&nbsp;&gt;<span>"
 
+var ActivePage = "Rules"
+
 function FairyNode_InitOverview() {
     bootstrap_code = `
     <div id="OverviewOuter">
         <div id="OverviewInner">
-            <div id="DeviceListRoot" class="OverviewTable">
+            <div id="PageSelectBox" class="OverviewTable">
+                <div id="ButtonPageSelectDevices" target="Devices" class="PageSelectButton">Devices</div>
+                <div id="ButtonPageSelectRules" target="Rules" class="PageSelectButton PageSelectButtonActive">Rules</div>
+            </div>
+
+            <div id="PageRules" class="Page OverviewTable">
+                <div id="RuleStateChart">
+                    <div id="RuleStateChartImg"></div>
+                </div>
+                <div id="RuleStateEditorBlock">
+                </div>
+            </div>
+
+            <div id="PageDevices" class="Page HiddenPage OverviewTable ">
                 <div id="DeviceList" class="DeviceListNodes"></div>
                 <div id="DeviceListContent" class="DeviceListContent">
                     <div id="OverviewTable" class="DeviceListPages tabcontent tab_active">
@@ -14,13 +29,21 @@ function FairyNode_InitOverview() {
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
-    `;
+`;
 
     node = document.getElementById('fairyNode-root');
     node.insertAdjacentHTML('afterend', bootstrap_code);
+
+    $(".PageSelectButton").click(function(){
+        $(".PageSelectButton.PageSelectButtonActive").removeClass("PageSelectButtonActive")
+        $(".Page").addClass("HiddenPage")
+        $(this).addClass("PageSelectButtonActive")
+        ActivePage = $(this).attr("target")
+        $("#Page" + ActivePage).removeClass("HiddenPage")
+        refresh();
+    })
 
     var row = SetOverviewRow("Head", {
         // ip : "Ip",
@@ -46,7 +69,11 @@ function FairyNode_InitOverview() {
         $("#OverviewTable").addClass("tab_active")
         $(".DeviceListPages.tab_button_active").removeClass("tab_button_active")
     });
+
+    ResetRuleCodeEditor();
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////
 
 function SortedKeys(unordered) {
     if (unordered == null) {
@@ -132,6 +159,7 @@ function RefreshChart(chart) {
         chart.update();
     })
 }
+
 function OpenDevicePropertyChart(url, parent_block) {
     var chart_div_id = "CHART_" + parent_block
     var exists = document.getElementById(chart_div_id) !== null
@@ -650,8 +678,59 @@ function HandleDeviceResponse(data) {
     });
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+
+open_rule_code_editor =`
+<div id="RuleStateEditButton" class="RuleStateButton">Edit</div>
+`
+rule_code_editor = `
+<div id="RuleStateEditor">
+    <div id="RuleStateSubmitButton" class="RuleStateButton">Submit</div>
+    <div id="RuleStateCloseButton" class="RuleStateButton">Close</div>
+    <textarea id="RuleStateEditorArea" name="RuleStateEditorArea" rows="50"></textarea>
+</div>
+`
+
+function SubmitRuleCode() {
+    var body = $("#RuleStateEditorArea").val()
+    QueryPostText("/rule/state/set", body)
+    setTimeout(refresh, 500)
+}
+
+function OpenRuleCodeEditor() {
+    $("#RuleStateEditorBlock").html(rule_code_editor)
+    QueryGetText("/rule/state/get", function(data) {
+        $("#RuleStateEditorArea").val(data)
+    })
+    $("#RuleStateSubmitButton").click(SubmitRuleCode)
+    $("#RuleStateCloseButton").click(ResetRuleCodeEditor)
+}
+
+function ResetRuleCodeEditor(){
+    $("#RuleStateEditorBlock").html(open_rule_code_editor)
+    $("#RuleStateEditButton").click(OpenRuleCodeEditor)
+}
+
+function HandleRuleChartResponse(data) {
+    console.log(data)
+    if($("#RuleStateChartImg").attr("src") != data.url) {
+        console.log("Url changed")
+        AsyncRequest(data.url, function(response){
+            console.log(response)
+            $("#RuleStateChartImg").html(response)
+            $("#RuleStateChartImg").attr("src", data.url)
+        })
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
 function refresh() {
-    QueryGet("/device", function(data) { HandleDeviceResponse(data) })
+    if(ActivePage == "Devices") {
+        QueryGet("/device", function(data) { HandleDeviceResponse(data) })
+    } else {
+        QueryGet("/rule/state/graph/url", function(data) { HandleRuleChartResponse(data) })
+    }
 }
 
 function FairyNodeOverviewStart() {

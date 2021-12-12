@@ -27,15 +27,7 @@ end
 -------------------------------------------------------------------------------------
 
 function State:GetDescription()
-    local r = tablex.copy(self.description or {})
-    if #r > 0 then table.insert(r, "") end
-    if self:IsReady() then
-        tablex.icopy(r, {
-            "value: " .. tostring(self:GetValue()), "", self.global_id
-        }, #r + 1)
-    end
-    -- table.insert(r, string.format("class: %s", self.__class:gsub("State", "")))
-    return r
+    return tablex.copy(self.description or {})
 end
 
 function State:GetSourceDependencyDescription() return "[updates]" end

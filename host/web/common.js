@@ -65,6 +65,18 @@ function GetOrCreateDivAfter(id, after_id, classes, cfg) {
     return $element
 }
 
+function AsyncRequest(url, on_data) {
+    async function getData(url) {
+        const response = await fetch(url, {
+            method: 'GET',
+            redirect: 'follow',
+        });
+        return await response.text()
+    }
+
+    getData(url) .then((data) => { on_data(data); });
+}
+
 function QueryGet(sub_url, on_data) {
     async function getData(url) {
         const response = await fetch(url, {
@@ -80,6 +92,21 @@ function QueryGet(sub_url, on_data) {
         });
 }
 
+function QueryGetText(sub_url, on_data) {
+    async function getData(url) {
+        const response = await fetch(url, {
+            method: 'GET', // *GET, POST, PUT, DELETE, etc.
+            redirect: 'follow', // manual, *follow, error
+        });
+        return await response.text();
+    }
+
+    getData(fn_rest_base + sub_url)
+        .then((data) => {
+            on_data(data);
+        });
+}
+
 function QueryPost(sub_url, body, on_data) {
     console.log("POST " + sub_url + " " + JSON.stringify(body))
     async function getData(url) {
@@ -87,6 +114,24 @@ function QueryPost(sub_url, body, on_data) {
             method: 'POST', // *GET, POST, PUT, DELETE, etc.
             redirect: 'follow', // manual, *follow, error
             body: JSON.stringify(body),
+        });
+        return await response.json(); // parses JSON response into native JavaScript objects
+    }
+
+    getData(fn_rest_base + sub_url)
+        .then((data) => {
+            if (on_data)
+                on_data(data); // JSON data parsed by `response.json()` call
+        });
+}
+
+function QueryPostText(sub_url, body, on_data) {
+    console.log("POST TEXT " + sub_url)
+    async function getData(url) {
+        const response = await fetch(url, {
+            method: 'POST', // *GET, POST, PUT, DELETE, etc.
+            redirect: 'follow', // manual, *follow, error
+            body: body,
         });
         return await response.json(); // parses JSON response into native JavaScript objects
     }

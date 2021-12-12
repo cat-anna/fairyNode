@@ -60,6 +60,8 @@ function MosquittoClient:ResetClient()
                                             mqtt_client_cfg.port or 1883,
                                             mqtt_client_cfg.keepalive or 10)
     })
+
+    self:ConnectionStatusChanged()
 end
 
 -------------------------------------------------------------------------------
@@ -92,6 +94,7 @@ function MosquittoClient:OnMosquittoConnect()
     print("MOSQUITTO: Connected")
     self.connected = true
     self.event_bus:PushEvent({event = "mqtt-client.connected", argument = {}})
+    self:ConnectionStatusChanged()
 end
 
 function MosquittoClient:OnMosquittoDisconnect()
@@ -117,11 +120,16 @@ function MosquittoClient:CheckMosquittoResult(call_result, context)
         return true
     end
 
-    print("MOSQUITTO: OnMosquittoError " .. message)
+    print(string.format("MOSQUITTO: Error(%d): %s", code, message))
     self.event_bus:PushEvent({
         event = "mqtt-client.error",
         argument = {code = code, message = message}
     })
+
+    if code == 4 then
+        copas.addthread(function() self:OnMosquittoDisconnect() end)
+    end
+
     return false
 end
 
@@ -162,8 +170,7 @@ end
 
 function MosquittoClient:IsConnected() return self.connected end
 
-function MosquittoClient:AfterReload()
-end
+function MosquittoClient:AfterReload() end
 
 function MosquittoClient:Init()
     self.connected = false
@@ -180,5 +187,29 @@ function MosquittoClient:Init()
         end
     end)
 end
+
+-------------------------------------------------------------------------------------
+
+function MosquittoClient:ConnectionStatusChanged()
+    self.state_change_timestamp = os.time()
+end
+
+function MosquittoClient:CheckConnectionStatus()
+    if not self:IsConnected() then
+        return
+    end
+    if os.time() - (self.state_change_timestamp or 0) < 10 then
+        self:ResetClient()
+    end
+end
+
+-------------------------------------------------------------------------------------
+
+MosquittoClient.EventTable = {
+    -- ["module.initialized"] = RuleState.OnAppInitialized,
+    -- ["homie-client.init-nodes"] = RuleState.InitHomieNode,
+    -- ["homie-client.enter-ready"] = RuleState.InitHomieNode,
+    ["timer.basic.30_second"] = MosquittoClient.CheckConnectionStatus,
+}
 
 return MosquittoClient

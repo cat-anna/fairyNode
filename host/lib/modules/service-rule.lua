@@ -37,11 +37,16 @@ function RuleService:Init() end
 
 -------------------------------------------------------------------------------------
 
+local StateClassMapping = {StateHomie = "annotation", StateTime = "abstract"}
+
 function RuleService:GenerateStateDiagram()
-    local lines = {"@startuml", "hide empty description"}
+    local lines = {
+        "@startuml", "skinparam backgroundcolor transparent",
+        "hide empty description", "hide empty members"
+    }
 
     local function name_to_id(n)
-        local r = n:gsub("[-/]", "_")
+        local r = n:gsub("[%.-/]", "_")
         return r
     end
 
@@ -52,7 +57,7 @@ function RuleService:GenerateStateDiagram()
         local color_true = "FFB281" -- "#FF9664"
         local color_false = "B2B2CE" -- "#9696ce"
 
-        local r_value
+        local r_value = ""
         if state:IsReady() then r_value = state:GetValue() end
 
         if type(r_value) == "boolean" then
@@ -61,29 +66,37 @@ function RuleService:GenerateStateDiagram()
         if not state:LocallyOwned() then
             table.insert(state_style, "line.dotted")
         end
+
         local state_style_text = ""
         if #state_style > 0 then
-            state_style_text = "#" ..  table.concat(state_style, ";")
+            state_style_text = "#" .. table.concat(state_style, ";")
         end
 
         local desc = state:GetDescription()
-        local state_name = state:GetName()
+        if #desc > 0 then table.insert(desc, 1, "\n..") end
+        local members = table.concat(desc, "\n")
 
-        local state_line = string.format([[state %s as "%s" %s : %s]], --
-        name_to_id(state.global_id), state_name,state_style_text,
-                                         table.concat(desc, "\\n"))
+        -- state_style_text
+        if r_value == nil then r_value = "" end
+
+        local mode = StateClassMapping[state.__class] or "entity"
+
+        local state_line = string.format([[
+%s %s as "%s" %s {
+value: %s %s
+..
+%s
+}
+]], mode, name_to_id(state.global_id), state:GetName(), state_style_text,
+                                         tostring(r_value), members,
+                                         state.global_id)
+
         table.insert(lines, state_line)
 
         transition_names[id] = state:GetSourceDependencyDescription()
     end
 
     for _, state in pairs(self.rule_state:GetStates() or {}) do
-        -- for _, dep in ipairs(state:GetSourceDependencyList() or {}) do
-        --     table.insert(lines,
-        --                  string.format([[ %s --> %s ]], name_to_id(dep),
-        --                                name_to_id(state.global_id)))
-        -- end
-
         for _, dep in ipairs(state:GetSinkDependencyList() or {}) do
             local l = {name_to_id(state.global_id), "-->", name_to_id(dep)}
             if transition_names[dep] then
@@ -116,25 +129,15 @@ end
 
 function RuleService:GetStateRuleStatus()
     local result = {}
-    -- for _,state in pairs(self.state_manager:GetStates()) do
-    --     local r = {}
-    --     table.insert(result, r)
-
-    --     r.name = state:GetName()
-    --     r.class = state.class_name
-    --     r.result_value = state:ResultValue();
-    --     r.local_value = state:LocalValue();
-    --     r.dependencies = state:GetDependencyList();
-    --     r.operator = state.operator
-    --     r.a=5
-    -- end
-
     return http.OK, result
 end
 
+function RuleService:GetStateRule() return http.OK,
+                                           self.rule_state:GetRuleText() end
+
 function RuleService:SetStateRule(request)
     self.rule_state:SetRuleText(request)
-    return http.OK
+    return http.OK, {result = true}
 end
 
 -------------------------------------------------------------------------------------
