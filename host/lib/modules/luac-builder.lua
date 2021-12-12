@@ -4,7 +4,6 @@ local file = require "pl.file"
 local json = require "json"
 local shell = require "lib/shell"
 local unistd = require "posix.unistd"
-local lpty = require "lpty"
 
 local LuacBuilder = {}
 LuacBuilder.__index = LuacBuilder
@@ -60,6 +59,7 @@ git reset --hard %s
 make -C app/lua/luac_cross
 ]]):format(self.nodemcu_firmware_path, commit_hash)
 
+    local lpty = require "lpty"
     pty = lpty.new()
     pty:startproc("sh", "-c", script)
 
