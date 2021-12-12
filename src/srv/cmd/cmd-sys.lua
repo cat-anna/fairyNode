@@ -15,23 +15,26 @@ return {
                 return
             end
             if otacmd == "update" then
+                if rtcmem then
+                    rtcmem.write32(120, 10)
+                end
                 node.task.post(function() pcall(require("ota-core").Update) end)
                 out("SYS: ok")
                 return
-            end     
+            end
             out("SYS: Unknown ota command")
-            return 
+            return
         end
         if subcmd == "restart" then
             out("SYS: ok")
             tmr.create():alarm(1000, tmr.ALARM_SINGLE, node.restart)
-            return            
+            return
         end
         if subcmd == "error" then
             local errcmd = table.remove(args, 1)
             if errcmd == "get" then
                 out("SYS: errors=" .. sjson.encode(error_state.errors))
-                return            
+                return
             end
             if errcmd == "clear" then
                 local what = table.remove(args, 1)
@@ -50,8 +53,7 @@ SYS: error,get - get list of all active errors
 SYS: error,clear,what - clear single error
 ]])
             return
-        end        
+        end
         out("SYS: Unknown command")
     end,
 }
- 

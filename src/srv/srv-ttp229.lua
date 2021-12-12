@@ -27,8 +27,8 @@ function Module:ContrllerInit(event, ctl)
   --     self.node = ctl:AddNode("gpio", {
   --         name = "gpio",
   --         properties = props,
-  --     })    
-  -- end  
+  --     })
+  -- end
 end
 
 local kTpClockDelay = 2
@@ -37,10 +37,10 @@ function Module:TriggerRead()
   self:ClearTrigger()
 
   local st = 0
-  for i=0,15 do 
+  for i=0,15 do
     gpio.write(self.scl, gpio.LOW)
     tmr.delay(kTpClockDelay)
-    gpio.write(self.scl, gpio.HIGH)   
+    gpio.write(self.scl, gpio.HIGH)
     tmr.delay(kTpClockDelay)
     if gpio.read(self.sd0) == 0 then
       st = bit.bor(st, bit.lshift(1, i))
@@ -53,7 +53,7 @@ function Module:TriggerRead()
         local new_state =  bit.band(st, flag)
           if bit.band(self.state, flag) ~= new_state then
             print("TP229: BUTTON:", i + 1, new_state ~= 0 and "down" or "up")
-            Event("tp229.btn_" .. tonumber(i + 1), new_state ~= 0)
+            Event("tp229.btn_" .. tonumber(i + 1), (new_state ~= 0) and 1 or 0)
         end
     end
   end
@@ -91,7 +91,7 @@ return {
 
       local conf = hw.ttp229
       hw.ttp229 = nil
-      
+
       conf.state = 0
       return setmetatable(conf, Module)
   end,

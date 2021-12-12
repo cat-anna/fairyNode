@@ -22,6 +22,7 @@ function Sensor:ContrllerInit(event, ctl)
             uptime = { name = "Uptime", datatype = "integer", value = 0 },
             wifi = { name = "Wifi signal quality", datatype = "float" },
             bootreason = { name = "Boot reason", datatype = "string", value = sjson.encode({node.bootreason()}) },
+            bootcounter = rtcmem and { name = "Boot counter", datatype="integer", value=rtcmem.read32(120) } or nil,
             errors = { name = "Active errors", datatype = "string" },
             free_space = { name = "Free flash space", datatype = "integer" },
             event = { name = "Event", datatype = "string", value = "" },
@@ -53,9 +54,12 @@ function Sensor:UpdateErrors(event, arg)
     self.node:SetValue("errors", sjson.encode(arg.errors))
 end
 
-function Sensor:OnEvent(event)
+function Sensor:OnEvent(event, arg)
     if not self.node then
         return
+    end
+    if arg ~= nil and type(arg) ~= "table" then
+        event = string.format("%s,%s", event, tostring(arg))
     end
     self.node:SetValue("event", event)
 end
