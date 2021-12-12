@@ -8,11 +8,11 @@ function FairyNode_InitOverview() {
     <div id="OverviewOuter">
         <div id="OverviewInner">
             <div id="PageSelectBox" class="OverviewTable">
-                <div id="ButtonPageSelectDevices" target="Devices" class="PageSelectButton">Devices</div>
-                <div id="ButtonPageSelectRules" target="Rules" class="PageSelectButton PageSelectButtonActive">Rules</div>
+                <div id="ButtonPageSelectDevices" target="Devices" class="PageSelectButton PageSelectButtonActive">Devices</div>
+                <div id="ButtonPageSelectRules" target="Rules" class="PageSelectButton ">Rules</div>
             </div>
 
-            <div id="PageRules" class="Page OverviewTable">
+            <div id="PageRules" class="Page HiddenPage OverviewTable">
                 <div id="RuleStateChart">
                     <div id="RuleStateChartImg"></div>
                 </div>
@@ -20,7 +20,7 @@ function FairyNode_InitOverview() {
                 </div>
             </div>
 
-            <div id="PageDevices" class="Page HiddenPage OverviewTable ">
+            <div id="PageDevices" class="Page  OverviewTable ">
                 <div id="DeviceList" class="DeviceListNodes"></div>
                 <div id="DeviceListContent" class="DeviceListContent">
                     <div id="OverviewTable" class="DeviceListPages tabcontent tab_active">
