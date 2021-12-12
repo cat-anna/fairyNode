@@ -134,12 +134,13 @@ function RuleState:ReloadRule()
     self.homie_node = nil
     self.homie_props = nil
 
+    local content
     local rule_storage_content = self.storage:GetFromStorage(self:GetRuleId())
     if not rule_storage_content then
-        return
+        content = { text = "" }
+    else
+        content = json.decode(rule_storage_content)
     end
-
-    local content = json.decode(rule_storage_content)
 
     self.rule = {
         text = content.text,
