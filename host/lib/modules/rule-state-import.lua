@@ -257,8 +257,12 @@ function RuleStateImport:CreateStateEnv()
     }
     local object = {env = env, states = {}}
 
-    env.error = nil -- TODO
-    env.assert = nil -- TODO
+    env.error = nil
+    env.assert = function(cond, ...)
+        if not cond then
+            env.error(...)
+        end
+    end
 
     env.Homie = self.device_tree:GetPropertyPath(WrapCall(self,
                                                           self.ImportHomieState,
