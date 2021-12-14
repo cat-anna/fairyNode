@@ -206,6 +206,12 @@ function Device:HandlePropertyValue(topic, payload)
     local value = payload
     if property.datatype then
         value = self.homie_common.FromHomieValue(property.datatype, payload)
+    else
+        local num = tonumber(payload)
+        if num ~= nil then
+            property.datatype = "float"
+            value = num
+        end
     end
 
     if changed then

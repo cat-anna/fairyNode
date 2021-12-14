@@ -39,6 +39,7 @@ local function MakeBooleanOperator(env, operator, limit)
             env.assert(#data <= limit,
                        "Operator '%s' requires at least one argument", operator)
         end
+        env.assert(operator)
         return {
             class = "StateOperator",
             operator = operator,
@@ -75,6 +76,32 @@ local function MakeNumericOperator(env, operator)
         if threshold_as_num == nil then
             env.error("Operator '%s' requires number as second argument arguments", operator)
             return
+        else
+            threshold = threshold_as_num
+        end
+        return {
+            class = "StateOperator",
+            operator = operator,
+            source_dependencies = deps,
+            range = {threshold = threshold}
+        }
+    end
+end
+
+local function MakeMathFunction(env, operator)
+    return function(data)
+        if not IsState(env, data[1]) then
+            env.error("Operator '%s' requires state as first argument", operator)
+            return
+        end
+        local threshold
+        local deps = { }
+        for _,v in ipairs(data) do
+            if IsState(env, v) then
+                table.insert(deps, v)
+            elseif type(v) == "number" then
+                threshold = v
+            end
         end
         return {
             class = "StateOperator",
@@ -277,6 +304,9 @@ function RuleStateImport:CreateStateEnv()
     env.LesserEqual = MakeNumericOperator(env, "<=")
     env.Greater = MakeNumericOperator(env, ">")
     env.GreaterEqual = MakeNumericOperator(env, ">=")
+
+    env.Max = MakeMathFunction(env, "max")
+    env.Min = MakeMathFunction(env, "min")
 
     env.Range = MakeRangeOperator(env)
 

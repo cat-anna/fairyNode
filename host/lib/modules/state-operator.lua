@@ -14,7 +14,7 @@ local function OperatorOr(calee, values)
     return {result = false}
 end
 
-local function MakeNumericOperator(op, func)
+local function MakeNumericOperator(op)
     return {
         limit = 1,
         name = function(calee)
@@ -25,6 +25,18 @@ return function(calee, values)
     return { result = values[1].value %s calee.range.threshold }
 end
 ]], op))(),
+    }
+end
+
+local function MakeFunctionOperator(func)
+    return {
+        handler = function (calee, values)
+            local raw = { calee.range.threshold }
+            for _,v in ipairs(values) do
+                table.insert(raw, v.value)
+            end
+            return { result = func(table.unpack(raw)) }
+        end
     }
 end
 
@@ -45,6 +57,9 @@ StateOperator.OperatorFunctors = {
     ["<="] = MakeNumericOperator("<="),
     [">"] = MakeNumericOperator(">"),
     [">="] = MakeNumericOperator(">="),
+
+    ["max"] = MakeFunctionOperator(math.max),
+    ["min"] = MakeFunctionOperator(math.min),
 
     ["range"] = {
         name = function(calee)
@@ -97,7 +112,11 @@ function StateOperator:Update()
     local dependant_values = self:GetDependantValues()
     if not dependant_values then return end
 
+
     local operator_func = self.OperatorFunctors[self.operator]
+    if not operator_func then
+        return
+    end
 
     if operator_func.limit ~= nil then
         if #dependant_values ~= operator_func.limit then
@@ -143,9 +162,10 @@ end
 function StateOperator:Create(config)
     self.BaseClass.Create(self, config)
     self.operator = config.operator
-    assert(self.OperatorFunctors[self.operator])
     self.range = config.range
     self:RetireValue()
+
+    assert(self.OperatorFunctors[self.operator])
 end
 
 return {

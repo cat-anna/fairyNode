@@ -45,6 +45,8 @@ function RuleState:LoadScript()
         error("Cannot load rule script")
     end
 
+    self.states_by_id = { }
+    collectgarbage()
     local env = self.rule_import:CreateStateEnv()
     setfenv(script, env.env)
 
