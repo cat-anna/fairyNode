@@ -19,6 +19,7 @@ MosquittoClient.__deps = {
 
 function MosquittoClient:ResetClient()
     if os.time() - (self.state_change_timestamp or 0) < 10 then
+        self:ConnectionStatusChanged()
         return
     end
     self:ConnectionStatusChanged()
@@ -29,6 +30,7 @@ function MosquittoClient:ResetClient()
     -- end
 
     self.mosquitto_client = mosquitto.new()
+    collectgarbage()
 
     self.mosquitto_client.ON_CONNECT = function(...)
         self:OnMosquittoConnect(...)
@@ -95,6 +97,9 @@ function MosquittoClient:OnMosquittoPublish()
 end
 
 function MosquittoClient:OnMosquittoConnect()
+    if self.connected then
+        return
+    end
     print("MOSQUITTO: Connected")
     self.connected = true
     self.event_bus:PushEvent({event = "mqtt-client.connected", argument = {}})
@@ -225,9 +230,10 @@ end
 
 function MosquittoClient:CheckConnectionStatus()
     if self:IsConnected() then
+        print("MOSQUITTO: Status: connected")
         return
     end
-    if os.time() - (self.state_change_timestamp or 0) < 10 then
+    if os.time() - (self.state_change_timestamp or 0) > 10 then
         self:ResetClient()
     end
 end

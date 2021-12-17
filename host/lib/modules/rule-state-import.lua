@@ -1,5 +1,6 @@
 local json = require "json"
 local tablex = require "pl.tablex"
+local stringx = require "pl.stringx"
 
 local RuleStateImport = {}
 RuleStateImport.__index = RuleStateImport
@@ -20,7 +21,7 @@ TrackedValue.__tracked_value = true
 -------------------------------------------------------------------------------------
 
 local function IsState(env, state)
-    return type(state) == "table" and  state.__is_state_class
+    return type(state) == "table" and state.__is_state_class
 end
 
 -------------------------------------------------------------------------------------
@@ -34,10 +35,12 @@ local function MakeBooleanOperator(env, operator, limit)
         if type(limit) ~= "nil" then
             env.assert(#data <= limit, "Operator '%s' requires %d argument(s)",
                        operator, limit)
+            return
         end
         if #data == 0 then
             env.assert(#data <= limit,
                        "Operator '%s' requires at least one argument", operator)
+            return
         end
         env.assert(operator)
         return {
@@ -58,7 +61,7 @@ local function MakeNumericOperator(env, operator)
             env.error("Operator '%s' requires state as first argument", operator)
             return
         end
-        local deps = { data[1] }
+        local deps = {data[1]}
         local threshold = data[2]
         -- local threshold_is_state  = IsState(env, threshold)
         local threshold_as_num = tonumber(threshold)
@@ -74,7 +77,9 @@ local function MakeNumericOperator(env, operator)
         --     threshold = nil
         -- end
         if threshold_as_num == nil then
-            env.error("Operator '%s' requires number as second argument arguments", operator)
+            env.error(
+                "Operator '%s' requires number as second argument arguments",
+                operator)
             return
         else
             threshold = threshold_as_num
@@ -95,8 +100,8 @@ local function MakeMathFunction(env, operator)
             return
         end
         local threshold
-        local deps = { }
-        for _,v in ipairs(data) do
+        local deps = {}
+        for _, v in ipairs(data) do
             if IsState(env, v) then
                 table.insert(deps, v)
             elseif type(v) == "number" then
@@ -112,10 +117,17 @@ local function MakeMathFunction(env, operator)
     end
 end
 
+-------------------------------------------------------------------------------------
+
 local function MakeRangeOperator(env)
     return function(data)
         if #data ~= 3 then
             env.error("Range operator requires three arguments")
+            return
+        end
+        if not IsState(env, data[1]) then
+            env.error("Range operator requires state as first argument")
+            return
         end
         return {
             class = "StateOperator",
@@ -130,6 +142,7 @@ local function MakeTimeSchedule(env)
     return function(data)
         if #data ~= 2 then
             env.error("TimeSchedule operator requires two arguments")
+            return
         end
         return {
             class = "StateTime",
@@ -137,6 +150,52 @@ local function MakeTimeSchedule(env)
         }
     end
 end
+
+-------------------------------------------------------------------------------------
+
+local function MakeMaxChangePeriod(env)
+    return function(data)
+        if #data ~= 2 then
+            env.error("MaxChangePeriod operator requires two arguments")
+            return
+        end
+        if not IsState(env, data[1]) then
+            env.error("MaxChangePeriod requires state as first argument")
+            return
+        end
+        local delay_as_num = tonumber(data[2])
+        if delay_as_num == nil then
+            env.error("MaxChangePeriod requires number as second argument")
+            return
+        end
+        return {
+            class = "StateMaxChangePeriod",
+            source_dependencies = {data[1]},
+            delay = delay_as_num
+        }
+    end
+end
+
+local function MakeBooleanGenerator(env)
+    return function(data)
+        if #data > 2 then
+            env.error("BooleanGenerator operator accepts up to two arguments")
+            return
+        end
+        local interval = tonumber(data[1])
+        if interval == nil then
+            env.error("BooleanGenerator requires number as first argument")
+            return
+        end
+        return {
+            class = "StateChangeGenerator",
+            interval = interval,
+            value = data[2]
+        }
+    end
+end
+
+-------------------------------------------------------------------------------------
 
 local function MakeMapping(env)
     return function(data)
@@ -147,7 +206,7 @@ local function MakeMapping(env)
             class = "StateMapping",
             mapping_mode = "any",
             source_dependencies = {data[1]},
-            mapping = data[2],
+            mapping = data[2]
         }
     end
 end
@@ -175,39 +234,34 @@ local function MakeBooleanMapping(env)
             class = "StateMapping",
             source_dependencies = {data[1]},
             mapping_mode = "boolean",
-            mapping =  {
-                [true] = data[2],
-                [false] = data[3],
-            }
+            mapping = {[true] = data[2], [false] = data[3]}
         }
     end
 end
 
 local function MakeIntegerMapping(env)
     -- return function(data)
-        -- if #data ~= 2 then
-        --     env.error("TimeSchedule operator requires two arguments")
-        -- end
-        -- return {
-        --     class = "StateTime",
-        --     range = {from = tonumber(data[1]), to = tonumber(data[2])}
-        -- }
+    -- if #data ~= 2 then
+    --     env.error("TimeSchedule operator requires two arguments")
+    -- end
+    -- return {
+    --     class = "StateTime",
+    --     range = {from = tonumber(data[1]), to = tonumber(data[2])}
+    -- }
     -- end
 end
 
 -------------------------------------------------------------------------------------
 
 local function ValidateMapping(env, state_def)
-    if not state_def.mapping then
-        return
-    end
+    if not state_def.mapping then return end
 
     local key_types_in_map = {}
     local value_types_in_map = {}
 
-    for key,value in pairs(state_def.mapping) do
+    for key, value in pairs(state_def.mapping) do
         key_types_in_map[type(key)] = true
-        local v_type= type(value)
+        local v_type = type(value)
         value_types_in_map[v_type] = true
         if v_type == "table" then
             env.error("Mapping to table is not allowed")
@@ -237,7 +291,7 @@ function RuleStateImport:ImportHomieState(env_object, homie_property)
     local class_reg = self.state_class_reg
 
     local homie_id = homie_property:GetId()
-    local global_id = string.format("homie.%s", homie_id)
+    local global_id = string.format("Homie.%s", homie_id)
     if not env_object.states[global_id] then
         env_object.states[global_id] = class_reg:Create({
             class = "StateHomie",
@@ -253,8 +307,10 @@ end
 function RuleStateImport:AddState(env_object, definition)
     local class_reg = self.state_class_reg
 
+    definition.Name = stringx.strip(definition.Name)
+
     local prepare = function(state_def)
-        local global_id = "state." .. definition.Name
+        local global_id = "State." .. definition.Name
 
         state_def.name = definition.Name
         state_def.global_id = global_id
@@ -279,21 +335,39 @@ function RuleStateImport:AddState(env_object, definition)
 end
 
 function RuleStateImport:CreateStateEnv()
-    local env = {
-        State = { }
-    }
-    local object = {env = env, states = {}}
+    local env = {State = {}}
+    local object = {env = env, states = {}, errors = { }, }
 
-    env.error = nil
-    env.assert = function(cond, ...)
-        if not cond then
-            env.error(...)
-        end
+    env.error = function (...)
+        table.insert(object.errors, string.format(...))
     end
+    env.assert = function(cond, ...) if not cond then env.error(...) end end
 
     env.Homie = self.device_tree:GetPropertyPath(WrapCall(self,
                                                           self.ImportHomieState,
                                                           object))
+
+     env.AddState = WrapCall(self, self.AddState, object)
+
+    env.Source = function(Name, arg1, arg2)
+        if arg2 == nil then
+            env.AddState {Name = Name, Source = arg1}
+        else
+            env.AddState {Name = Name, Display = arg1, Source = arg2}
+        end
+    end
+
+    env.Sink = function(source, sink)
+        if not IsState(env, source) then
+            env.error("Source is not a sate")
+            return
+        end
+        if not IsState(env, source) then
+            env.error("Sink is not a sate")
+            return
+        end
+        source:AddSinkDependency(sink)
+    end
 
     env.Or = MakeBooleanOperator(env, "or")
     env.And = MakeBooleanOperator(env, "and")
@@ -317,9 +391,12 @@ function RuleStateImport:CreateStateEnv()
     env.BooleanMapping = MakeBooleanMapping(env)
     env.StringMapping = MakeStringMapping(env)
 
-    -- BoolToggle
+    env.MaxChangePeriod = MakeMaxChangePeriod(env)
 
-    env.AddState = WrapCall(self, self.AddState, object)
+    env.BooleanGenerator = MakeBooleanGenerator(env)
+
+
+    -- BoolToggle
 
     return object
 end

@@ -42,7 +42,8 @@ local StateClassMapping = {StateHomie = "interface", StateTime = "abstract"}
 function RuleService:GenerateStateDiagram()
     local lines = {
         "@startuml", "skinparam backgroundcolor transparent",
-        "hide empty description", "hide empty members"
+        "hide empty description", "hide empty members",
+        "left to right direction", "scale 0.9", "skinparam ranksep 20"
     }
 
     local function name_to_id(n)
@@ -54,8 +55,9 @@ function RuleService:GenerateStateDiagram()
 
     for id, state in pairs(self.rule_state:GetStates() or {}) do
         local state_style = {}
-        local color_true = "FFB281" -- "#FF9664"
-        local color_false = "B2B2CE" -- "#9696ce"
+        local color_true =  "FFCE9D"-- "FFB281" -- "#FF9664"
+        local color_false = "C0C0CE" -- "B2B2CE" -- "#9696ce"
+        -- Default FEFECE
 
         local r_value = ""
         if state:IsReady() then r_value = state:GetValue() end
@@ -135,7 +137,8 @@ function RuleService:GetStateRule() return http.OK,
 
 function RuleService:SetStateRule(request)
     self.rule_state:SetRuleText(request)
-    return http.OK, {result = true}
+    local err_list = self.rule_state.errors
+    return http.OK, {result = #err_list == 0, errors = err_list}
 end
 
 -------------------------------------------------------------------------------------

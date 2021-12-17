@@ -51,12 +51,14 @@ function RuleState:LoadScript()
     setfenv(script, env.env)
 
     local success, mt = pcall(script)
+    self.errors = env.errors
     if not success or not mt then
         print("Failed to call rule script:")
         print(text_script)
         print("Message:")
         print(mt)
         print("Cannot build rule script")
+        table.insert(self.errors, 1, mt)
         return
     end
 

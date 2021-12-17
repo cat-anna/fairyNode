@@ -11,7 +11,7 @@ end
 
 function StateTime:GetName()
     local r = self.range
-    return string.format("Time between %d:%02d and %d:%02d",
+    return string.format("Time between\\n%d:%02d and %d:%02d",
                          math.floor(r.from / 100), math.floor(r.from % 100),
                          math.floor(r.to / 100), math.floor(r.to % 100))
 end

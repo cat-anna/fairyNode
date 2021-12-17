@@ -40,8 +40,8 @@ local DatatypeParser = {
 function HomieCommon.FromHomieValue(datatype, value)
     local fmt = DatatypeParser[datatype]
     if not fmt then
-        print(string.format("HOMIE-COMMON: FromHomieValue: No datatype '%s' handler for '%s'", datatype, tostring(value)))
-        return value
+        print(string.format("HOMIE-COMMON: FromHomieValue: No datatype '%s' handler for '%s'", tostring(datatype), tostring(value)))
+        return tostring(value)
     end
     return fmt.from_homie(value)
 end
@@ -49,8 +49,8 @@ end
 function HomieCommon.ToHomieValue(datatype, value)
     local fmt = DatatypeParser[datatype]
     if not fmt then
-        print(string.format("HOMIE-COMMON: ToHomieValue: No datatype '%s' handler for '%s'", datatype, tostring(value)))
-        return value
+        print(string.format("HOMIE-COMMON: ToHomieValue: No datatype '%s' handler for '%s'", tostring(datatype), tostring(value)))
+        return tostring(value)
     end
     return fmt.to_homie(value)
 end

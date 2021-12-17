@@ -30,7 +30,9 @@ function State:GetDescription()
     return tablex.copy(self.description or {})
 end
 
-function State:GetSourceDependencyDescription() return "[updates]" end
+function State:GetSourceDependencyDescription()
+    return nil --"[updates]"
+end
 
 function State:SetValue(v) error(self:LogTag() .. "abstract method called") end
 

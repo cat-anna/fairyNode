@@ -154,7 +154,7 @@ function StateOperator:GetFunctionDescription()
 end
 
 function StateOperator:GetSourceDependencyDescription()
-    return "X"
+    return nil
 end
 
 -------------------------------------------------------------------------------------

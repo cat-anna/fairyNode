@@ -3,19 +3,33 @@ require "lib/ext"
 local lfs = require "lfs"
 local copas = require "copas"
 
+-------------------------------------------------------------------------------
+
 local debug = require("configuration").debug
 
 local module_dir = {
     fw = configuration.fairy_node_base .. "/host/lib/modules",
     user = "./host/lib/modules"
 }
-local modules = {} --setmetatable({}, {__mode = "v"})
+local modules = setmetatable({}, {__mode = "v"})
+local loaded_modules =  { }
 local ModulesPublic = {}
-
 local ReloadWatchers = {}
+
+-------------------------------------------------------------------------------
 
 local Enumerator = {}
 Enumerator.__index = Enumerator
+
+function Enumerator:Enumerate(functor)
+    for k, v in pairs(loaded_modules) do
+        if v.instance then
+            SafeCall(functor, k, v.instance)
+        end
+    end
+end
+
+-------------------------------------------------------------------------------
 
 local function TestBlackList(module_name)
     for _, v in ipairs(configuration.module_black_list or {}) do
@@ -28,23 +42,30 @@ local function TestBlackList(module_name)
     return false
 end
 
-function Enumerator:Enumerate(functor)
-    for k, v in pairs(modules) do
-        if v.instance then
-            SafeCall(functor, k, v.instance)
-        end
-    end
-end
-
-function ModulesPublic:RegisterWatcher(name, functor)
-    ReloadWatchers[name] = functor
-end
-
 local function DisableModule(module, filetime)
     module.instance = nil
     module.timestamp = filetime
     module.init_done = false
     module.disabled = true
+end
+
+local function CreateModule(group, name, filename, filetime)
+    print("MODULES: New module:",name, filename, filetime)
+    local module = {
+        timestamp = 0,
+        name = name,
+        group = group,
+        init_done = false,
+        instance = nil,
+        black_listed = TestBlackList(name)
+    }
+    modules[name] = module
+    loaded_modules[name] = module
+    if module.black_listed then
+        DisableModule(module, filetime)
+        return false,true
+    end
+    return module
 end
 
 local function ReloadModule(group, name, filename, filetime)
@@ -58,20 +79,7 @@ local function ReloadModule(group, name, filename, filetime)
     end
 
     if not module or not module.instance then
-        print("MODULES: New module:",name, filename, filetime)
-        module = {
-            timestamp = 0,
-            name = name,
-            group = group,
-            init_done = false,
-            instance = nil,
-            black_listed = TestBlackList(name)
-        }
-        modules[name] = module
-        if module.black_listed then
-            DisableModule(module, filetime)
-            return false,true
-        end
+        module = CreateModule(group, name, filename, filetime)
     end
 
     -- print("MODULES: Reloading module:", name, filename, filetime)
@@ -216,32 +224,41 @@ local function ReloadModules(first_reload)
     return not done
 end
 
-copas.addthread(function()
-    copas.sleep(1)
-    ReloadModules(true)
-    local done = false
-    while not done do
-        copas.sleep(1)
-        -- done =
-            ReloadModules(false)
-        if debug then
-            copas.sleep(1)
-        else
-            copas.sleep(60 * 5)
-        end
-    end
-end)
-
 function ModulesPublic.Reload() ReloadModules(false) end
 
 function ModulesPublic.GetModule(name)
     if modules[name] and modules[name].instance then
         return modules[name].instance
     end
-
-    if name == "module-enumerator" then return setmetatable({}, Enumerator) end
-
     error("There is no module " .. name)
 end
 
-return ModulesPublic
+function ModulesPublic.RegisterWatcher(name, functor)
+    ReloadWatchers[name] = functor
+end
+
+local function Init()
+    copas.addthread(function()
+        copas.sleep(1)
+        ReloadModules(true)
+        local done = false
+        while not done do
+            copas.sleep(1)
+            -- done =
+                ReloadModules(false)
+            if debug then
+                copas.sleep(1)
+            else
+                copas.sleep(60 * 5)
+            end
+        end
+    end)
+
+    local enum = CreateModule("module", "module-enumerator", "", 0)
+    enum.instance = setmetatable({}, Enumerator)
+    enum.init_done = true
+
+    return ModulesPublic
+end
+
+return Init()
