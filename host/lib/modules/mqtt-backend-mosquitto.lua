@@ -230,7 +230,7 @@ end
 
 function MosquittoClient:CheckConnectionStatus()
     if self:IsConnected() then
-        print("MOSQUITTO: Status: connected")
+        -- print("MOSQUITTO: Status: connected")
         return
     end
     if os.time() - (self.state_change_timestamp or 0) > 10 then

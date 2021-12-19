@@ -2,6 +2,28 @@ local StateOperator = {}
 StateOperator.__index = StateOperator
 StateOperator.__class = "StateOperator"
 
+-------------------------------------------------------------------------------------
+
+local function DoSum(...)
+    local r = 0
+
+    local v = { ... }
+    for i=1,#v do
+        local t = type(v[i])
+        if t == "boolean" then
+            r = r + (v[i] and 1 or 0)
+        elseif t =="nil" then
+            --pass
+        else
+            r = r + tonumber(v[i])
+        end
+    end
+
+    return r
+end
+
+-------------------------------------------------------------------------------------
+
 local function OperatorAnd(calee, values)
     for i = 1, #values do
         if not values[i].value then return {result = false} end
@@ -60,6 +82,7 @@ StateOperator.OperatorFunctors = {
 
     ["max"] = MakeFunctionOperator(math.max),
     ["min"] = MakeFunctionOperator(math.min),
+    ["sum"] = MakeFunctionOperator(DoSum),
 
     ["range"] = {
         name = function(calee)
@@ -167,6 +190,8 @@ function StateOperator:Create(config)
 
     assert(self.OperatorFunctors[self.operator])
 end
+
+-------------------------------------------------------------------------------------
 
 return {
     Class = StateOperator,

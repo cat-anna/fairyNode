@@ -38,7 +38,7 @@ function EventTimer:AfterReload()
         ["basic.24_hour"] = 24*60*60,
     }) do
         local t = self:RegisterTimer(k, v)
-        t.persistent = true
+        -- t.persistent = true
     end
 end
 

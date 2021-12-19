@@ -90,7 +90,6 @@ function table.shalow_copy(t)
     return r
 end
 
-
 function table.sorted(t, comp)
     local r = table.shalow_copy(t)
     table.sort(r, comp)

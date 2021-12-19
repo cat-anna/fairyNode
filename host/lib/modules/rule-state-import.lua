@@ -12,14 +12,6 @@ RuleStateImport.__deps = {
 
 -------------------------------------------------------------------------------------
 
-local TrackedValue = {}
-TrackedValue.__index = TrackedValue
-TrackedValue.__tracked_value = true
-
--------------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------------
-
 local function IsState(env, state)
     return type(state) == "table" and state.__is_state_class
 end
@@ -287,6 +279,42 @@ end
 
 -------------------------------------------------------------------------------------
 
+local function AddSource(env, _, data)
+    if type(data) ~= "table" then
+        env.error("Invalid argument for 'Source' call")
+        return
+    end
+
+    local state_prototype = { }
+    state_prototype.name = data[1]
+    local data_len = #data
+    if data_len == 2 then
+        state_prototype.source = data[2]
+    elseif data_len == 3 then
+        state_prototype.display = data[2]
+        state_prototype.source = data[3]
+    else
+        env.error("Too many positional arguments for 'Source' call")
+        return
+    end
+
+    return env.AddState(state_prototype)
+end
+
+local function AddSink(env, source, sink)
+    if not IsState(env, source) then
+        env.error("Source is not a sate")
+        return
+    end
+    if not IsState(env, source) then
+        env.error("Sink is not a sate")
+        return
+    end
+    source:AddSinkDependency(sink)
+end
+
+-------------------------------------------------------------------------------------
+
 function RuleStateImport:ImportHomieState(env_object, homie_property)
     local class_reg = self.state_class_reg
 
@@ -307,14 +335,17 @@ end
 function RuleStateImport:AddState(env_object, definition)
     local class_reg = self.state_class_reg
 
-    definition.Name = stringx.strip(definition.Name)
+    definition.name = stringx.strip(definition.name)
 
     local prepare = function(state_def)
-        local global_id = "State." .. definition.Name
+        local global_id = "State." .. definition.name
 
-        state_def.name = definition.Name
         state_def.global_id = global_id
-        state_def.class = definition.Class or state_def.class
+
+        state_def.name = definition.name
+        state_def.display = definition.display
+
+        state_def.class = state_def.class
 
         if not state_def.class then
             error("Unknown or invalid class for " .. global_id)
@@ -324,11 +355,11 @@ function RuleStateImport:AddState(env_object, definition)
 
         local obj = class_reg:Create(state_def)
         env_object.states[global_id] = obj
-        env_object.env.State[definition.Name] = obj
+        env_object.env.State[definition.name] = obj
         return obj
     end
 
-    local source = prepare(tablex.copy(definition.Source))
+    local source = prepare(tablex.copy(definition.source))
     for _, v in ipairs(definition.Sink or {}) do source:AddSinkDependency(v) end
 
     return source
@@ -343,31 +374,17 @@ function RuleStateImport:CreateStateEnv()
     end
     env.assert = function(cond, ...) if not cond then env.error(...) end end
 
+    env.print = function (...)
+        print("RULE-STATE-IMPORT:", ...)
+    end
+
     env.Homie = self.device_tree:GetPropertyPath(WrapCall(self,
                                                           self.ImportHomieState,
                                                           object))
 
-     env.AddState = WrapCall(self, self.AddState, object)
-
-    env.Source = function(Name, arg1, arg2)
-        if arg2 == nil then
-            env.AddState {Name = Name, Source = arg1}
-        else
-            env.AddState {Name = Name, Display = arg1, Source = arg2}
-        end
-    end
-
-    env.Sink = function(source, sink)
-        if not IsState(env, source) then
-            env.error("Source is not a sate")
-            return
-        end
-        if not IsState(env, source) then
-            env.error("Sink is not a sate")
-            return
-        end
-        source:AddSinkDependency(sink)
-    end
+    env.AddState = WrapCall(self, self.AddState, object)
+    env.Source = WrapCall(env, AddSource)
+    env.Sink = WrapCall(env, AddSink)
 
     env.Or = MakeBooleanOperator(env, "or")
     env.And = MakeBooleanOperator(env, "and")
@@ -381,10 +398,12 @@ function RuleStateImport:CreateStateEnv()
 
     env.Max = MakeMathFunction(env, "max")
     env.Min = MakeMathFunction(env, "min")
+    env.Sum = MakeMathFunction(env, "sum")
 
     env.Range = MakeRangeOperator(env)
 
     env.TimeSchedule = MakeTimeSchedule(env)
+    env.BooleanGenerator = MakeBooleanGenerator(env)
 
     env.Mapping = MakeMapping(env)
     env.IntegerMapping = MakeIntegerMapping(env)
@@ -392,11 +411,6 @@ function RuleStateImport:CreateStateEnv()
     env.StringMapping = MakeStringMapping(env)
 
     env.MaxChangePeriod = MakeMaxChangePeriod(env)
-
-    env.BooleanGenerator = MakeBooleanGenerator(env)
-
-
-    -- BoolToggle
 
     return object
 end
