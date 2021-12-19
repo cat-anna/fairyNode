@@ -7,7 +7,6 @@ if not has_mqtt or
 end
 
 local copas = require "copas"
-local modules = require("lib/modules")
 
 local mqtt_client_cfg = configuration.credentials.mqtt
 local mqttloop = mqtt:get_ioloop()

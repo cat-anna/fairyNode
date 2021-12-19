@@ -1,4 +1,3 @@
-local modules = require("lib/modules")
 local http = require "lib/http-code"
 
 local DevSrv = {}

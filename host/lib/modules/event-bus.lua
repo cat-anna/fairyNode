@@ -1,5 +1,5 @@
 local copas = require "copas"
-local modules = require("lib/modules")
+local modules = require("lib/loader-module")
 
 local EventBus = {}
 EventBus.__index = EventBus

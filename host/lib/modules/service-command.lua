@@ -1,6 +1,6 @@
 local http = require "lib/http-code"
 local copas = require "copas"
-local modules = require("lib/modules")
+local modules = require("lib/loader-module")
 
 local ServiceCommand = {}
 ServiceCommand.__index = ServiceCommand

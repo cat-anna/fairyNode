@@ -1,4 +1,3 @@
-local modules = require("lib/modules")
 local socket = require("socket")
 local tablex = require "pl.tablex"
 

@@ -1,6 +1,6 @@
 
 require "lib/ext"
-local modules = require("lib/modules")
+local modules = require("lib/loader-module")
 local restserver = require("lib/rest/restserver")
 local http = require "lib/http-code"
 local lfs = require "lfs"
