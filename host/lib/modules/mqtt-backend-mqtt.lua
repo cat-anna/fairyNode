@@ -139,7 +139,7 @@ function MqttClient:Init()
 
         while true do
             mqttloop:iteration()
-            copas.sleep(0.001)
+            copas.sleep(0.01)
         end
     end)
 

@@ -217,7 +217,7 @@ function MosquittoClient:Init()
 
         while true do
             self.mosquitto_client:loop(0, 1)
-            copas.sleep(0.001)
+            copas.sleep(0.01)
         end
     end)
 end
