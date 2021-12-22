@@ -1,5 +1,7 @@
 #!/usr/bin/lua
 
+package.path = package.path .. ";/usr/lib/lua/?.lua;/usr/lib/lua/?/init.lua"
+
 local copas = require "copas"
 local lfs = require "lfs"
 local path = require "pl.path"
@@ -7,6 +9,7 @@ local path = require "pl.path"
 local config_base = path.abspath(path.currentdir())
 local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
 package.path = package.path .. ";" .. fairy_node_base .. "/host/?.lua" .. ";" .. fairy_node_base .. "/host/?/init.lua"
+
 
 function require_alternative(wanted, alternatives)
     local got_it, module = pcall(require, wanted)

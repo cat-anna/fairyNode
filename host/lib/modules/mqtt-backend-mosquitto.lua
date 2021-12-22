@@ -1,5 +1,7 @@
 local has_mosquitto, mosquitto = pcall(require, "mosquitto")
 local configuration = require("configuration")
+local scheduler = require "lib/scheduler"
+local socket = require("socket")
 
 if not has_mosquitto or
     (configuration.mqtt_backend ~= nil and configuration.mqtt_backend ~=
@@ -22,15 +24,17 @@ function MosquittoClient:ResetClient()
         self:ConnectionStatusChanged()
         return
     end
-    self:ConnectionStatusChanged()
+
+    if self.connected then
+        self:ConnectionStatusChanged()
+        return
+    end
 
     print("MOSQUITTO: Resetting client")
-    -- if self.mosquitto_client and self:IsConnected() then
-    --     self.mosquitto_client:disconnect()
-    -- end
 
-    self.mosquitto_client = mosquitto.new()
-    collectgarbage()
+    if not self.mosquitto_client  then
+        self.mosquitto_client = mosquitto.new(socket.dns.gethostname())
+    end
 
     self.mosquitto_client.ON_CONNECT = function(...)
         self:OnMosquittoConnect(...)
@@ -65,15 +69,18 @@ function MosquittoClient:ResetClient()
     self:CheckMosquittoResult({
         self.mosquitto_client:connect_async(mqtt_client_cfg.host,
                                             mqtt_client_cfg.port or 1883,
-                                            mqtt_client_cfg.keepalive or 10)
+                                            30)
     })
 
+    self:ConnectionStatusChanged()
 end
 
 -------------------------------------------------------------------------------
 
 function MosquittoClient:OnMosquittoLog(level, msg)
-    if level == mosquitto.MOSQ_LOG_WARNING or level == mosquitto.MOSQ_LOG_ERR then
+    if level ~= mosquitto.LOG_DEBUG
+    --  or msg:match("PING")
+     then
         print(string.format("LIB-MOSQUITTO: %d: %s", level, msg))
     end
 end
@@ -97,9 +104,7 @@ function MosquittoClient:OnMosquittoPublish()
 end
 
 function MosquittoClient:OnMosquittoConnect()
-    if self.connected then
-        return
-    end
+    if self.connected then return end
     print("MOSQUITTO: Connected")
     self.connected = true
     self.event_bus:PushEvent({event = "mqtt-client.connected", argument = {}})
@@ -107,12 +112,15 @@ function MosquittoClient:OnMosquittoConnect()
 end
 
 function MosquittoClient:OnMosquittoDisconnect()
-    print("MOSQUITTO: Disconnected")
     if self.connected then
+        print("MOSQUITTO: Disconnected")
         self.connected = false
-        self.event_bus:PushEvent({event = "mqtt-client.disconnected", argument = {}})
+        self.event_bus:PushEvent({
+            event = "mqtt-client.disconnected",
+            argument = {}
+        })
+        scheduler.Delay(1, function() self:CheckConnectionStatus() end)
     end
-    copas.addthread(function() self:CheckConnectionStatus() end)
 end
 
 function MosquittoClient:OnMosquittoMessage(mid, topic, payload)
@@ -136,7 +144,7 @@ function MosquittoClient:CheckMosquittoResult(call_result, context)
         event = "mqtt-client.error",
         argument = {code = code, message = message}
     })
---[==[
+    --[==[
     enum mosq_err_t {
         MOSQ_ERR_CONN_PENDING = -1,
         MOSQ_ERR_SUCCESS = 0,
@@ -216,8 +224,16 @@ function MosquittoClient:Init()
         self:ResetClient()
 
         while true do
-            self.mosquitto_client:loop(0, 1)
+            if self.mosquitto_client ~= nil then
+                self.mosquitto_client:loop(1, 1)
+            end
+            local before = os.time()
             copas.sleep(0.01)
+            local after = os.time()
+            local diff = after - before
+            if diff > 1 then
+                print("*********** MOSQUITTO time diff", diff)
+            end
         end
     end)
 end
@@ -244,7 +260,7 @@ MosquittoClient.EventTable = {
     -- ["module.initialized"] = RuleState.OnAppInitialized,
     -- ["homie-client.init-nodes"] = RuleState.InitHomieNode,
     -- ["homie-client.enter-ready"] = RuleState.InitHomieNode,
-    ["timer.basic.10_second"] = MosquittoClient.CheckConnectionStatus,
+    ["timer.basic.10_second"] = MosquittoClient.CheckConnectionStatus
 }
 
 return MosquittoClient

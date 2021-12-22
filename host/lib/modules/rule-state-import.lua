@@ -301,13 +301,13 @@ local function AddSource(env, _, data)
     return env.AddState(state_prototype)
 end
 
-local function AddSink(env, source, sink)
+local function AddSink(env, _, source, sink)
     if not IsState(env, source) then
-        env.error("Source is not a sate")
+        env.error("Source is not a state")
         return
     end
     if not IsState(env, source) then
-        env.error("Sink is not a sate")
+        env.error("Sink is not a state")
         return
     end
     source:AddSinkDependency(sink)

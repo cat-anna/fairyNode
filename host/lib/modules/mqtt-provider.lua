@@ -1,4 +1,6 @@
+local scheduler = require "lib/scheduler"
 
+-------------------------------------------------------------------------------
 
 local function topic2regexp(topic)
     return "^" .. topic:gsub("+", "([^/]+)"):gsub("#", "(.*)") .. "$"
@@ -212,7 +214,7 @@ end
 
 function MqttProvider:CallWatchers(watchers, topic, payload)
     for i,v in ipairs(watchers) do
-        SafeCall(function()
+        scheduler.CallLater(function()
             v.handler(topic, payload)
         end)
     end

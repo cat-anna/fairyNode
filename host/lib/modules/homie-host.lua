@@ -1,5 +1,6 @@
 local json = require "json"
 local tablex = require "pl.tablex"
+local configuration = require("configuration")
 
 ------------------------------------------------------------------------------
 
@@ -214,7 +215,7 @@ function Device:HandlePropertyValue(topic, payload)
         end
     end
 
-    if changed then
+    if changed and configuration.debug then
         print(self:LogTag() .. string.format("node %s.%s = %s -> %s", node_name, prop_name, property.raw_value or "", payload or ""))
     end
 

@@ -81,7 +81,9 @@ function Cache:GetFromCache(id)
             return
         end
 
-        print("CACHE GET:", id)
+        if configuration.debug then
+            print("CACHE GET:", id)
+        end
         lfs.touch(file_name)
         local data = file.read(file_name)
 
