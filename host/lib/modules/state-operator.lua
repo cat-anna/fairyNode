@@ -7,13 +7,13 @@ StateOperator.__class = "StateOperator"
 local function DoSum(...)
     local r = 0
 
-    local v = { ... }
-    for i=1,#v do
+    local v = {...}
+    for i = 1, #v do
         local t = type(v[i])
         if t == "boolean" then
             r = r + (v[i] and 1 or 0)
-        elseif t =="nil" then
-            --pass
+        elseif t == "nil" then
+            -- pass
         else
             r = r + tonumber(v[i])
         end
@@ -46,18 +46,16 @@ local function MakeNumericOperator(op)
 return function(calee, values)
     return { result = values[1].value %s calee.range.threshold }
 end
-]], op))(),
+]], op))()
     }
 end
 
 local function MakeFunctionOperator(func)
     return {
-        handler = function (calee, values)
-            local raw = { calee.range.threshold }
-            for _,v in ipairs(values) do
-                table.insert(raw, v.value)
-            end
-            return { result = func(table.unpack(raw)) }
+        handler = function(calee, values)
+            local raw = {calee.range.threshold}
+            for _, v in ipairs(values) do table.insert(raw, v.value) end
+            return {result = func(table.unpack(raw))}
         end
     }
 end
@@ -135,11 +133,8 @@ function StateOperator:Update()
     local dependant_values = self:GetDependantValues()
     if not dependant_values then return end
 
-
     local operator_func = self.OperatorFunctors[self.operator]
-    if not operator_func then
-        return
-    end
+    if not operator_func then return end
 
     if operator_func.limit ~= nil then
         if #dependant_values ~= operator_func.limit then
@@ -176,9 +171,7 @@ function StateOperator:GetFunctionDescription()
     return self.operator
 end
 
-function StateOperator:GetSourceDependencyDescription()
-    return nil
-end
+function StateOperator:GetSourceDependencyDescription() return nil end
 
 -------------------------------------------------------------------------------------
 

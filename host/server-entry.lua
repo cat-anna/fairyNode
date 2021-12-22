@@ -69,7 +69,7 @@ assert(package.loaded.configuration == nil)
 package.loaded.configuration = configuration
 
 require "lib/logging"
-require "lib/loader-class"
+-- require "lib/loader-class"
 require "lib/loader-module"
 require "lib/loader-rest-api"
 
