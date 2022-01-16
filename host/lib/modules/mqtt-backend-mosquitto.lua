@@ -214,27 +214,31 @@ function MosquittoClient:IsConnected() return self.connected end
 
 function MosquittoClient:AfterReload() end
 
+function MosquittoClient:LoopThread()
+    print("MOSQUITTO: starting...")
+    self:ResetClient()
+
+    while true do
+        if self.mosquitto_client ~= nil then
+            self.mosquitto_client:loop(1, 1)
+        end
+        local before = os.time()
+        copas.sleep(0.01)
+        local after = os.time()
+        local diff = after - before
+        if diff > 1 then
+            print("MOSQUITTO: Update diff warn:", diff)
+        end
+    end
+end
+
 function MosquittoClient:Init()
     self.connected = false
     self.calls_on_fly = {}
 
     copas.addthread(function()
         copas.sleep(1)
-        print("MOSQUITTO: starting...")
-        self:ResetClient()
-
-        while true do
-            if self.mosquitto_client ~= nil then
-                self.mosquitto_client:loop(1, 1)
-            end
-            local before = os.time()
-            copas.sleep(0.01)
-            local after = os.time()
-            local diff = after - before
-            if diff > 1 then
-                print("*********** MOSQUITTO time diff", diff)
-            end
-        end
+        self:LoopThread()
     end)
 end
 
