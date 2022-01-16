@@ -29,12 +29,12 @@ function RuleState:BeforeReload()
 end
 
 function RuleState:AfterReload()
+    -- self:ReloadRule()
 end
 
 -------------------------------------------------------------------------------------
 
-function RuleState:LoadScript()
-    local rule = self.rule
+function RuleState:LoadScript(rule)
     local text_script = string.format(RULE_SCRIPT, rule.text)
     local script, err_msg = loadstring(text_script)
     if not script or err_mesg then
@@ -57,7 +57,7 @@ function RuleState:LoadScript()
         print(text_script)
         print("Message:")
         print(mt)
-        print("Cannot build rule script")
+        print("Cannot build state rule script")
         table.insert(self.errors, 1, mt)
         return
     end
@@ -71,6 +71,7 @@ function RuleState:LoadScript()
         end
     end
 
+    self.rule = rule
     self:CheckUpdateQueue()
 end
 
@@ -92,6 +93,8 @@ function RuleState:CheckUpdateQueue()
             end
         end
         self.pending_states = t
+    else
+        self.ready = true
     end
 end
 
@@ -136,6 +139,7 @@ end
 
 function RuleState:ReloadRule()
     self.rule = nil
+    self.ready = nil
     self.homie_node = nil
     self.homie_props = nil
 
@@ -147,14 +151,14 @@ function RuleState:ReloadRule()
         content = json.decode(rule_storage_content)
     end
 
-    self.rule = {
+    local rule = {
         text = content.text,
         instance = {},
         metatable = {},
         statistics = content.statistics or {},
     }
 
-    self:LoadScript()
+    self:LoadScript(rule)
 end
 
 -------------------------------------------------------------------------------------
@@ -164,10 +168,13 @@ function RuleState:InitHomieNode(event)
         self.homie_client = event.client
     end
 
-    if self.homie_node and self.homie_node.ready then
+    if not self.homie_client then
         return
     end
 
+    if self.homie_node and self.homie_node.ready then
+        return
+    end
 
     local function to_homie_id(n)
         local r = n:gsub("[%.-/]", "_")
@@ -175,7 +182,7 @@ function RuleState:InitHomieNode(event)
     end
 
     self.homie_props = {}
-    local ready = self.rule ~= nil and #self.pending_states == 0
+    local ready = self.ready and (self.rule ~= nil) and (#self.pending_states == 0)
 
     if ready then
         for id,state in pairs(self.states_by_id or {}) do

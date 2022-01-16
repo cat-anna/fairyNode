@@ -90,7 +90,7 @@ function Device:WatchRegex(topic, handler)
     self.mqtt:WatchRegex(self:MqttId() .. "-regex-" .. topic, function(...) handler(self, ...) end, self:BaseTopic() .. topic)
 end
 
-function Device:HandleStateChangd(topic, payload)
+function Device:HandleStateChanged(topic, payload)
     self.event_bus:PushEvent({
         event = "device.event.state-change",
         argument = {
@@ -137,9 +137,13 @@ function Device:PushPropertyHistory(node, property, value, timestamp)
 
     table.insert(history.values, {value = value, timestamp = timestamp})
 
-    while #history.values > self.configuration.max_history_entries do
-        table.remove(history.values, 1)
-    end
+    -- while #history.values > self.configuration.max_history_entries do
+    --     table.remove(history.values, 1)
+    -- end
+
+    -- if self.datatype == "float" then
+    --     self.history.values_filtered = FilterPropertyValues(history.values)
+    -- end
 
     self.cache:UpdateCache(id, history)
 end
@@ -432,12 +436,12 @@ function Device:AfterReload()
 
     for _,n in pairs(self.nodes) do
         setmetatable(n, self:GetNodeMT())
-        for _,p in pairs(n.properties) do
+        for _,p in pairs(n.properties or {}) do
             setmetatable(p, self:GetPropertyMT(n))
         end
     end
 
-    self:WatchTopic("/$state", self.HandleStateChangd)
+    self:WatchTopic("/$state", self.HandleStateChanged)
     self:WatchTopic("/$nodes", self.HandleNodes)
     self:WatchRegex("/$hw/#", self.HandleDeviceInfo)
     self:WatchRegex("/$fw/#", self.HandleDeviceInfo)
@@ -461,6 +465,10 @@ end
 
 function Device:ForceOta()
     self:SendCommand("sys,ota,update", nil)
+end
+
+function Device:IsReady()
+    return self.state == "ready"
 end
 
 -------------------------------------------------------------------------------
