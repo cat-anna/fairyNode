@@ -19,14 +19,14 @@ function StateHomie:GetName()
 end
 
 function StateHomie:Update()
-    if not self.is_ready then
+    if not self.subscribed then
         self.property_instance:Subscribe(self.global_id, self)
     end
 end
 
 function StateHomie:PropertyStateChanged(property)
     -- print(self:GetLogTag(), "PropertyStateChanged")
-    self.is_ready = true
+    self.subscribed = true
     self:CallSinkListeners(property:GetValue())
     if self.expected_value_valid and not self:HasSinkDependencies() then
         self:SetValue(self.expected_value)
@@ -40,8 +40,14 @@ end
 function StateHomie:Create(config)
     self.BaseClass.Create(self, config)
     self.property_instance = config.property_instance
+    self.device = config.device
     assert(self.property_instance)
+    assert(self.device)
     self.property_instance:Subscribe(self.global_id, self)
+end
+
+function StateHomie:IsReady()
+    return self.device:IsReady()
 end
 
 return {

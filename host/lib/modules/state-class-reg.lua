@@ -2,6 +2,7 @@
 local StateClassReg = {}
 StateClassReg.__index = StateClassReg
 StateClassReg.__deps = {
+    cache = "cache",
 }
 
 function StateClassReg:BeforeReload()
@@ -25,7 +26,7 @@ end
 function StateClassReg:RegisterStateClass(class)
     print("StateClassReg: Registered class " .. class.__class)
     self.registered_classes[class.__class] = class
-
+    class.cache = self.cache
     for _,v in pairs(self.created_states) do
         if v.__class == class.__class then
             print("StateClassReg: Update class " .. v.global_id)
@@ -45,6 +46,7 @@ function StateClassReg:Create(opt)
     end
 
     state.class_id = opt.class_id
+    state.cache = self.cache
 
     local class = self.registered_classes[opt.class]
     setmetatable(state, class)

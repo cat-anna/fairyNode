@@ -3,7 +3,7 @@
 package.path = package.path .. ";/usr/lib/lua/?.lua;/usr/lib/lua/?/init.lua"
 
 local copas = require "copas"
-local lfs = require "lfs"
+local lfs =require "lfs"
 local path = require "pl.path"
 
 local config_base = path.abspath(path.currentdir())

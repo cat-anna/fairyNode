@@ -95,3 +95,22 @@ function table.sorted(t, comp)
     table.sort(r, comp)
     return r
 end
+
+local WeakValuesMt = { __mode="v" }
+function table.weak_values(t)
+    return setmetatable(t or {}, WeakValuesMt)
+end
+
+function string.format_seconds(t)
+    local secs = t%60
+    t = math.floor(t / 60)
+    local min = t % 60
+    t = math.floor(t / 60)
+    local hour = t
+    local r = {}
+    if hour > 0 then table.insert(r, tostring(hour).."h") end
+    if min > 0 then table.insert(r, tostring(min).."m") end
+    if secs > 0 then table.insert(r, tostring(secs).."s") end
+    return table.concat(r, " ")
+end
+

@@ -105,7 +105,7 @@ function DeviceTree:GetPropertyPath(result_wrapper)
                     error(string.format("Device %s.%s does not have property %s", dev.id, node_name, key))
                 end
                 if result_wrapper then
-                    return result_wrapper(prop)
+                    return result_wrapper(prop, dev)
                 end
                 return prop
             end,

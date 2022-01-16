@@ -16,7 +16,7 @@ end
 
 function StateMaxChangePeriod:GetDescription()
     local r = self.BaseClass.GetDescription(self)
-    table.insert(r, "max change period: " .. tostring(self.delay) .. "s")
+    table.insert(r, "Max change period: " .. string.format_seconds(self.delay))
     return r
 end
 

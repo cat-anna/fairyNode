@@ -123,10 +123,14 @@ function StateOperator:SourceChanged(source, source_value)
     self:Update()
 end
 
-function StateOperator:IsReady() return self.cached_value_valid end
+function StateOperator:IsReady()
+    return self.cached_value_valid
+end
 
 function StateOperator:Update()
-    if self.cached_value_valid then return true end
+    if self.cached_value_valid then
+        return true
+    end
 
     self:RetireValue()
 

@@ -11,27 +11,24 @@ State.__is_state_class = true
 
 function State:AfterReload() end
 
+--------------------------------------------------------------------------
+
+function State:OnTimer() end
+
+function State:LocallyOwned() return false end
+
+function State:Settable() return false end
+
+function State:Status()
+    return self:IsReady(), self:GetValue()
+end
+
 -------------------------------------------------------------------------------------
 
-function State:OnTimer()
-end
-
-function State:LocallyOwned()
-    return false
-end
-
-function State:Settable()
-    return false
-end
-
--------------------------------------------------------------------------------------
-
-function State:GetDescription()
-    return tablex.copy(self.description or {})
-end
+function State:GetDescription() return tablex.copy(self.description or {}) end
 
 function State:GetSourceDependencyDescription()
-    return nil --"[updates]"
+    return nil -- "[updates]"
 end
 
 function State:SetValue(v) error(self:LogTag() .. "abstract method called") end
@@ -40,7 +37,7 @@ function State:GetValue() error(self:LogTag() .. "abstract method called") end
 
 function State:GetName() return self.name end
 
-function State:IsReady() return self.is_ready end
+function State:IsReady() return false end
 
 function State:LogTag()
     if not self.log_tag then
@@ -49,9 +46,7 @@ function State:LogTag()
     return self.log_tag
 end
 
-function State:Update()
-    return self:IsReady()
-end
+function State:Update() return self:IsReady() end
 
 -------------------------------------------------------------------------------------
 
@@ -59,7 +54,9 @@ function State:AddSourceDependency(dependant_state)
     print(self:LogTag(), "Added dependency " .. dependant_state.global_id ..
               " to " .. self.global_id)
 
-    self.source_dependencies[dependant_state.global_id] = dependant_state
+    self.source_dependencies[dependant_state.global_id] = table.weak_values {
+        target = dependant_state
+    }
     dependant_state:AddSinkDependency(self)
 
     self:RetireValue()
@@ -69,17 +66,22 @@ function State:GetSourceDependencyList()
     return self:GetDependencyList(self.source_dependencies)
 end
 
-function State:HasSourceDependencies() return #self.source_dependencies > 0 end
+function State:HasSourceDependencies()
+    for _, v in pairs(self.source_dependencies) do return true end
+    return false
+end
 
 function State:GetDependantValues()
     local dependant_values = {}
-    for _, v in pairs(self.source_dependencies) do
-        if not v:IsReady() then
-            print(self:LogTag(),"Dependency " .. v.global_id .. " is not yet ready")
+    for id, dep in pairs(self.source_dependencies) do
+        if (not dep.target) or (not dep.target:IsReady()) then
+            print(self:LogTag(),
+                  "Dependency " .. id .. " is not yet ready")
             return nil
         end
         SafeCall(function()
-            table.insert(dependant_values, { value = v:GetValue(), id = v.global_id})
+            table.insert(dependant_values,
+                         {value = dep.target:GetValue(), id = id})
         end)
     end
     return dependant_values
@@ -87,21 +89,31 @@ end
 
 -------------------------------------------------------------------------------------
 
-function State:AddSinkDependency(listener)
+function State:AddSinkDependency(listener, virtual)
     print(self:LogTag(), "Added listener " .. listener.global_id)
 
-    self.sink_dependencies[listener.global_id] = listener
+    self.sink_dependencies[listener.global_id] = table.weak_values {
+        target = listener,
+        virtual = virtual
+    }
 
-    if self:IsReady() then
+    if self:IsReady() and not virtual then
         SafeCall(function() listener:SourceChanged(self, self:GetValue()) end)
     end
 end
 
 function State:CallSinkListeners(result_value)
-    -- print(self:LogTag(), "CallSinkListeners")
-    for _, v in pairs(self.sink_dependencies) do
+    for id, dep in pairs(self.sink_dependencies) do
         -- print(self:LogTag(), "Calling listener " .. v.global_id)
-        SafeCall(function() v:SourceChanged(self, result_value) end)
+        if not dep.target then
+            print(self:LogTag(), "Dependency " .. id .. " is expired")
+        elseif dep.virtual then
+            print(self:LogTag(), "Dependency " .. id .. " is virtual")
+        else
+            SafeCall(function()
+                dep.target:SourceChanged(self, result_value)
+            end)
+        end
     end
 end
 
@@ -109,11 +121,12 @@ function State:GetSinkDependencyList()
     return self:GetDependencyList(self.sink_dependencies)
 end
 
-function State:HasSinkDependencies() return #self.sink_dependencies > 0 end
-
-function State:SourceChanged(source, source_value)
-    self:Update()
+function State:HasSinkDependencies()
+    for _, v in pairs(self.sink_dependencies) do return true end
+    return false
 end
+
+function State:SourceChanged(source, source_value) self:Update() end
 
 -------------------------------------------------------------------------------------
 
@@ -124,10 +137,11 @@ end
 
 function State:GetDependencyList(list)
     local r = {}
-    for _, v in pairs(list or {}) do table.insert(r, v.global_id) end
+    for id, v in pairs(list or {}) do
+        table.insert(r, {id = id, virtual = v.virtual, expired = v.target == nil})
+    end
     return r
 end
-
 
 function State:Create(config)
     assert(self.global_id)
@@ -138,9 +152,8 @@ function State:Create(config)
         self.description = config.description
     end
 
-    local weak_mt = {__mode = "v"}
-    self.sink_dependencies = setmetatable({}, weak_mt)
-    self.source_dependencies = setmetatable({}, weak_mt)
+    self.sink_dependencies = {}
+    self.source_dependencies = {}
 
     for _, v in ipairs(config.source_dependencies or {}) do
         self:AddSourceDependency(v)
@@ -148,8 +161,6 @@ function State:Create(config)
     for _, v in ipairs(config.sink_dependencies or {}) do
         self:AddSinkDependency(v)
     end
-
-    self.is_ready = nil
 end
 
 -------------------------------------------------------------------------------------
@@ -158,7 +169,10 @@ return {
     Class = State,
     -- BaseClass = nil,
 
-    __deps = {class_reg = "state-class-reg"},
+    __deps = {
+        class_reg = "state-class-reg",
+    },
 
-    AfterReload = function(instance) end,
+    Init = function(instance)
+    end
 }

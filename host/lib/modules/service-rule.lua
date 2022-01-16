@@ -57,13 +57,18 @@ function RuleService:GenerateStateDiagram()
         local state_style = {}
         local color_true =  "FFCE9D"-- "FFB281" -- "#FF9664"
         local color_false = "C0C0CE" -- "B2B2CE" -- "#9696ce"
+        local color_not_ready = "FF0000"
+            -- warn = ""
         -- Default FEFECE
 
-        local r_value = ""
-        if state:IsReady() then r_value = state:GetValue() end
+        local ready, value = state:Status()
 
-        if type(r_value) == "boolean" then
-            table.insert(state_style, r_value and color_true or color_false)
+        if ready then
+            if type(value) == "boolean" then
+                table.insert(state_style, value and color_true or color_false)
+            end
+        else
+            table.insert(state_style, color_not_ready)
         end
         if not state:LocallyOwned() then
             table.insert(state_style, "line.dotted")
@@ -79,7 +84,7 @@ function RuleService:GenerateStateDiagram()
         local members = table.concat(desc, "\n")
 
         -- state_style_text
-        if r_value == nil then r_value = "" end
+        if value == nil then value = "" end
 
         local mode = StateClassMapping[state.__class] or "entity"
 
@@ -90,7 +95,7 @@ value: %s %s
 %s
 }
 ]], mode, name_to_id(state.global_id), state:GetName(), state_style_text,
-                                         tostring(r_value), members,
+                                         tostring(value), members,
                                          state.global_id)
 
         table.insert(lines, state_line)
@@ -100,7 +105,10 @@ value: %s %s
 
     for _, state in pairs(self.rule_state:GetStates() or {}) do
         for _, dep in ipairs(state:GetSinkDependencyList() or {}) do
-            local l = {name_to_id(state.global_id), "-->", name_to_id(dep)}
+
+            local arrow = dep.virtual and "..>" or "-->"
+
+            local l = {name_to_id(state.global_id), arrow, name_to_id(dep.id)}
             if transition_names[dep] then
                 tablex.icopy(l, {":", transition_names[dep]}, #l + 1)
             end
