@@ -1,14 +1,15 @@
 
 local function topic2regexp(topic)
-    return topic:gsub("+", "%w*"):gsub("#", ".*")
+    return topic:gsub("+", "%%w-"):gsub("#", "%%.-")
 end
 
 local Module = {}
 Module.__index = Module
 
 function Module:OnOtaStart()
-    tmr.create():alarm(10 * 1000, tmr.ALARM_SINGLE, function()
+    tmr.create():alarm(10 * 1000, tmr.ALARM_SINGLE, function(t)
         self:Close()
+        t:unregister()
     end)
 end
 
@@ -17,6 +18,12 @@ function Module:OnWifiConnected()
         self:Connect()
     end
 end
+
+-- function Module:OnWifiDisconnected()
+    -- if self.post_services then
+    --     self:Connect()
+    -- end
+-- end
 
 function Module:OnPostServices()
     self.post_services = true
@@ -71,11 +78,11 @@ function Module:Subscribe(topics, handler)
         local regex = topic2regexp(v)
         subs[v] = 0
 
-        -- print("MQTT: Subscribe ", v)
+        print("MQTT: Adding subscription to", v, regex)
 
-        if not self.subscriptions[regex] then
-            print("MQTT: " .. regex .. " is already registerd, replacing")
-        --     self.subscriptions[regex] = { }
+        if self.subscriptions[regex] then
+            print("MQTT: " .. regex .. " is already registered, replacing")
+            -- self.subscriptions[regex] = { }
         end
         self.subscriptions[regex] = handler
 
@@ -110,15 +117,15 @@ end
 
 function Module:ProcessMessage(client, topic, payload)
     -- local base = "homie/" .. wifi.sta.gethostname()
-    print("MQTT: " .. (topic or "<NIL>") .. " -> " .. (payload or "<NIL>"))
+    if debugMode then
+        print("MQTT: " .. (topic or "<NIL>") .. " -> " .. (payload or "<NIL>"))
+    end
 
     for regex, handler in pairs(self.subscriptions) do
-        -- print("MQTT: Testing:", regex)
+        -- print("MQTT: Testing:", regex, topic)
         if topic:match(regex) then
             -- print("MQTT: Matched:", regex)
-            node.task.post(function()
-                pcall(handler, topic, payload)
-            end)
+            pcall(handler.OnMqttMessage, handler, topic, payload)
             return
         end
     end

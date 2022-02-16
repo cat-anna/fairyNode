@@ -1,11 +1,8 @@
 
 
-local function GetCommandTopic()
-    return "homie/" .. (wifi.sta.gethostname() or string.format("%06x", node.chipid())) .. "/$cmd"
-end
 
-local function GetEventTopic()
-    return "homie/" .. (wifi.sta.gethostname() or string.format("%06x", node.chipid())) .. "/$event"
+local function GetSubscriptionTopic()
+    return "homie/" .. (wifi.sta.gethostname() or string.format("%06x", node.chipid())) .. "/+"
 end
 
 local Module = { }
@@ -63,8 +60,18 @@ end
 
 function Module:OnMqttConnected(event, mqtt)
     self.mqtt = mqtt
-    mqtt:Subscribe(GetCommandTopic(), function(...) self:MqttCommand(...) end)
-    mqtt:Subscribe(GetEventTopic(), function(...) self:MqttEvent(...) end)
+    mqtt:Subscribe(
+        GetSubscriptionTopic()
+    ,self)
+end
+
+function Module:OnMqttMessage(topic, payload)
+    local what = topic:match("homie/.-/(.-)")
+    if what == "$cmd" then
+        self:MqttCommand(topic, payload)
+    elseif what == "$event" then
+        self:MqttEvent(topic, payload)
+    end
 end
 
 function Module:OnMqttDisconnected()
