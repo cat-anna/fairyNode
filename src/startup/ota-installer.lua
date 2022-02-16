@@ -48,9 +48,9 @@ local function InstallImage(image_name, installed_name)
         local file_name_size = struct.unpack("b", input:read(1))
         local file_name = input:read(file_name_size)
         if not file_name or file_name:len() ~= file_name_size then
-            return cleanup("failed to read file name")  
+            return cleanup("failed to read file name")
         end
-        
+
         local file_info = {
             file_size = size - file_name_size - 1,
             target_name = file_name,
@@ -105,7 +105,7 @@ local function InstallImage(image_name, installed_name)
         file.remove(v.target_name)
         file.rename(v.temp_name, v.target_name)
     end
-    
+
     file.remove(installed_name)
     file.rename(image_name, installed_name)
 
@@ -117,7 +117,12 @@ local function InstallLfs()
     print "OTA: Loading new LFS..."
     file.remove(LFS_CURRENT_FILE)
     file.rename(LFS_PENDING_FILE, LFS_CURRENT_FILE)
-    local errm = node.flashreload(LFS_CURRENT_FILE)
+    local errm
+    if node.LFS then
+        node.LFS.reload(LFS_CURRENT_FILE)
+    else
+        errm = node.flashreload(LFS_CURRENT_FILE)
+    end
     -- in case of error
     print("OTA: Failed to load new LFS (" .. errm .. ")")
     file.remove(LFS_CURRENT_FILE)
@@ -144,11 +149,11 @@ local function StartInstall()
             file.remove(TOKEN_FILE_NAME)
         end
         node.restart()
-        return        
-    end  
+        return
+    end
     if file.exists(LFS_PENDING_FILE) then
         InstallLfs()
-    end   
+    end
 
     file.remove(TOKEN_FILE_NAME)
 
@@ -169,7 +174,6 @@ local function ValidateInstall()
     local f = file.open(TOKEN_FILE_NAME, "r")
     local data = f:read(1)
     f:close()
-
 
     if data ~= "1" then
         print("OTA: Ready token is not valid. Restarting device.")

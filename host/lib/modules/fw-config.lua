@@ -10,6 +10,7 @@ fwconfig.files = {
     "{FW}/startup/sys-config.lua",
     "{FW}/startup/sys-led.lua",
     "{FW}/startup/ota-core.lua",
+    "{FW}/startup/ota-check.lua",
     "{FW}/startup/ota-http.lua",
     "{FW}/startup/ota-installer.lua",
 }
@@ -28,6 +29,7 @@ fwconfig.lfs = {
     "{FW}/startup/sys-led.lua",
 
     "{FW}/startup/ota-core.lua",
+    "{FW}/startup/ota-check.lua",
     "{FW}/startup/ota-http.lua",
     "{FW}/startup/ota-installer.lua",
 

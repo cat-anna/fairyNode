@@ -26,8 +26,9 @@ else
       print("WiFi: got IP address: " .. T.IP)
       node.task.post(function() if Event then Event("wifi.gotip") end end)
       node.task.post(function() require("sys-led").Set("wifi", true) end)
-      tmr.create():alarm(30 * 1000, tmr.ALARM_SINGLE,
-        function()
+      tmr.create():alarm((failsafe and 1 or 60) * 1000, tmr.ALARM_SINGLE,
+        function(t)
+            t:unregister()
             pcall(function()
               require("ota-core").Check(failsafe)
             end)

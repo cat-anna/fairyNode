@@ -3,15 +3,30 @@ local DownloadItemMt = {}
 DownloadItemMt.__index = DownloadItemMt
 
 function DownloadItemMt:GenerateRequest()
-    local request = table.concat({
-        "GET " .. self.data.request .. " HTTP/1.1",
-        "User-Agent: ESP8266 app (linux-gnu)",
+    local payload = self.data.payload
+
+    local t = {
+        (self.data.action or "GET") .. " " .. self.data.request .. " HTTP/1.1",
+        "User-Agent: ESP8266 fairyNode",
         "Accept: application/octet-stream",
         "Accept-Encoding: identity",
-        "Host: " .. self.handler.host .. ":" .. tostring(self.handler.port),
+        -- "Host: " .. self.handler.host .. ":" .. tostring(self.handler.port),
         "Connection: close",
+    }
+
+    -- self.data.action = nil
+    -- self.data.request = nil
+    self.data.payload = nil
+
+    if payload then
+        table.insert(t, string.format("Content-Length: %d", #payload))
+    end
+
+    local request = table.concat({
+        table.concat(t, "\r\n"),
         "",
-        ""     
+        (payload or ""),
+        ""
     }, "\r\n")
 
     -- print("REQUEST:\n" .. request)
@@ -30,7 +45,11 @@ end
 function DownloadItemMt:Failure(socket, message)
     self:CloseSocket(socket)
     print("OTA-HTTP: Failed: ", message)
-    self.continue_handler(false)
+    if self.handler.download_handler then
+        node.task.post(function()
+            self.handler.download_handler(false)
+        end)
+    end
 end
 
 function DownloadItemMt:Connection(socket)
@@ -42,7 +61,7 @@ function DownloadItemMt:Disconnection(socket, code)
     if self.completed then
         return --expected when socket:close() is called
     end
-    self:Failure(socket, "Disconnected: " .. tostring(code1))
+    self:Failure(socket, "Disconnected: " .. tostring(code))
 end
 
 function DownloadItemMt:Receive(socket, data)
@@ -54,7 +73,7 @@ function DownloadItemMt:Receive(socket, data)
 
     if self.response_size == nil then
         self.buf = self.buf .. data
-        local pos = self.buf:find('\r\n\r\n',1,true) 
+        local pos = self.buf:find('\r\n\r\n',1,true)
         if pos then
             local header = self.buf:sub(1,pos + 1):lower()
             self.buf = self.buf:sub(pos + 4)
@@ -76,7 +95,7 @@ function DownloadItemMt:Receive(socket, data)
     end
 
     self.received_size = self.received_size + #data
-    print(("OTA-HTTP: %u of %u"):format(self.received_size, self.response_size))
+    -- print(("OTA-HTTP: %u of %u"):format(self.received_size, self.response_size))
 
     if self.data.target_file then
         if not self.target_file_handle then
@@ -101,9 +120,14 @@ function DownloadItemMt:DownloadCompleted(socket)
 
     if self.target_file_handle then
         self.target_file_handle:close()
+        self.target_file_handle = nil
     end
 
-    self.continue_handler(true) 
+    if self.handler.download_handler then
+        node.task.post(function()
+            self.handler.download_handler(true)
+        end)
+    end
 
     if self.response and self.data.response_cb then
         node.task.post(function()
@@ -117,8 +141,8 @@ end
 local OtaHttp = {}
 OtaHttp.__index = OtaHttp
 
-function OtaHttp:ConectToHost(target_item)
-    print(string.format("OTA-HTTP: Connecting to %s:%d", self.host, self.port))    
+function OtaHttp:ConnectToHost(target_item)
+    -- print(string.format("OTA-HTTP: Connecting to %s:%d", self.host, self.port))
     local con = net.createConnection(net.TCP, 0)
     con:connect(self.port, self.host)
     con:on("connection", function(sck) target_item:Connection(sck) end)
@@ -126,42 +150,33 @@ function OtaHttp:ConectToHost(target_item)
     con:on("receive", function(sck, data) target_item:Receive(sck, data) end)
 end
 
-function OtaHttp:AddDownloadItem(item)
-    if not self.queue then
-        self.queue = {}
-    end
+function OtaHttp:AddRequest(item)
     table.insert(self.queue, item)
-    -- print("OTA-HTTP: Added " .. item.request .. " to download queue")
+    -- print("OTA-HTTP: Added " .. item.request .. " to request queue")
 end
 
 function OtaHttp:HandleQueries()
-    print("OTA-HTTP: Started")
     local success = true
-    while #self.queue > 0 do        
+    while #self.queue > 0 do
+        print("OTA-HTTP: Task started")
         local work_item = table.remove(self.queue, 1)
         work_item.handler = self
         local task = setmetatable({
             buf = "",
             handler = self,
-            continue_handler = function(r)
-                node.task.post(function() 
-                    if self.dowload_handler then
-                        self.dowload_handler(r) 
-                    end
-                end)
-            end,
             data = work_item
         }, DownloadItemMt)
-        self:ConectToHost(task)       
-        local succeeded = coroutine.yield() 
+        self:ConnectToHost(task)
+        local succeeded = coroutine.yield()
         if not succeeded then
             print("OTA-HTTP: Download task failed")
             success = false
             break
         end
     end
-    -- print("OTA-HTTP: All queries completed")
-    self.dowload_handler = nil
+    -- print("OTA-HTTP: All tasks completed")
+    self.download_handler = nil
+    self.queue = { }
 
     if self.finished_cb then
         local cb = self.finished_cb
@@ -175,10 +190,10 @@ function OtaHttp:SetFinishedCallback(cb)
 end
 
 function OtaHttp:Start()
-    if not self.dowload_handler then
-        self.dowload_handler = coroutine.wrap( function() self:HandleQueries() end)
-        self.dowload_handler()
-    end
+    self.download_handler = coroutine.wrap(function()
+        self:HandleQueries()
+    end)
+    self.download_handler()
 end
 
 function OtaHttp.New(host, port)

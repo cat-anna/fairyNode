@@ -17,6 +17,7 @@ local function InitService()
 
         local name = v:match("srv%-(%w+)")
         print("INIT: Loading " .. name)
+        local heap_before = node.heap()
         local mod = require(v)
         if mod.Init then
             local m_instance = mod.Init(add_service)
@@ -25,6 +26,14 @@ local function InitService()
                 pcall(m_instance.Init, m_instance)
             end
         end
+        if package.loaded[v] then
+            print(string.format("INIT: Service %s left loaded package junk. Removing.", v))
+            package.loaded[v] = nil
+        end
+        collectgarbage()
+        local heap_after = node.heap()
+        local heap_diff = heap_before-heap_after
+        print(string.format("INIT: Service %s used %d memory", v, heap_diff))
     end
 
     services = srv_cache

@@ -10,9 +10,10 @@ local function IsAnyErrorSet()
         return true
     end
     return false
-end 
+end
 
-local function DoUpdate()
+local function DoUpdate(t)
+    t:unregister()
     SetErrorLed(IsAnyErrorSet())
     error_state.update_pending = nil
     if Event then Event("app.error", { any = IsAnyErrorSet(), errors = error_state.errors, }) end

@@ -12,7 +12,7 @@ if hw.uart ~= nil then
 end
 
 -- if gpio and hw.gpio then
-    -- do sth with gpio 
+    -- do sth with gpio
     -- todo
 -- end
 

@@ -14,6 +14,13 @@ return function(server)
                 handler = rest.HandlerModule("service-ota", "OtaStatus"),
             },
             {
+                method = "POST",
+                path = "{[A-Z0-9]+}/status",
+                produces = "application/json",
+                consumes = "application/json",
+                handler = rest.HandlerModule("service-ota", "OtaPostStatus"),
+            },
+            {
                 method = "GET",
                 path = "{[A-Z0-9]+}/lfs_image",
                 produces = "text/plain",
