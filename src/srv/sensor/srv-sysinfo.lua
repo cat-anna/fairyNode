@@ -14,7 +14,7 @@ end
 local Sensor = {}
 Sensor.__index = Sensor
 
-function Sensor:ContrllerInit(event, ctl)
+function Sensor:ControllerInit(event, ctl)
     self.node = ctl:AddNode("sysinfo", {
         name = "Device state info",
         properties = {
@@ -65,7 +65,7 @@ function Sensor:OnEvent(event, arg)
 end
 
 Sensor.EventHandlers = {
-    ["controller.init"] = Sensor.ContrllerInit,
+    ["controller.init"] = Sensor.ControllerInit,
     ["sensor.readout"] = Sensor.Readout,
     ["app.error"] = Sensor.UpdateErrors,
 }
@@ -76,7 +76,7 @@ return {
         if hw and hw.adc and adc then
             use_vdd = hw.adc == "vdd"
             if use_vdd and adc.force_init_mode(adc.INIT_VDD33) then
-              print("SYSINFO: Restarting to force adc mode")
+              print("SYSINFO: Restarting to force adc vdd mode")
               node.restart()
               return -- don't bother continuing, the restart is scheduled
             end
