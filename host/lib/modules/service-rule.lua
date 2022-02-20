@@ -41,9 +41,14 @@ local StateClassMapping = {StateHomie = "interface", StateTime = "abstract"}
 
 function RuleService:GenerateStateDiagram()
     local lines = {
-        "@startuml", "skinparam backgroundcolor transparent",
-        "hide empty description", "hide empty members",
-        "left to right direction", "scale 0.9", "skinparam ranksep 20"
+        "@startuml",  --
+        "skinparam backgroundcolor transparent", --
+        "skinparam fontcolor black", --
+        "skinparam ranksep 20", --
+        "hide empty description",  --
+        "hide empty members", --
+        "left to right direction",  --
+        "scale 0.9",  --
     }
 
     local function name_to_id(n)
@@ -57,15 +62,18 @@ function RuleService:GenerateStateDiagram()
         local state_style = {}
         local color_true =  "FFCE9D"-- "FFB281" -- "#FF9664"
         local color_false = "C0C0CE" -- "B2B2CE" -- "#9696ce"
+        local color_none = "FEFECE"
         local color_not_ready = "FF0000"
             -- warn = ""
-        -- Default FEFECE
+        -- Default
 
         local ready, value = state:Status()
 
         if ready then
             if type(value) == "boolean" then
                 table.insert(state_style, value and color_true or color_false)
+            else
+                table.insert(state_style, color_none)
             end
         else
             table.insert(state_style, color_not_ready)

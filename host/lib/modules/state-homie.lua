@@ -47,7 +47,7 @@ function StateHomie:Create(config)
 end
 
 function StateHomie:IsReady()
-    return self.device:IsReady()
+    return self.subscribed
 end
 
 return {
