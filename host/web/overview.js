@@ -36,7 +36,7 @@ function FairyNode_InitOverview() {
     node = document.getElementById('fairyNode-root');
     node.insertAdjacentHTML('afterend', bootstrap_code);
 
-    $(".PageSelectButton").click(function(){
+    $(".PageSelectButton").click(function () {
         $(".PageSelectButton.PageSelectButtonActive").removeClass("PageSelectButtonActive")
         $(".Page").addClass("HiddenPage")
         $(this).addClass("PageSelectButtonActive")
@@ -64,7 +64,7 @@ function FairyNode_InitOverview() {
     var device = GetOrCreateDiv("DEVICE_HEAD", "DeviceList", "DeviceListEntry Header tab_button tab_header")
     $(device).html("Node name")
 
-    $(device).click(function() {
+    $(device).click(function () {
         $(".DeviceListPages.tab_active").removeClass("tab_active")
         $("#OverviewTable").addClass("tab_active")
         $(".DeviceListPages.tab_button_active").removeClass("tab_button_active")
@@ -81,8 +81,8 @@ function SortedKeys(unordered) {
     }
     return Object.keys(unordered).sort().reduce(
         (obj, key) => {
-        obj[key] = unordered[key];
-        return obj;
+            obj[key] = unordered[key];
+            return obj;
         },
         {}
     );
@@ -94,7 +94,7 @@ function SetOverviewRow(id, values) {
 
     var state = GetOrCreateDiv("STATE_" + id, row_id, "OverviewTableEntry OverviewTableNodeState")
     $(state).html(values.state)
-    $(state).removeClass(function(index, className) {
+    $(state).removeClass(function (index, className) {
         return (className.match(/(^|\s)NodeState-\S+/g) || []).join(' ');
     });
     $(state).addClass("NodeState-" + values.state)
@@ -140,14 +140,14 @@ function newDate(timestamp) {
 
 function RefreshChart(chart) {
     console.log(chart.source_url)
-    QueryGet(chart.source_url, function(data) {
+    QueryGet(chart.source_url, function (data) {
         console.log(data)
-        data.history.sort(function(a, b) { return a.timestamp < b.timestamp; })
+        data.history.sort(function (a, b) { return a.timestamp < b.timestamp; })
         chart.config.data.datasets[0].label = data.label + " (" + data.history.length + " samples)"
 
         for (var key in data.history) {
             var item = data.history[key]
-            if(chart.last_timestamp < item.timestamp) {
+            if (chart.last_timestamp < item.timestamp) {
                 chart.config.data.labels.push(newDate(item.timestamp));
                 chart.config.data.datasets[0].data.push({
                     x: newDate(item.timestamp),
@@ -163,11 +163,11 @@ function RefreshChart(chart) {
 function OpenDevicePropertyChart(url, parent_block) {
     var chart_div_id = "CHART_" + parent_block
     var exists = document.getElementById(chart_div_id) !== null
-    var open_chart = GetOrCreateDivAfter(chart_div_id, parent_block, "DeviceNodePropertyEntry DeviceNodePropertyChartBlock", { html: "&nbsp"})
+    var open_chart = GetOrCreateDivAfter(chart_div_id, parent_block, "DeviceNodePropertyEntry DeviceNodePropertyChartBlock", { html: "&nbsp" })
 
     if (exists) {
         console.log("toggle")
-        $('#'+chart_div_id).toggle();
+        $('#' + chart_div_id).toggle();
         return
     }
 
@@ -238,7 +238,7 @@ function OpenDevicePropertyChart(url, parent_block) {
     myChart.source_url = url
 
     RefreshChart(myChart)
-    setInterval(function(){ RefreshChart(myChart) }, 10 * 1000)
+    setInterval(function () { RefreshChart(myChart) }, 10 * 1000)
 }
 
 function SetDeviceNodesPage(entry, sub_id, body_id) {
@@ -249,6 +249,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
     var page = GetOrCreateDiv(body_id, sub_id, " DevicePageContent DevicePage tabcontent tab_inactive")
 
     function check_value(v, empty) {
+        if (v === "") return "&nbsp;";
         if (v != null) return v;
         if (empty != null) return empty;
         return kMissingValueBlock;
@@ -256,11 +257,11 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
 
     const ordered = Object.keys(entry.nodes).sort().reduce(
         (obj, key) => {
-          obj[key] = entry.nodes[key];
-          return obj;
+            obj[key] = entry.nodes[key];
+            return obj;
         },
         {}
-      );
+    );
 
     for (var key in SortedKeys(entry.nodes)) {
         node = entry.nodes[key]
@@ -273,13 +274,13 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             var prop_id = prop_key + "_" + node_id
             GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
 
-            if(prop.datatype == "float" || prop.datatype == "integer" || prop.datatype == "boolean" || prop.datatype == "number") {
+            if (prop.datatype == "float" || prop.datatype == "integer" || prop.datatype == "boolean" || prop.datatype == "number") {
                 var chart_source = "/device/" + entry.name + "/history/" + node.id + "/" + prop.id
                 var chart_node_id = "CHART_BTN_" + prop_id
-                var open_chart = GetOrCreateDiv(chart_node_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyOpenChart", { html: "&nbsp"})
+                var open_chart = GetOrCreateDiv(chart_node_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyOpenChart", { html: "&nbsp" })
                 $(open_chart).attr("data-url", chart_source)
                 $(open_chart).attr("prop-id", prop_id)
-                $(open_chart).unbind('click').click(function() {
+                $(open_chart).unbind('click').click(function () {
                     OpenDevicePropertyChart($(this).attr("data-url"), $(this).attr("prop-id"), this)
                 })
             } else {
@@ -291,9 +292,9 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                 hint: entry.name + "." + node.id + "." + prop.id,
             })
 
-            GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(check_value(prop.value) + " " + check_value(prop.unit, "") )
+            GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(check_value(prop.value) + " " + check_value(prop.unit, ""))
             var timestamp = null
-            if (prop.timestamp != null){
+            if (prop.timestamp != null) {
                 timestamp = new Date(prop.timestamp * 1000).toLocaleString()
             }
             GetOrCreateDiv("TIMESTAMP_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyTimestamp").html(check_value(timestamp))
@@ -311,7 +312,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                         var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
                         $(checkbox).attr("data-url", url)
                         $(checkbox).prop('checked', prop.value)
-                        $(checkbox).change(function() {
+                        $(checkbox).change(function () {
                             console.log("CHANGE " + $(this).attr("data-url"))
                             body = {}
                             if ($(this).is(":checked")) {
@@ -322,21 +323,39 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             QueryPost($(this).attr("data-url"), body)
                             setTimeout(refresh, 3000);
                         });
-                    } else if (prop.datatype == "number" || prop.datatype == "float" || prop.datatype == "integer") {
+                    } else if (prop.datatype == "number" || prop.datatype == "float" || prop.datatype == "integer" || prop.datatype == "string") {
+                        var input_type
+                        if (prop.datatype == "string") {
+                            input_type = "text"
+                        } else {
+                            input_type = "number"
+                        }
                         var checkbox = GetOrCreateDiv(control_id, prop_id, "", {
                             classes: "DeviceNodePropertyEntry DeviceNodePropertySettable DeviceNodePropertySettableNumber",
-                            type: "input type='number'"
+                            type: "input type='" + input_type + "'"
                         })
                         var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
                         $(checkbox).attr("data-url", url)
                         $(checkbox).prop('value', prop.value)
-                        $(checkbox).change(function() {
-                            console.log("CHANGE " + $(this).attr("data-url"))
-                            body = {}
-                            body.value = $(this).prop("value")
-                            QueryPost($(this).attr("data-url"), body)
-                            setTimeout(refresh, 3000);
-                        });
+                        if (prop.datatype == "string") {
+                            $(checkbox).keydown(function () {
+                                if (event.key === 'Enter') {
+                                    console.log("KEYDOWN " + $(this).attr("data-url"))
+                                    body = {}
+                                    body.value = $(this).prop("value")
+                                    QueryPost($(this).attr("data-url"), body)
+                                    setTimeout(refresh, 3000);
+                                }
+                            })
+                        } else {
+                            $(checkbox).change(function () {
+                                console.log("CHANGE " + $(this).attr("data-url"))
+                                body = {}
+                                body.value = $(this).prop("value")
+                                QueryPost($(this).attr("data-url"), body)
+                                setTimeout(refresh, 3000);
+                            });
+                        }
                     }
                 } else {
                     if (prop.datatype == "boolean") {
@@ -368,7 +387,7 @@ function SetDeviceInfoPageStatus(entry, body_id) {
         sysinfo = nodes.sysinfo
         if (sysinfo) {
             sysinfo_props = sysinfo.properties
-            blocks.push(["Uptime", FormatSeconds(sysinfo_props.uptime.value), ])
+            blocks.push(["Uptime", FormatSeconds(sysinfo_props.uptime.value),])
         }
     }
 
@@ -392,13 +411,13 @@ function SetDeviceInfoPageStatus(entry, body_id) {
 
         var prop_id = id + "_" + node_id
         GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
-            // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+        // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
         GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: caption })
         GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
     }
 
     var state_block_id = "#" + "VALUE_" + blocks[0][0] + "_" + node_id
-    $(state_block_id).removeClass(function(index, className) {
+    $(state_block_id).removeClass(function (index, className) {
         return (className.match(/(^|\s)NodeState-\S+/g) || []).join(' ');
     });
     $(state_block_id).addClass("NodeState-" + entry.state)
@@ -413,11 +432,11 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         // id: 'some-id',
         "class": 'OtaTriggerButton',
         html: 'Trigger OTA',
-        "device" : entry.name,
-        click: function() {
+        "device": entry.name,
+        click: function () {
             body = {
                 command: 'force_ota_update',
-                args: { }
+                args: {}
             }
             url = "/device/" + $(this).attr("device") + "/command"
             QueryPost(url, body)
@@ -425,12 +444,12 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
     }).appendTo(header);
 
     var blocks = [
-        ["Configuration", "fw/FairyNode/config/timestamp", ],
-        ["LFS", "fw/FairyNode/lfs/timestamp", ],
-        ["Root", "fw/FairyNode/root/timestamp", ],
-        ["FairyNode version", "fw/FairyNode/version", ],
-        ["NodeMcu release", "fw/NodeMcu/git_release", ],
-        ["NodeMcu branch", "fw/NodeMcu/git_branch", ],
+        ["Configuration", "fw/FairyNode/config/timestamp",],
+        ["LFS", "fw/FairyNode/lfs/timestamp",],
+        ["Root", "fw/FairyNode/root/timestamp",],
+        ["FairyNode version", "fw/FairyNode/version",],
+        ["NodeMcu release", "fw/NodeMcu/git_release",],
+        ["NodeMcu branch", "fw/NodeMcu/git_branch",],
     ]
 
     for (var i in SortedKeys(blocks)) {
@@ -448,7 +467,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
 
         var prop_id = id + "_" + node_id
         GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
-            // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+        // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
         GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: caption })
         GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
     }
@@ -468,7 +487,7 @@ function SetDeviceInfoPageVariables(entry, body_id) {
 
         var prop_id = id + "_" + node_id
         GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
-            // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
+        // GetOrCreateDiv("SPACER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertySpacer", { html: "&nbsp" })
         GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: key })
         GetOrCreateDiv("VALUE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyValue").html(value)
     }
@@ -504,15 +523,15 @@ function SetDeviceInfoPageActiveErrors(entry, body_id) {
 
         GetOrCreateDiv(title_prop_id, prop_id, "DeviceNodePropertyErrorTitle")
 
-        var kill = GetOrCreateDiv("KILL_" + prop_id, title_prop_id, "DeviceNodePropertyErrorEntry DeviceNodePropertyErrorBlock DeviceNodePropertyErrorClickableIcon", { html: "&nbsp;"})
+        var kill = GetOrCreateDiv("KILL_" + prop_id, title_prop_id, "DeviceNodePropertyErrorEntry DeviceNodePropertyErrorBlock DeviceNodePropertyErrorClickableIcon", { html: "&nbsp;" })
 
         $(kill).attr("device", entry.name)
         $(kill).attr("key", key)
-        $(kill).click(function() {
+        $(kill).click(function () {
             body = {
                 command: "clear_error",
-                args : {
-                    key : $(this).attr("key"),
+                args: {
+                    key: $(this).attr("key"),
                 }
             }
             url = "/device/" + $(this).attr("device") + "/command"
@@ -556,20 +575,20 @@ function UpdateDevice(entry) {
 
     var timestamp_value = vars["fw/FairyNode/lfs/timestamp"] || vars["fw/timestamp"]
     var timestamp = ""
-    if(timestamp_value) {
+    if (timestamp_value) {
         timestamp = new Date(timestamp_value * 1000)
     }
 
     var err_caption
     var err_value = null
-    if(sysinfo_props != null && sysinfo_props.errors != null){
+    if (sysinfo_props != null && sysinfo_props.errors != null) {
         var err_current = sysinfo_props.errors.value
 
         var error_dict = {}
         try {
             error_dict = JSON.parse(err_current)
         }
-        catch(e) { }
+        catch (e) { }
 
         if (Array.isArray(error_dict) || Object.keys(error_dict).length == 0) {
             error_dict = null
@@ -591,7 +610,7 @@ function UpdateDevice(entry) {
     var device = GetOrCreateDiv("DEVICE_" + entry.name, "DeviceList", "DeviceListPages DeviceList DeviceListEntry tab_button", { html: entry.name })
 
     if (first) {
-        $(device).click(function() {
+        $(device).click(function () {
             $(".DeviceListPages.tab_active").removeClass("tab_active")
             $(".DeviceListPages.tab_button_active").removeClass("tab_button_active")
             $("#" + "DEVICE_PAGE_" + entry.name).removeClass("tab_inactive").addClass("tab_active")
@@ -606,7 +625,7 @@ function UpdateDevice(entry) {
     if (sysinfo_props != null && sysinfo_props.wifi != null)
         wifi = sysinfo_props.wifi.value + "%"
 
-    if(uptime) {
+    if (uptime) {
         uptime = FormatSeconds(uptime)
     } else {
         uptime = ""
@@ -618,8 +637,8 @@ function UpdateDevice(entry) {
         timestamp: timestamp.toLocaleString(),
         uptime: uptime,
         wifi: wifi,
-        release: (vars["fw/NodeMcu/git_release"] || vars["fw/NodeMcu/git_branch"] ) + " | " +
-            (vars["fw/FairyNode/version"] ),
+        release: (vars["fw/NodeMcu/git_release"] || vars["fw/NodeMcu/git_branch"]) + " | " +
+            (vars["fw/FairyNode/version"]),
         errors: {
             caption: err_caption,
             value: err_value,
@@ -640,7 +659,7 @@ function UpdateDevice(entry) {
     ]
     if (first)
         for (var i in btns) {
-            $(btns[i]).click(function(event) {
+            $(btns[i]).click(function (event) {
                 $(".DevicePage.tab_active." + my_class).removeClass("tab_active")
                 $(".DevicePage.tab_button_active." + my_class).removeClass("tab_button_active")
                 $("#" + $(this).attr("data") + "_" + sub_id).addClass("tab_active")
@@ -662,7 +681,7 @@ function UpdateDevice(entry) {
 }
 
 function HandleDeviceResponse(data) {
-    data.sort(function(a, b) {
+    data.sort(function (a, b) {
         if (a.name < b.name) {
             return -1;
         }
@@ -673,14 +692,14 @@ function HandleDeviceResponse(data) {
     })
     console.log(data)
 
-    data.forEach(function(entry) {
+    data.forEach(function (entry) {
         UpdateDevice(entry);
     });
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-open_rule_code_editor =`
+open_rule_code_editor = `
 <div id="RuleStateEditButton" class="RuleStateButton">Edit</div>
 `
 rule_code_editor = `
@@ -699,23 +718,23 @@ function SubmitRuleCode() {
 
 function OpenRuleCodeEditor() {
     $("#RuleStateEditorBlock").html(rule_code_editor)
-    QueryGetText("/rule/state/get", function(data) {
+    QueryGetText("/rule/state/get", function (data) {
         $("#RuleStateEditorArea").val(data)
     })
     $("#RuleStateSubmitButton").click(SubmitRuleCode)
     $("#RuleStateCloseButton").click(ResetRuleCodeEditor)
 }
 
-function ResetRuleCodeEditor(){
+function ResetRuleCodeEditor() {
     $("#RuleStateEditorBlock").html(open_rule_code_editor)
     $("#RuleStateEditButton").click(OpenRuleCodeEditor)
 }
 
 function HandleRuleChartResponse(data) {
     console.log(data)
-    if($("#RuleStateChartImg").attr("src") != data.url) {
+    if ($("#RuleStateChartImg").attr("src") != data.url) {
         console.log("Url changed")
-        AsyncRequest(data.url, function(response){
+        AsyncRequest(data.url, function (response) {
             $("#RuleStateChartImg").html(response)
             $("#RuleStateChartImg").attr("src", data.url)
         })
@@ -725,10 +744,10 @@ function HandleRuleChartResponse(data) {
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 function refresh() {
-    if(ActivePage == "Devices") {
-        QueryGet("/device", function(data) { HandleDeviceResponse(data) })
+    if (ActivePage == "Devices") {
+        QueryGet("/device", function (data) { HandleDeviceResponse(data) })
     } else {
-        QueryGet("/rule/state/graph/url", function(data) { HandleRuleChartResponse(data) })
+        QueryGet("/rule/state/graph/url", function (data) { HandleRuleChartResponse(data) })
     }
 }
 
