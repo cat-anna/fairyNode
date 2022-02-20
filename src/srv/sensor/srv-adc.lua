@@ -37,7 +37,7 @@ end
 function Sensor:Tick()
     local current = adc.read(0) / 1023
     local delta = self.value - current
-    if current < 0 then current = -current end
+    if delta < 0 then delta = -delta end
     self.value = current
     if delta > self.update_delta then
         print("ADC: Update threshold exceeded")
