@@ -35,7 +35,7 @@ end
 -------------------------------------------------------------------------------------
 
 function RuleState:LoadScript(rule)
-    local text_script = string.format(RULE_SCRIPT, rule.text)
+    local text_script = string.format(RULE_SCRIPT, rule.text or "")
     local script, err_msg = loadstring(text_script)
     if not script or err_mesg then
         print("Failed to load rule script:")
@@ -120,18 +120,15 @@ function RuleState:GetRuleText()
 end
 
 function RuleState:SaveRule(rule_text)
-    local entry = {
-        text = rule_text,
-        statistics = (self.rule or {}).statistics,
-    }
-
-    local serialized = json.encode(entry)
-    local id = self:GetRuleId()
-    self.storage:WriteStorage(id, serialized)
+    self.storage:WriteStorage(self:GetRuleScriptId(), rule_text)
 end
 
-function RuleState:GetRuleId()
-    return string.format("rule.simple")
+function RuleState:GetRuleScriptId()
+    return string.format("rule.simple.lua")
+end
+
+function RuleState:GetRuleConfigId()
+    return string.format("rule.simple.json")
 end
 
 function RuleState:RuleError(rule, error_key, message)
@@ -144,19 +141,16 @@ function RuleState:ReloadRule()
     self.homie_node = nil
     self.homie_props = nil
 
-    local content
-    local rule_storage_content = self.storage:GetFromStorage(self:GetRuleId())
-    if not rule_storage_content then
-        content = { text = "" }
-    else
-        content = json.decode(rule_storage_content)
+    local rule_load_script_content = self.storage:GetFromStorage(self:GetRuleScriptId())
+    if not rule_load_script_content then
+        rule_load_script_content = ""
     end
 
     local rule = {
-        text = content.text,
+        text = rule_load_script_content,
         instance = {},
         metatable = {},
-        statistics = content.statistics or {},
+        -- statistics = content.statistics or {},
     }
 
     self:LoadScript(rule)
