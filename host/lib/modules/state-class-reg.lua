@@ -3,6 +3,7 @@ local StateClassReg = {}
 StateClassReg.__index = StateClassReg
 StateClassReg.__deps = {
     cache = "cache",
+    homie_host = "homie-host",
 }
 
 function StateClassReg:BeforeReload()
@@ -47,8 +48,15 @@ function StateClassReg:Create(opt)
 
     state.class_id = opt.class_id
     state.cache = self.cache
-
     local class = self.registered_classes[opt.class]
+
+    if class.__deps then
+        local deps = class.__deps
+        if deps.homie_host then
+            state.homie_host = self.homie_host
+        end
+    end
+
     setmetatable(state, class)
     state:Create(opt)
     return state

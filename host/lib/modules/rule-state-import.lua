@@ -429,19 +429,17 @@ local function AddSink(env, _, source, sink, virtual)
         env.error("Sink is not a state")
         return
     end
-    if virtual == nil then
-        virtual = configuration.debug or nil
-    end
+    if virtual == nil then virtual = configuration.debug or nil end
     source:AddSinkDependency(sink, virtual)
 end
 
 -------------------------------------------------------------------------------------
 
-function RuleStateImport:ImportHomieState(env_object, homie_property,
+function RuleStateImport:ImportHomieState(env_object, property_path, homie_property,
                                           homie_device)
     local class_reg = self.state_class_reg
 
-    local homie_id = homie_property:GetId()
+    local homie_id = string.format("%s.%s.%s", property_path.device, property_path.node, property_path.property)
     local global_id = string.format("Homie.%s", homie_id)
     if not env_object.states[global_id] then
         env_object.states[global_id] = class_reg:Create({
@@ -450,6 +448,7 @@ function RuleStateImport:ImportHomieState(env_object, homie_property,
             global_id = global_id,
             class_id = homie_id,
             property_instance = homie_property,
+            property_path = property_path,
             device = homie_device
         })
     end

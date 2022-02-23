@@ -463,8 +463,12 @@ function Device:ClearError(error_id)
     self:SendCommand("sys,error,clear,"..error_id, nil)
 end
 
-function Device:ForceOta()
-    self:SendCommand("sys,ota,update", nil)
+function Device:StartOta(use_force)
+    if use_force then
+        self:SendCommand("sys,ota,update", nil)
+    else
+        self:SendCommand("sys,ota,check", nil)
+    end
 end
 
 function Device:IsReady()
@@ -563,7 +567,6 @@ function DevState:GetDevice(name)
     if d then
         return d
     end
-    error("There is no device " .. tostring(name))
 end
 
 function DevState:FindDeviceById(id)
@@ -591,6 +594,30 @@ function DevState:InitHomieNode(event)
     })
     self.homie_node:SetValue("max_history_entries", tostring(self.configuration.max_history_entries))
 end
+
+function DevState:FindProperty(path)
+    local device = path.device
+    local node = path.node
+    local property = path.property
+
+    if (not device) or (not node) or (not property) then
+        error("Invalid argument for HomieHost::FindProperty")
+        return
+    end
+
+    local dev = self.devices[device]
+    if not dev  then
+        return
+    end
+
+    local n = dev.nodes[node]
+    if not n then
+        return
+    end
+
+    return n.properties[property]
+end
+
 
 DevState.EventTable = {
     ["homie-client.init-nodes"] = DevState.InitHomieNode

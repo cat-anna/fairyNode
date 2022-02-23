@@ -91,21 +91,17 @@ end
 -------------------------------------------------------------------------------------
 
 function DeviceTree:GetPropertyPath(result_wrapper)
-    local function IndexDeviceNode(dev, node_name)
-        local node = dev.nodes[node_name]
-        if not node then
-            error(string.format("Device %s does not have node %s", dev.id, node_name))
-        end
+    local function IndexDeviceNode(path, dev, node_name)
+        local node = dev and dev.nodes[node_name] or nil
+        path.node = node_name
 
         return setmetatable({}, {
             __newindex = error,
             __index = function (t, key)
-                local prop = node.properties[key]
-                if not prop then
-                    error(string.format("Device %s.%s does not have property %s", dev.id, node_name, key))
-                end
+                local prop = node and node.properties[key] or nil
+                path.property = key
                 if result_wrapper then
-                    return result_wrapper(prop, dev)
+                    return result_wrapper(path, prop, dev)
                 end
                 return prop
             end,
@@ -113,14 +109,14 @@ function DeviceTree:GetPropertyPath(result_wrapper)
     end
 
     local function IndexRoot(t, dev_name)
+        local path = {
+            device = dev_name,
+        }
         local dev = self.device:GetDevice(dev_name)
-        if not dev then
-            error(string.format("Device %s does not exists", dev_name))
-        end
         return setmetatable({}, {
             __newindex = error,
             __index = function (_, key)
-                return IndexDeviceNode(dev, key)
+                return IndexDeviceNode(path, dev, key)
             end
         })
     end
