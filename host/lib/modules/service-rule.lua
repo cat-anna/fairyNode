@@ -41,14 +41,16 @@ local StateClassMapping = {StateHomie = "interface", StateTime = "abstract"}
 
 function RuleService:GenerateStateDiagram()
     local lines = {
-        "@startuml",  --
-        "skinparam backgroundcolor transparent", --
-        "skinparam fontcolor black", --
+        "@startuml", --
+        "skinparam BackgroundColor transparent", --
+        "skinparam DefaultFontColor black", --
+        "skinparam ArrowColor black", --
+        "skinparam ClassBorderColor black", --
         "skinparam ranksep 20", --
-        "hide empty description",  --
+        "hide empty description", --
         "hide empty members", --
-        "left to right direction",  --
-        "scale 0.9",  --
+        "left to right direction", --
+        "scale 0.9" --
     }
 
     local function name_to_id(n)
@@ -60,12 +62,10 @@ function RuleService:GenerateStateDiagram()
 
     for id, state in pairs(self.rule_state:GetStates() or {}) do
         local state_style = {}
-        local color_true =  "FFCE9D"-- "FFB281" -- "#FF9664"
+        local color_true = "FFCE9D" -- "FFB281" -- "#FF9664"
         local color_false = "C0C0CE" -- "B2B2CE" -- "#9696ce"
         local color_none = "FEFECE"
         local color_not_ready = "FF0000"
-            -- warn = ""
-        -- Default
 
         local ready, value = state:Status()
 
@@ -92,7 +92,23 @@ function RuleService:GenerateStateDiagram()
         local members = table.concat(desc, "\n")
 
         -- state_style_text
-        if value == nil then value = "" end
+        local valueFormatters = {
+            ["number"] = function(v)
+                if math.floor(v) == v then
+                    return string.format("%d", v)
+                else
+                    return string.format("%.3f", v)
+                end
+            end,
+            ["nil"] = function() return "" end
+        }
+
+        local formatter = valueFormatters[type(value)]
+        if formatter then
+            value = formatter(value)
+        else
+            value = tostring(value)
+        end
 
         local mode = StateClassMapping[state.__class] or "entity"
 
@@ -102,9 +118,8 @@ value: %s %s
 ..
 %s
 }
-]], mode, name_to_id(state.global_id), state:GetName(), state_style_text,
-                                         tostring(value), members,
-                                         state.global_id)
+]], mode, name_to_id(state.global_id), state:GetName(), state_style_text, value,
+                                         members, state.global_id)
 
         table.insert(lines, state_line)
 
