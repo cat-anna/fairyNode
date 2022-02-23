@@ -13,15 +13,56 @@ RuleStateImport.__deps = {
 
 -------------------------------------------------------------------------------------
 
+if not setfenv then -- Lua 5.2+
+    -- based on http://lua-users.org/lists/lua-l/2010-06/msg00314.html
+    -- this assumes f is a function
+    local function findenv(f)
+        local level = 1
+        repeat
+            local name, value = debug.getupvalue(f, level)
+            if name == '_ENV' then return level, value end
+            level = level + 1
+        until name == nil
+        return nil
+    end
+    getfenv = function(f) return (select(2, findenv(f)) or _G) end
+    setfenv = function(f, t)
+        local level = findenv(f)
+        if level then debug.setupvalue(f, level, t) end
+        return f
+    end
+end
+
+-------------------------------------------------------------------------------------
+
+local function SetupErrorFunctions(env, log_tag, errors)
+    local get_tag
+
+    if type(log_tag) == "string" then
+        get_tag = function() return log_tag end
+    else
+        get_tag = log_tag
+    end
+
+    env.error = function(...)
+        local msg = string.format(...)
+        print(get_tag(), "ERROR:", msg)
+        table.insert(errors, msg)
+    end
+    env.assert = function(cond, ...) if not cond then env.error(...) end end
+
+    env.print = function(...) print(get_tag(), ...) end
+
+end
+-------------------------------------------------------------------------------------
+
 local StateRuleMt = {
-    __class = "StateRule",
+    __class = "StateRule"
     -- __newindex = ...
 }
 StateRuleMt.__index = StateRuleMt
 
-local function MakeStateRule(t)
-    return setmetatable(t or {}, StateRuleMt)
-end
+local function MakeStateRule(t) return setmetatable(t or {}, StateRuleMt) end
 
 local function IsStateRule(t)
     return type(t) == "table" and t.__class == StateRuleMt.__class
@@ -52,7 +93,7 @@ local function MakeBooleanOperator(env, operator, limit)
             return
         end
         env.assert(operator)
-        return MakeStateRule{
+        return MakeStateRule {
             class = "StateOperator",
             operator = operator,
             source_dependencies = data
@@ -93,7 +134,7 @@ local function MakeNumericOperator(env, operator)
         else
             threshold = threshold_as_num
         end
-        return MakeStateRule{
+        return MakeStateRule {
             class = "StateOperator",
             operator = operator,
             source_dependencies = deps,
@@ -117,7 +158,7 @@ local function MakeMathFunction(env, operator)
                 threshold = v
             end
         end
-        return MakeStateRule{
+        return MakeStateRule {
             class = "StateOperator",
             operator = operator,
             source_dependencies = deps,
@@ -138,7 +179,7 @@ local function MakeRangeOperator(env)
             env.error("Range operator requires state as first argument")
             return
         end
-        return MakeStateRule{
+        return MakeStateRule {
             class = "StateOperator",
             operator = "range",
             source_dependencies = {data[1]},
@@ -153,7 +194,7 @@ local function MakeTimeSchedule(env)
             env.error("TimeSchedule operator requires two arguments")
             return
         end
-        return MakeStateRule{
+        return MakeStateRule {
             class = "StateTime",
             range = {from = tonumber(data[1]), to = tonumber(data[2])}
         }
@@ -177,7 +218,7 @@ local function MakeMaxChangePeriod(env)
             env.error("MaxChangePeriod requires number as second argument")
             return
         end
-        return MakeStateRule{
+        return MakeStateRule {
             class = "StateMaxChangePeriod",
             source_dependencies = {data[1]},
             delay = delay_as_num
@@ -196,7 +237,7 @@ local function MakeBooleanGenerator(env)
             env.error("BooleanGenerator requires number as first argument")
             return
         end
-        return MakeStateRule{
+        return MakeStateRule {
             class = "StateChangeGenerator",
             interval = interval,
             value = data[2]
@@ -211,7 +252,7 @@ local function MakeMapping(env)
         if #data ~= 2 then
             env.error("Boolean operator requires three arguments")
         end
-        return MakeStateRule{
+        return MakeStateRule {
             class = "StateMapping",
             mapping_mode = "any",
             source_dependencies = {data[1]},
@@ -239,7 +280,7 @@ local function MakeBooleanMapping(env)
         if #data ~= 3 then
             env.error("BooleanMapping operator requires three arguments")
         end
-        return MakeStateRule{
+        return MakeStateRule {
             class = "StateMapping",
             source_dependencies = {data[1]},
             mapping_mode = "boolean",
@@ -272,10 +313,46 @@ local function MakeMovingAvg(env)
             env.error("MovingAvg operator requires numeric 'period' argument")
             return
         end
-        return MakeStateRule{
-            source_dependencies = { data[1] },
+        return MakeStateRule {
+            source_dependencies = {data[1]},
             class = "StateMovingAvg",
-            period = data.period,
+            period = data.period
+        }
+    end
+end
+
+-------------------------------------------------------------------------------------
+
+local function MakeFunction(env)
+    return function(data)
+        -- input = { Homie.NightLamp0.adc.value },
+        -- init = {  },
+        -- func = function(adc_value)
+        -- end,
+
+        if type(data.func) ~= "function" then
+            env.error("Function state 'func' argument")
+            return
+        end
+
+        local func = data.func
+
+        local funcG = getfenv(func)
+        funcG = tablex.copy(funcG)
+        setfenv(func, funcG)
+        if data.info then setfenv(data.info, funcG) end
+
+        return MakeStateRule {
+            source_dependencies = data.input or {},
+            class = "StateFunction",
+            info_func = data.info,
+            func = func,
+            funcG = funcG,
+            object = data.init or {},
+            dynamic = data.dynamic and true or false,
+            setup_errors = function(log_tag, errors)
+                SetupErrorFunctions(funcG, log_tag, errors)
+            end
         }
     end
 end
@@ -322,7 +399,7 @@ local function AddSource(env, _, data)
         return
     end
 
-    local state_prototype = { }
+    local state_prototype = {}
     state_prototype.name = data[1]
     local data_len = #data
     if data_len == 2 then
@@ -343,7 +420,7 @@ local function AddSource(env, _, data)
     return env.AddState(state_prototype)
 end
 
-local function AddSink(env, _, source, sink)
+local function AddSink(env, _, source, sink, virtual)
     if not IsState(env, source) then
         env.error("Source is not a state")
         return
@@ -352,12 +429,16 @@ local function AddSink(env, _, source, sink)
         env.error("Sink is not a state")
         return
     end
-    source:AddSinkDependency(sink, configuration.debug or nil)
+    if virtual == nil then
+        virtual = configuration.debug or nil
+    end
+    source:AddSinkDependency(sink, virtual)
 end
 
 -------------------------------------------------------------------------------------
 
-function RuleStateImport:ImportHomieState(env_object, homie_property, homie_device)
+function RuleStateImport:ImportHomieState(env_object, homie_property,
+                                          homie_device)
     local class_reg = self.state_class_reg
 
     local homie_id = homie_property:GetId()
@@ -369,7 +450,7 @@ function RuleStateImport:ImportHomieState(env_object, homie_property, homie_devi
             global_id = global_id,
             class_id = homie_id,
             property_instance = homie_property,
-            device=homie_device
+            device = homie_device
         })
     end
     return env_object.states[global_id]
@@ -410,74 +491,92 @@ function RuleStateImport:AddState(env_object, definition)
 end
 
 function RuleStateImport:CreateStateEnv()
-    local StateMt = {}
-    local env = {
-        State = setmetatable({}, StateMt)
-    }
-    local object = {env = env, states = {}, errors = { }, }
+    local env = {}
+    local object = {env = env, states = {}, errors = {}, state_prototype = {}}
 
+    local StateMt = {}
     StateMt.__index = StateMt
-    function StateMt.__newindex(t,name,value)
-        if rawget(t,name) ~= nil then
+    function StateMt.__newindex(t, name, value)
+        if rawget(t, name) ~= nil then
             env.error("Attempt to shadow state")
         elseif IsState(env, value) then
             rawset(t, name, value)
         elseif IsStateRule(value) then
-            env.Source{name, value}
+            env.Source {name, value}
         else
             env.error("Malicious attempt to add state")
         end
     end
 
-    env.error = function (...)
-        local msg =  string.format(...)
-        print("RULE-STATE-IMPORT: Error: " .. msg)
-        table.insert(object.errors, msg)
+    SetupErrorFunctions(env, "RULE-STATE-IMPORT", object.errors)
+
+    local state_prototype = object.state_prototype
+
+    state_prototype.State = setmetatable({}, StateMt)
+    state_prototype.Homie = self.device_tree:GetPropertyPath(WrapCall(self,
+                                                                      self.ImportHomieState,
+                                                                      object))
+
+    state_prototype.AddState = WrapCall(self, self.AddState, object)
+    state_prototype.Source = WrapCall(env, AddSource)
+    state_prototype.Sink = WrapCall(env, AddSink)
+
+    state_prototype.Or = MakeBooleanOperator(env, "or")
+    state_prototype.And = MakeBooleanOperator(env, "and")
+    state_prototype.Not = MakeBooleanOperator(env, "not", 1)
+
+    state_prototype.Equal = MakeNumericOperator(env, "==")
+    state_prototype.Lesser = MakeNumericOperator(env, "<")
+    state_prototype.LesserEqual = MakeNumericOperator(env, "<=")
+    state_prototype.Greater = MakeNumericOperator(env, ">")
+    state_prototype.GreaterEqual = MakeNumericOperator(env, ">=")
+
+    state_prototype.Max = MakeMathFunction(env, "max")
+    state_prototype.Min = MakeMathFunction(env, "min")
+    state_prototype.Sum = MakeMathFunction(env, "sum")
+
+    state_prototype.Range = MakeRangeOperator(env)
+
+    state_prototype.TimeSchedule = MakeTimeSchedule(env)
+    state_prototype.BooleanGenerator = MakeBooleanGenerator(env)
+
+    state_prototype.Mapping = MakeMapping(env)
+    state_prototype.IntegerMapping = MakeIntegerMapping(env)
+    state_prototype.BooleanMapping = MakeBooleanMapping(env)
+    state_prototype.StringMapping = MakeStringMapping(env)
+
+    state_prototype.MovingAvg = MakeMovingAvg(env)
+    state_prototype.MaxChangePeriod = MakeMaxChangePeriod(env)
+
+    state_prototype.Function = MakeFunction(env)
+
+    env.Minute = 60
+    env.Hour = 60 * 60
+    env.Day = 24 * 60 * 60
+
+    env.pcall = pcall
+    env.select = select
+    env.pairs = pairs
+    env.ipairs = ipairs
+    env.type = type
+    env.tonumber = tonumber
+    env.tostring = tostring
+    env.math = math
+    env.string = string
+    env.table = table
+    env.os = {
+        time = os.time,
+        date = os.date,
+        difftime = os.difftime,
+        clock = os.clock
+    }
+
+    function object:Cleanup()
+        for k, v in pairs(self.state_prototype) do self.env[k] = nil end
+        self.state_prototype = nil
     end
-    env.assert = function(cond, ...) if not cond then env.error(...) end end
 
-    env.print = function (...)
-        print("RULE-STATE-IMPORT:", ...)
-    end
-
-    env.Homie = self.device_tree:GetPropertyPath(WrapCall(self,
-                                                          self.ImportHomieState,
-                                                          object))
-
-    env.AddState = WrapCall(self, self.AddState, object)
-    env.Source = WrapCall(env, AddSource)
-    env.Sink = WrapCall(env, AddSink)
-
-    env.Or = MakeBooleanOperator(env, "or")
-    env.And = MakeBooleanOperator(env, "and")
-    env.Not = MakeBooleanOperator(env, "not", 1)
-
-    env.Equal = MakeNumericOperator(env, "==")
-    env.Lesser = MakeNumericOperator(env, "<")
-    env.LesserEqual = MakeNumericOperator(env, "<=")
-    env.Greater = MakeNumericOperator(env, ">")
-    env.GreaterEqual = MakeNumericOperator(env, ">=")
-
-    env.Max = MakeMathFunction(env, "max")
-    env.Min = MakeMathFunction(env, "min")
-    env.Sum = MakeMathFunction(env, "sum")
-
-    env.Range = MakeRangeOperator(env)
-
-    env.TimeSchedule = MakeTimeSchedule(env)
-    env.BooleanGenerator = MakeBooleanGenerator(env)
-
-    env.Mapping = MakeMapping(env)
-    env.IntegerMapping = MakeIntegerMapping(env)
-    env.BooleanMapping = MakeBooleanMapping(env)
-    env.StringMapping = MakeStringMapping(env)
-
-    env.MovingAvg = MakeMovingAvg(env)
-    env.MaxChangePeriod = MakeMaxChangePeriod(env)
-
-    env.Minute=60
-    env.Hour=60*60
-    env.Day=24*60*60
+    for k, v in pairs(object.state_prototype) do object.env[k] = v end
 
     return object
 end

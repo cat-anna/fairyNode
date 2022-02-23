@@ -47,11 +47,11 @@ function RuleState:LoadScript(rule)
 
     self.states_by_id = { }
     collectgarbage()
-    local env = self.rule_import:CreateStateEnv()
-    setfenv(script, env.env)
+    local env_object = self.rule_import:CreateStateEnv()
+    setfenv(script, env_object.env)
 
     local success, mt = pcall(script)
-    self.errors = env.errors
+    self.errors = env_object.errors
     if not success or not mt then
         print("Failed to call rule script:")
         print(text_script)
@@ -62,7 +62,7 @@ function RuleState:LoadScript(rule)
         return
     end
 
-    self.states_by_id = env.states
+    self.states_by_id = env_object.states
 
     self.pending_states = {}
     for k,v in pairs(self.states_by_id) do
@@ -70,6 +70,7 @@ function RuleState:LoadScript(rule)
             table.insert(self.pending_states, v)
         end
     end
+    env_object:Cleanup()
 
     self.rule = rule
     self:CheckUpdateQueue()
@@ -199,7 +200,7 @@ function RuleState:InitHomieNode(event)
     end
 
     self.homie_node = self.homie_client:AddNode("state_rule", {
-        ready = ready,
+        ready = true,
         name = "State rules",
         properties = self.homie_props
     })

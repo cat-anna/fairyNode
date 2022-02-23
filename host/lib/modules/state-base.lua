@@ -48,16 +48,19 @@ end
 
 function State:Update() return self:IsReady() end
 
+function State:RetireValue() end
+
 -------------------------------------------------------------------------------------
 
-function State:AddSourceDependency(dependant_state)
+function State:AddSourceDependency(dependant_state, source_id)
     print(self:LogTag(), "Added dependency " .. dependant_state.global_id ..
               " to " .. self.global_id)
 
     self.source_dependencies[dependant_state.global_id] = table.weak_values {
-        target = dependant_state
+        target = dependant_state,
+        source_id = source_id,
     }
-    dependant_state:AddSinkDependency(self)
+    dependant_state:AddSinkDependency(self, nil)
 
     self:RetireValue()
 end
@@ -75,14 +78,19 @@ function State:GetDependantValues()
     local dependant_values = {}
     for id, dep in pairs(self.source_dependencies) do
         if (not dep.target) or (not dep.target:IsReady()) then
-            print(self:LogTag(),
-                  "Dependency " .. id .. " is not yet ready")
+            print(self:LogTag(), "Dependency " .. id .. " is not yet ready")
             return nil
         end
+        local value
         SafeCall(function()
-            table.insert(dependant_values,
-                         {value = dep.target:GetValue(), id = id})
+            value = dep.target:GetValue()
         end)
+        if value == nil then
+            print(self:LogTag(), "Dependency " .. id .. " has no value")
+            return nil
+        end
+        table.insert(dependant_values,
+                        {value=value, id = id, source_id = dep.source_id})
     end
     return dependant_values
 end
@@ -126,7 +134,11 @@ function State:HasSinkDependencies()
     return false
 end
 
-function State:SourceChanged(source, source_value) self:Update() end
+function State:SourceChanged(source, source_value)
+    if self:IsReady() then
+        self:Update()
+    end
+ end
 
 -------------------------------------------------------------------------------------
 
@@ -155,8 +167,8 @@ function State:Create(config)
     self.sink_dependencies = {}
     self.source_dependencies = {}
 
-    for _, v in ipairs(config.source_dependencies or {}) do
-        self:AddSourceDependency(v)
+    for k, v in pairs(config.source_dependencies or {}) do
+        self:AddSourceDependency(v, type(k) == "string" and k or nil)
     end
     for _, v in ipairs(config.sink_dependencies or {}) do
         self:AddSinkDependency(v)
