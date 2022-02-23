@@ -431,7 +431,21 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
     jQuery('<div/>', {
         // id: 'some-id',
         "class": 'OtaTriggerButton',
-        html: 'Trigger OTA',
+        html: 'Trigger OTA check',
+        "device": entry.name,
+        click: function () {
+            body = {
+                command: 'check_ota_update',
+                args: {}
+            }
+            url = "/device/" + $(this).attr("device") + "/command"
+            QueryPost(url, body)
+        }
+    }).appendTo(header);
+    jQuery('<div/>', {
+        // id: 'some-id',
+        "class": 'OtaTriggerButton',
+        html: 'Force OTA',
         "device": entry.name,
         click: function () {
             body = {

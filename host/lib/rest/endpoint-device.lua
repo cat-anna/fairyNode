@@ -43,13 +43,6 @@ return function(server)
             handler = rest.HandlerModule("service-device", "SendCommand"),
         },
         {
-            method = "POST",
-            path = "/{[^/]+}/ota",
-            consumes = "application/json",
-            produces = "application/json",
-            handler = rest.HandlerModule("service-device", "OtaCommand"),
-        },
-        {
             method = "GET",
             path = "/{[^/]+}/command/result",
             consumes = "application/json",

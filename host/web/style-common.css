@@ -446,6 +446,9 @@ html {
 
 .OtaTriggerButton {
     cursor: pointer;
+    clear: none;
+    float: left;
+    padding-left: 10px;
 }
 
 #PageSelectBox {

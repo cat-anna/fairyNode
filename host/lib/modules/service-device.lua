@@ -11,7 +11,8 @@ end
 
 function DevSrv:AfterReload()
     self:RegisterDeviceCommand("clear_error", function(...) return self:DeviceCommandClearError(...) end)
-    self:RegisterDeviceCommand("force_ota_update", function(...) return self:DeviceCommandForceOta(...) end)
+    self:RegisterDeviceCommand("force_ota_update", function(...) return self:DeviceCommandOta(true, ...) end)
+    self:RegisterDeviceCommand("check_ota_update", function(...) return self:DeviceCommandOta(false, ...) end)
 end
 
 function DevSrv:Init()
@@ -29,8 +30,8 @@ function DevSrv:DeviceCommandClearError(device, command, arg)
     return http.OK, true
 end
 
-function DevSrv:DeviceCommandForceOta(device, command, arg)
-    device:ForceOta()
+function DevSrv:DeviceCommandOta(use_force, device, command, arg)
+    device:StartOta(use_force)
     return http.OK, true
 end
 
@@ -117,16 +118,6 @@ function DevSrv:GetCommandResult(request, device)
     local r = self["last_command_result_" .. dev.id]
     self["last_command_result_" .. dev.id]  = nil
     return http.OK, r
-end
-
-function DevSrv:OtaCommand(request, device)
-    local dev = self.device:GetDevice(device)
-    if request.command == "trigger" then
-        dev:SendCommand("sys,ota,check", function() end)
-        return http.OK
-    end
-
-    return http.BadRequest
 end
 
 -------

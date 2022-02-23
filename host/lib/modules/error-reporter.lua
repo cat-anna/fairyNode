@@ -13,7 +13,7 @@ function SafeCall(f, ...)
 
     local args = { ... }
     local function call()
-        return f(unpack(args))
+        return f(table.unpack(args))
     end
     local function errh(msg)
         print("Call failed: ", msg)

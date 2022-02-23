@@ -82,7 +82,7 @@ function table.keys(t)
     return r
 end
 
-function table.shalow_copy(t)
+function table.shallow_copy(t)
     local r = {}
     for k,v in pairs(t or {}) do
        r[k] = v
@@ -91,7 +91,7 @@ function table.shalow_copy(t)
 end
 
 function table.sorted(t, comp)
-    local r = table.shalow_copy(t)
+    local r = table.shallow_copy(t)
     table.sort(r, comp)
     return r
 end
