@@ -147,7 +147,12 @@ local storage = require("lib/file_storage").new()
 if downloads.root_image then
     local files = file_image.Unpack(downloads.root_image)
     for name,data in pairs(files) do
-        if name == "init.lua" or name == "ota-installer.lua" then
+        local needed_files = {
+            ["init.lua"]=true,
+            ["init-bootstrap.lua"]=true,
+            ["ota-installer.lua"]=true,
+        }
+        if needed_files[name] then
             local temp_name = storage:AddFile(name)
             file.write(temp_name, data)
             print("Adding file " .. name)
