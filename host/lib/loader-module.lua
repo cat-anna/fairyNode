@@ -3,31 +3,12 @@ require "lib/ext"
 local lfs = require "lfs"
 local copas = require "copas"
 
--------------------------------------------------------------------------------
-
-local configuration = require("configuration")
-
-local module_dir = {
-    fw = configuration.fairy_node_base .. "/host/lib/modules",
-    user = configuration.path.modules
-}
-local modules = setmetatable({}, {__mode = "v"})
-local loaded_modules =  { }
-local ModulesPublic = {}
-local ReloadWatchers = {}
+local fs = require "lib/fs"
+local configuration = require "configuration"
 
 -------------------------------------------------------------------------------
 
-local Enumerator = {}
-Enumerator.__index = Enumerator
-
-function Enumerator:Enumerate(functor)
-    for k, v in pairs(loaded_modules) do
-        if v.instance then
-            SafeCall(functor, k, v.instance)
-        end
-    end
-end
+local loaded_modules = {} -- setmetatable({}, {__mode = "v"})
 
 -------------------------------------------------------------------------------
 
@@ -50,16 +31,14 @@ local function DisableModule(module, filetime)
 end
 
 local function CreateModule(group, name, filename, filetime)
-    print("MODULES: New module:",name, filename, filetime)
+    print("MODULES: New module:",name)
     local module = {
         timestamp = 0,
         name = name,
         group = group,
-        init_done = false,
-        instance = nil,
-        black_listed = TestBlackList(name)
+        black_listed = TestBlackList(name),
+        type = "module"
     }
-    modules[name] = module
     loaded_modules[name] = module
     if module.black_listed then
         DisableModule(module, filetime)
@@ -68,31 +47,35 @@ local function CreateModule(group, name, filename, filetime)
     return module
 end
 
-local function ReloadModule(group, name, filename, filetime)
-    -- print("MODULES: Checking module:",name, filename, filetime)
+local function LoadStaticModule(name)
+    local mt = require(string.format("lib/%s", name))
+    local module = CreateModule("module", name, "", 0)
+    module.instance = setmetatable({}, mt)
+    module.init_done = true
+    return module.instance
+end
 
-    local module = modules[name]
+-------------------------------------------------------------------------------
 
-    if module and (module.timestamp == filetime or module.disabled) then
-        --
-        return false,false
-    end
+local ModuleClass = LoadStaticModule("module-class")
 
-    if not module or not module.instance then
-        module = CreateModule(group, name, filename, filetime)
-    end
+-------------------------------------------------------------------------------
 
-    -- print("MODULES: Reloading module:", name, filename, filetime)
+local module_dir = {
+    fw = configuration.fairy_node_base .. "/host/lib/modules",
+    user = configuration.path.modules
+}
 
-    local success, new_metatable = pcall(dofile, filename)
-    if not success or not new_metatable then
-        print("MODULES: Cannot reload module:", name)
-        print("MODULES: Message:", new_metatable)
-        return true,true
-    end
+local ModulesPublic = { }
+local ReloadWatchers = { }
 
-    if new_metatable.__disable_module then
-        print("MODULES: Disabled module:", name, filename, filetime)
+-------------------------------------------------------------------------------
+
+local function ReloadModule(module, new_metatable, group, name, filename, filetime)
+    print("MODULES: Reloading module:", name)
+
+    if new_metatable.__disable then
+        print("MODULES: Disabled module:", name)
         -- Module is disabled. Pretend to be not loaded
         DisableModule(module, filetime)
         return false,false
@@ -102,13 +85,13 @@ local function ReloadModule(group, name, filename, filetime)
         new_metatable.__index = new_metatable
     end
 
-    local alias = new_metatable.__module_alias
+    local alias = new_metatable.__alias
     if alias then
-        if modules[alias] then
-            assert(modules[alias].name == name)
+        if loaded_modules[alias] then
+            assert(loaded_modules[alias].name == name)
         else
             module.alias = alias
-            modules[alias] = module
+            loaded_modules[alias] = module
         end
         print("MODULES: module " .. name .. " aliased to " .. alias)
     end
@@ -121,7 +104,7 @@ local function ReloadModule(group, name, filename, filetime)
 
     if new_metatable.__deps ~= nil then
         for member, dep_name in pairs(new_metatable.__deps) do
-            local dep = modules[dep_name]
+            local dep = loaded_modules[dep_name]
             if (not dep or not dep.instance) and dep_name ~= "module-enumerator" then
                 print(
                     "MODULES: Module " .. name .. " dependency " .. dep_name ..
@@ -160,27 +143,72 @@ local function ReloadModule(group, name, filename, filetime)
     return false,true
 end
 
+local function ReloadFile(group, name, filename, filetime)
+    -- print("MODULES: Checking module:",name, filename, filetime)
+
+    local handler
+    local module = loaded_modules[name]
+    if module then
+        handler = ReloadModule
+    else
+        module = ModuleClass.loaded_classes[name]
+        if module then
+            handler = ModuleClass.Reload
+        end
+    end
+
+    if module then
+        if module.timestamp == filetime or module.disabled then
+            return false,false
+        end
+    end
+
+    local success, new_metatable = pcall(dofile, filename)
+    if not success or not new_metatable then
+        print("MODULES: Cannot reload:", name)
+        print("MODULES: Message:", new_metatable)
+        return true,true
+    end
+
+    local mt_type = new_metatable.__type or "module"
+    if module then
+        local module_type = module.type
+
+        if module_type ~= mt_type then
+            print("MODULES: Attempt to change module type ", name)
+            return false,false
+        end
+    end
+
+    if not handler then
+        local Handlers = {
+            module = ReloadModule,
+            class = ModuleClass.Reload
+        }
+        handler = Handlers[mt_type]
+    end
+
+    assert(handler)
+
+    if not module then
+        if mt_type == "class" then
+            module = ModuleClass.Create(group, name, filename, filetime)
+        else
+            module = CreateModule(group, name, filename, filetime)
+        end
+    end
+
+    return handler(module, new_metatable, group, name, filename, filetime)
+end
+
 local function ReloadModuleDirectory(group, base_dir, first_reload)
     local all_loaded = true
     local changed_modules = 0
-    local files = {}
-    for file in lfs.dir(base_dir .. "/") do
-        if file ~= "." and file ~= ".." and file ~= "init.lua" then
-            local f = base_dir .. '/' .. file
-            local attr = lfs.attributes(f)
-            assert(type(attr) == "table")
-            if attr.mode == "file" then
-                local name = file:match("([^%.]+).lua")
-                local timestamp = attr.modification
+    local files = fs.GetLuaFiles(base_dir)
 
-                table.insert(files,
-                             {name = name, timestamp = timestamp, path = f})
-            end
-        end
-    end
     table.sort(files, function(a, b) return a.path < b.path end)
     for _, f in ipairs(files) do
-        local fail, changed = ReloadModule(group, f.name, f.path, f.timestamp)
+        local fail, changed = ReloadFile(group, f.name, f.path, f.timestamp)
         if fail then
             all_loaded = false
         else
@@ -227,8 +255,8 @@ end
 function ModulesPublic.Reload() ReloadModules(false) end
 
 function ModulesPublic.GetModule(name)
-    if modules[name] and modules[name].instance then
-        return modules[name].instance
+    if loaded_modules[name] and loaded_modules[name].instance then
+        return loaded_modules[name].instance
     end
     error("There is no module " .. name)
 end
@@ -240,23 +268,15 @@ end
 local function Init()
     copas.addthread(function()
         copas.sleep(1)
-        ReloadModules(true)
-        local done = false
-        while not done do
+        local startup = true
+        while not ReloadModules(startup) or configuration.debug do
             copas.sleep(1)
-            -- done =
-                ReloadModules(false)
-            if configuration.debug then
-                copas.sleep(1)
-            else
-                copas.sleep(60 * 5)
-            end
+            startup = false
         end
     end)
 
-    local enum = CreateModule("module", "module-enumerator", "", 0)
-    enum.instance = setmetatable({}, Enumerator)
-    enum.init_done = true
+    local enum = LoadStaticModule("module-enumerator")
+    enum:SetModuleList(loaded_modules)
 
     return ModulesPublic
 end
