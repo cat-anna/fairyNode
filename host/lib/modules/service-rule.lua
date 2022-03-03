@@ -50,7 +50,7 @@ function RuleService:GenerateStateDiagram()
         "hide empty description", --
         "hide empty members", --
         "left to right direction", --
-        "scale 0.9" --
+        "scale 0.7" --
     }
 
     local function name_to_id(n)
