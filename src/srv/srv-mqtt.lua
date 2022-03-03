@@ -1,6 +1,6 @@
 
 local function topic2regexp(topic)
-    return topic:gsub("+", "%%w-"):gsub("#", "%%.-")
+    return topic:gsub("+", "%[^/]-"):gsub("#", "%%.-")
 end
 
 local Module = {}
