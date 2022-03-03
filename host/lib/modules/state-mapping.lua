@@ -2,7 +2,9 @@ local tablex = require "pl.tablex"
 
 local StateMapping = {}
 StateMapping.__index = StateMapping
+StateMapping.__base = "State"
 StateMapping.__class = "StateMapping"
+StateMapping.__type = "class"
 
 function StateMapping:LocallyOwned() return true, self.result_type end
 

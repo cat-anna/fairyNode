@@ -1,6 +1,8 @@
 local StateOperator = {}
 StateOperator.__index = StateOperator
 StateOperator.__class = "StateOperator"
+StateOperator.__base = "State"
+StateOperator.__type = "class"
 
 -------------------------------------------------------------------------------------
 

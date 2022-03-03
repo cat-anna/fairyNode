@@ -3,6 +3,8 @@ local tablex = require "pl.tablex"
 local StateMaxChangePeriod = {}
 StateMaxChangePeriod.__index = StateMaxChangePeriod
 StateMaxChangePeriod.__class = "StateMaxChangePeriod"
+StateMaxChangePeriod.__base = "State"
+StateMaxChangePeriod.__type = "class"
 
 function StateMaxChangePeriod:LocallyOwned()
     return true, self.result_type

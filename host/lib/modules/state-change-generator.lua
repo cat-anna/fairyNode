@@ -3,6 +3,8 @@ local tablex = require "pl.tablex"
 local StateChangeGenerator = {}
 StateChangeGenerator.__index = StateChangeGenerator
 StateChangeGenerator.__class = "StateChangeGenerator"
+StateChangeGenerator.__base = "State"
+StateChangeGenerator.__type = "class"
 
 function StateChangeGenerator:LocallyOwned()
     return true, "boolean"

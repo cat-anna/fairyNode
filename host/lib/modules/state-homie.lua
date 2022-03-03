@@ -1,7 +1,9 @@
 
 local StateHomie = {}
 StateHomie.__index = StateHomie
+StateHomie.__base = "State"
 StateHomie.__class = "StateHomie"
+StateHomie.__type = "class"
 StateHomie.__deps =  {
     homie_host = "homie-host",
 }

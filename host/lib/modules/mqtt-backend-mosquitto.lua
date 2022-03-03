@@ -13,7 +13,7 @@ local mqtt_client_cfg = configuration.credentials.mqtt
 
 local MosquittoClient = {}
 MosquittoClient.__index = MosquittoClient
-MosquittoClient.__module_alias = "mqtt-client"
+MosquittoClient.__alias = "mqtt-client"
 MosquittoClient.__deps = {
     event_bus = "event-bus",
     last_will = "mqtt-client-last-will"

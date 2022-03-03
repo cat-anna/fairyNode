@@ -3,6 +3,8 @@ local tablex = require "pl.tablex"
 local StateFunction = {}
 StateFunction.__index = StateFunction
 StateFunction.__class = "StateFunction"
+StateFunction.__base = "State"
+StateFunction.__type = "class"
 
 function StateFunction:LocallyOwned() return true, self.result_type end
 

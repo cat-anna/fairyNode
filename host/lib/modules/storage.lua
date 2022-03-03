@@ -9,7 +9,7 @@ Storage.__index = Storage
 Storage.__deps = { }
 
 if not configuration.path.storage then
-    Storage.__disable_module = true
+    Storage.__disable = true
     return Storage
 end
 

@@ -1,6 +1,8 @@
 local StateTime = {}
 StateTime.__index = StateTime
 StateTime.__class = "StateTime"
+StateTime.__base = "State"
+StateTime.__type = "class"
 
 function StateTime:LocallyOwned() return true, "boolean" end
 

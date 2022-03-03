@@ -4,6 +4,7 @@ local tablex = require "pl.tablex"
 
 local State = {}
 State.__index = State
+State.__type = "class"
 State.__class = "State"
 State.__is_state_class = true
 

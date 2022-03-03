@@ -21,7 +21,7 @@ end
 -----------------
 
 local RuleScript = {}
-RuleScript.__disable_module = true
+RuleScript.__disable = true
 RuleScript.__index = RuleScript
 RuleScript.__deps = {
     event_bus = "event-bus",

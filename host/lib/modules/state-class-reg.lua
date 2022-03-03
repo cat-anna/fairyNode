@@ -75,4 +75,3 @@ StateClassReg.EventTable = {
 }
 
 return StateClassReg
-
