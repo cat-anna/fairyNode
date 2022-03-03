@@ -21,10 +21,17 @@ function Sensor:ControllerInit(event, ctl)
     end
 end
 
-function Sensor:Readout()
+function Sensor:PublishValue(v)
     if not self.node then return end
+    self.node:SetValue("value", string.format("%.3f", v))
+end
 
-    self.node:SetValue("value", adc.read(0) / 1023)
+function Sensor:ReadCurrentValue()
+    return adc.read(0) / 1023
+end
+
+function Sensor:Readout()
+    self:PublishValue(self:ReadCurrentValue())
 end
 
 function Sensor:ImportValue(topic, payload, node_name, prop_name)
@@ -35,13 +42,12 @@ function Sensor:ImportValue(topic, payload, node_name, prop_name)
 end
 
 function Sensor:Tick()
-    local current = adc.read(0) / 1023
-    local delta = self.value - current
-    if delta < 0 then delta = -delta end
+    local current = self:ReadCurrentValue()
+    local delta = math.abs(self.value - current)
     self.value = current
     if delta > self.update_delta then
         print("ADC: Update threshold exceeded")
-        self.node:SetValue("value", current)
+        self:PublishValue(current)
     end
 end
 
