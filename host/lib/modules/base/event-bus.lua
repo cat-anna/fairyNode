@@ -1,11 +1,14 @@
 local copas = require "copas"
-local modules = require("lib/loader-module")
+
+-------------------------------------------------------------------------------
 
 local EventBus = {}
 EventBus.__index = EventBus
 EventBus.__deps = {
-    module_enumerator = "module-enumerator"
+    loader_module = "base/loader-module"
 }
+
+-------------------------------------------------------------------------------
 
 function EventBus:LogTag()
     return "EventBus"
@@ -17,7 +20,7 @@ end
 function EventBus:AfterReload()
     self.event_queue = {}
     self.process_thread = nil
-    modules.RegisterWatcher(self:LogTag(), self)
+    self.loader_module:RegisterWatcher(self:LogTag(), self)
 
     if not self.process_thread then
         self.process_thread = copas.addthread(function()
@@ -47,7 +50,7 @@ function EventBus:AllModulesInitialized()
 end
 
 function EventBus:PushEvent(event_info)
-    if configuration.debug and not event_info.silent then
+    if self.config.debug and not event_info.silent then
         print(self,"Push event " .. event_info.event)
     end
     table.insert(self.event_queue, event_info)
@@ -60,20 +63,17 @@ function EventBus:ProcessAllEvents()
 end
 
 function EventBus:ProcessEvent(event_info)
-    if configuration.debug and not event_info.silent then
+    if self.config.debug and not event_info.silent then
         print(self,"Processing event " .. event_info.event)
     end
     local run_stats = {
         handlers_called = 0
     }
-    self.module_enumerator:Enumerate(
-        function(name, module, is_alias)
+    self.loader_module:EnumerateModules(
+        function(name, module)
             self:ApplyEvent(name, module, event_info, run_stats)
         end
     )
-    -- if configuration.debug then
-    --     print(self:LogTag() .. ": Retire event " .. event_info.event)
-    -- end
     return run_stats.handlers_called
 end
 
@@ -96,5 +96,7 @@ function EventBus:ApplyEvent(module_name, module_instance, event_info, run_stats
 
     handler(module_instance, setmetatable({}, { __index = event_info }))
 end
+
+-------------------------------------------------------------------------------
 
 return EventBus

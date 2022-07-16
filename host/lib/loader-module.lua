@@ -1,135 +1,139 @@
-require "lib/ext"
 
 local lfs = require "lfs"
 local copas = require "copas"
-
-local fs = require "lib/fs"
-local configuration = require "configuration"
-
--------------------------------------------------------------------------------
-
-local loaded_modules = {} -- setmetatable({}, {__mode = "v"})
+local path = require "pl.path"
+local config_handler = require "lib/config-handler"
 
 -------------------------------------------------------------------------------
 
-local function TestBlackList(module_name)
-    for _, v in ipairs(configuration.module_black_list or {}) do
-        if module_name:match(v) then
-            print(string.format("Module '%s' is blacklisted by rule '%s'",
-                                module_name, v))
-            return true
-        end
-    end
-    return false
-end
+local CONFIG_KEY_LIST = "loader.module.list"
+local CONFIG_KEY_PATHS = "loader.module.paths"
 
-local function DisableModule(module, filetime)
-    module.instance = nil
-    module.timestamp = filetime
-    module.init_done = false
-    module.disabled = true
-end
-
-local function CreateModule(group, name, filename, filetime)
-    print("MODULES: New module:",name)
-    local module = {
-        timestamp = 0,
-        name = name,
-        group = group,
-        black_listed = TestBlackList(name),
-        type = "module"
-    }
-    loaded_modules[name] = module
-    if module.black_listed then
-        DisableModule(module, filetime)
-        return false,true
-    end
-    return module
-end
-
-local function LoadStaticModule(name)
-    local mt = require(string.format("lib/%s", name))
-    local module = CreateModule("module", name, "", 0)
-    module.instance = setmetatable({}, mt)
-    module.init_done = true
-    return module.instance
-end
-
--------------------------------------------------------------------------------
-
-local ModuleClass = LoadStaticModule("module-class")
-
--------------------------------------------------------------------------------
-
-local module_dir = {
-    fw = configuration.fairy_node_base .. "/host/lib/modules",
-    user = configuration.path.modules
+local ModuleLoader = { }
+ModuleLoader.__index = ModuleLoader
+ModuleLoader.__config = {
+    [CONFIG_KEY_LIST] = { mode = "merge", type = "string-table", default = { } },
+    [CONFIG_KEY_PATHS] = { mode = "merge", type = "string-table", default = { } },
 }
 
-local ModulesPublic = { }
-local ReloadWatchers = { }
+-------------------------------------------------------------------------------
+
+function ModuleLoader:ReloadModuleMetatable(module)
+    if module.static then
+        return false
+    end
+
+    if not module.file then
+        module.file = self:FindModuleFile(module.name)
+        if not module.file then
+            printf("MODLE: Failed to find file for module %s", module.name)
+            return false
+        end
+    end
+
+    local file_attrib = lfs.attributes(module.file)
+    if not file_attrib then
+        printf("MODLE: Failed to get attributes of file for module %s", module.name)
+        return false
+    end
+
+    if module.timestamp == file_attrib.modification then
+        return false
+    end
+
+    local success, new_metatable = pcall(dofile, module.file)
+    if not success or not new_metatable then
+        printf("MODULES: Cannot reload: %s", module.name)
+        printf("MODULES: Message: %s", new_metatable)
+        return false
+    end
+
+    new_metatable.__index = new_metatable.__index or new_metatable
+    module.metatable = new_metatable
+    module.timestamp = file_attrib.modification
+
+    return true
+end
+
+function ModuleLoader:UpdateModuleAlias(module)
+    local alias = module.metatable.__alias
+    if alias then
+        if self.loaded_modules[alias] then
+            assert(self.loaded_modules[alias].name == module.name)
+        else
+            module.alias = alias
+            self.loaded_modules[alias] = module
+            printf("MODULES: module %s aliased to %s", module.name, alias)
+        end
+    end
+    return true
+end
+
+function ModuleLoader:UpdateModuleDeps(module)
+    local metatable = module.metatable
+    if metatable.__deps == nil then
+        return true
+    end
+
+    for member, dep_name in pairs(metatable.__deps) do
+        local dep = self.loaded_modules[dep_name]
+
+        if (not dep) or (not dep.instance) or (not dep.initialized) then
+            printf("MODULES: Module %s dependency %s is not yet satisfied", module.name, dep_name)
+            return false
+        else
+            module.instance[member] = dep.instance
+        end
+    end
+
+    return true
+end
+
+function ModuleLoader:UpdateModuleConfig(module)
+    module.instance.config = config_handler:Query(module.instance.__config or {})
+    return true
+end
 
 -------------------------------------------------------------------------------
 
-local function ReloadModule(module, new_metatable, group, name, filename, filetime)
-    print("MODULES: Reloading module:", name)
+function ModuleLoader:UpdateModule(module)
+    local needs_reload = (not module.initialized) or module.needs_reload
 
-    if new_metatable.__disable then
-        print("MODULES: Disabled module:", name)
-        -- Module is disabled. Pretend to be not loaded
-        DisableModule(module, filetime)
-        return false,false
+    if self:ReloadModuleMetatable(module) then
+        needs_reload = true
     end
 
-    if not new_metatable.__index then
-        new_metatable.__index = new_metatable
+    if not needs_reload then
+        return true
     end
 
-    local alias = new_metatable.__alias
-    if alias then
-        if loaded_modules[alias] then
-            assert(loaded_modules[alias].name == name)
-        else
-            module.alias = alias
-            loaded_modules[alias] = module
-        end
-        print("MODULES: module " .. name .. " aliased to " .. alias)
-    end
+    module.needs_reload = true
+    printf("MODULES: Reloading module: %s", module.name)
 
-    if module.init_done and module.instance.BeforeReload then
+    self:UpdateModuleAlias(module)
+
+    if module.initialized and module.instance and module.instance.BeforeReload then
         SafeCall(function() module.instance:BeforeReload() end)
     end
 
-    module.instance = setmetatable(module.instance or {}, new_metatable)
+    module.instance = setmetatable(module.instance or {}, module.metatable)
 
-    if new_metatable.__deps ~= nil then
-        for member, dep_name in pairs(new_metatable.__deps) do
-            local dep = loaded_modules[dep_name]
-            if (not dep or not dep.instance) and dep_name ~= "module-enumerator" then
-                print(
-                    "MODULES: Module " .. name .. " dependency " .. dep_name ..
-                        " are not yet satisfied")
-                return true,false
-            else
-                module.instance[member] = ModulesPublic.GetModule(dep_name)
-            end
-        end
+    if (not self:UpdateModuleDeps(module)) or (not self:UpdateModuleConfig(module)) then
+        return
     end
 
-    if not module.init_done then
-        if module.instance.Init then
-            local success, errm = pcall(function()
-                module.instance:Init()
-            end)
+    if not module.initialized and module.instance.Init then
+        local success, err_msg = pcall(function()
+            module.instance:Init()
+        end)
 
-            if not success then
-                module.instance = nil
-                print("MODULES: Failed to initialize module:", name)
-                print("MODULES: Error:", errm)
-                return true,false
-            else
-                module.init_done = true
-            end
+        if not success then
+            module.instance = nil
+            print("MODULES: Failed to initialize module:", module.name)
+            print("MODULES: Error:", err_msg)
+            return
+        else
+            module.initialized = true
         end
     end
 
@@ -137,148 +141,105 @@ local function ReloadModule(module, new_metatable, group, name, filename, fileti
         SafeCall(function() module.instance:AfterReload() end)
     end
 
-    print("MODULES: Reloaded module:", name)
-    module.timestamp = filetime
+    module.needs_reload = false
+    printf("MODULES: Reloaded module: %s", module.name)
 
-    return false,true
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:ModuleReloaded(module.name, module.instance) end)
+    end
+
+    return true
 end
 
-local function ReloadFile(group, name, filename, filetime)
-    -- print("MODULES: Checking module:",name, filename, filetime)
-
-    local handler
-    local module = loaded_modules[name]
-    if module then
-        handler = ReloadModule
-    else
-        module = ModuleClass.loaded_classes[name]
-        if module then
-            handler = ModuleClass.Reload
+function ModuleLoader:Update()
+    local all = true
+    for _,module in pairs(self.loaded_modules) do
+        if not self:UpdateModule(module) then
+            all = false
         end
     end
-
-    if module then
-        if module.timestamp == filetime or module.disabled then
-            return false,false
-        end
-    end
-
-    local success, new_metatable = pcall(dofile, filename)
-    if not success or not new_metatable then
-        print("MODULES: Cannot reload:", name)
-        print("MODULES: Message:", new_metatable)
-        return true,true
-    end
-
-    local mt_type = new_metatable.__type or "module"
-    if module then
-        local module_type = module.type
-
-        if module_type ~= mt_type then
-            print("MODULES: Attempt to change module type ", name)
-            return false,false
-        end
-    end
-
-    if not handler then
-        local Handlers = {
-            module = ReloadModule,
-            class = ModuleClass.Reload
-        }
-        handler = Handlers[mt_type]
-    end
-
-    assert(handler)
-
-    if not module then
-        if mt_type == "class" then
-            module = ModuleClass.Create(group, name, filename, filetime)
-        else
-            module = CreateModule(group, name, filename, filetime)
-        end
-    end
-
-    return handler(module, new_metatable, group, name, filename, filetime)
+    return all
 end
 
-local function ReloadModuleDirectory(group, base_dir, first_reload)
-    local all_loaded = true
-    local changed_modules = 0
-    local files = fs.GetLuaFiles(base_dir)
+-------------------------------------------------------------------------------
 
-    table.sort(files, function(a, b) return a.path < b.path end)
-    for _, f in ipairs(files) do
-        local fail, changed = ReloadFile(group, f.name, f.path, f.timestamp)
-        if fail then
-            all_loaded = false
-        else
-            if changed then
-                changed_modules = changed_modules + 1
-            end
-            if not first_reload and changed then
-                for _, functor in pairs(ReloadWatchers) do
-                    SafeCall(function() functor:ModuleReloaded(f.name) end)
-                end
-            end
+function ModuleLoader:FindModuleFile(name)
+    for _,conf_path in ipairs(self.config[CONFIG_KEY_PATHS]) do
+        local full = path.normpath(string.format("%s/%s.lua", conf_path, name))
+        local att = lfs.attributes(full)
+        if att then
+            return full
         end
     end
-    return all_loaded,changed_modules
 end
 
-local function ReloadModules(first_reload)
-    local attempts = 1
-    if first_reload then attempts = 10 end
+function ModuleLoader:PreCreateModule(name)
+    local m = {
+        name = name,
+        timestamp = 0,
+        type = "module",
+        initialized = false,
+        needs_reload = true,
+    }
+    self.loaded_modules[name] = m
+    return m
+end
 
-    local done = false
-    local changed_modules = 0
-    while attempts > 0 and not done do
-        done = true
-        attempts = attempts - 1
-        for group, dir in pairs(module_dir) do
-            local all_loaded, changed = ReloadModuleDirectory(group, dir, first_reload)
-            changed_modules = math.max(changed, changed_modules)
-            if not all_loaded then
-                done = false
-            end
+-------------------------------------------------------------------------------
+
+function ModuleLoader:RegisterStaticModule(name, instance)
+    local m = self:PreCreateModule(name)
+    m.static = true
+    m.instance = instance
+    m.needs_reload = false
+    m.initialized = true
+    return m
+end
+
+-------------------------------------------------------------------------------
+
+function ModuleLoader:EnumerateModules(functor)
+    for k, v in pairs(self.loaded_modules) do
+        if v.initialized then
+            SafeCall(functor, k, v.instance)
         end
     end
+end
 
-    if not first_reload and changed_modules > 0 then
-        for _, functor in pairs(ReloadWatchers) do
-            SafeCall(function() functor:AllModulesInitialized() end)
-        end
+function ModuleLoader:RegisterWatcher(name, functor)
+    self.watchers[name] = functor
+end
+
+-------------------------------------------------------------------------------
+
+function ModuleLoader:Init()
+    self.loaded_modules = { }
+    self.watchers = { }
+
+    self.config = config_handler:Query(self.__config)
+
+    for _,v in pairs(self.config[CONFIG_KEY_LIST]) do
+       self:PreCreateModule(v)
     end
 
-    return not done
-end
+    self:RegisterStaticModule("base/loader-module", self)
 
-function ModulesPublic.Reload() ReloadModules(false) end
-
-function ModulesPublic.GetModule(name)
-    if loaded_modules[name] and loaded_modules[name].instance then
-        return loaded_modules[name].instance
-    end
-    error("There is no module " .. name)
-end
-
-function ModulesPublic.RegisterWatcher(name, functor)
-    ReloadWatchers[name] = functor
-end
-
-local function Init()
-    copas.addthread(function()
+    self.update_thread = copas.addthread(function()
         copas.sleep(1)
-        local startup = true
-        while not ReloadModules(startup) or configuration.debug do
-            copas.sleep(1)
-            startup = false
+        local continue = true
+        while continue do
+            continue = self:Update() or self.config.debug
+            copas.sleep(5)
         end
     end)
+end
 
-    local enum = LoadStaticModule("module-enumerator")
-    enum:SetModuleList(loaded_modules)
+-------------------------------------------------------------------------------
 
-    return ModulesPublic
+local function Init()
+    local loader = setmetatable({}, ModuleLoader)
+    loader:Init()
+    return loader
 end
 
 return Init()

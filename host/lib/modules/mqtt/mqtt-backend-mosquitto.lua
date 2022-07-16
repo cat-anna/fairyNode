@@ -1,23 +1,37 @@
-local has_mosquitto, mosquitto = pcall(require, "mosquitto")
-local configuration = require("configuration")
-local scheduler = require "lib/scheduler"
-local socket = require("socket")
-
-if not has_mosquitto or
-    (configuration.mqtt_backend ~= nil and configuration.mqtt_backend ~=
-        "mosquitto") then return {} end
-
+local mosquitto = require "mosquitto"
 local copas = require "copas"
+local scheduler = require "lib/scheduler"
+local socket = require "socket"
 
-local mqtt_client_cfg = configuration.credentials.mqtt
+-------------------------------------------------------------------------------
+
+local CONFIG_KEY_MQTT_HOST = "module.mqtt.host.url"
+local CONFIG_KEY_MQTT_PORT = "module.mqtt.host.port"
+-- local CONFIG_KEY_MQTT_KEEP_ALIVE = "module.mqtt.host.keep_alive"
+local CONFIG_KEY_MQTT_USER = "module.mqtt.user.name"
+local CONFIG_KEY_MQTT_PASSWORD = "module.mqtt.user.password"
+
+-------------------------------------------------------------------------------
 
 local MosquittoClient = {}
 MosquittoClient.__index = MosquittoClient
 MosquittoClient.__alias = "mqtt-client"
 MosquittoClient.__deps = {
     event_bus = "event-bus",
-    last_will = "mqtt-client-last-will"
+    -- last_will = "mqtt-client-last-will"
 }
+MosquittoClient.__opt_deps = {
+    last_will = "mqtt/mqtt-client-last-will",
+}
+MosquittoClient.__config = {
+    [CONFIG_KEY_MQTT_HOST] = { type = "string", required = true, },
+    [CONFIG_KEY_MQTT_PORT] = { type = "integer", required = false, default = 1883 },
+    -- [CONFIG_KEY_MQTT_KEEP_ALIVE] = { type = "integer", required = false, default = 10 },
+
+    [CONFIG_KEY_MQTT_USER] = { type = "string", required = true },
+    [CONFIG_KEY_MQTT_PASSWORD] = { type = "string", required = true },
+}
+-------------------------------------------------------------------------------
 
 function MosquittoClient:ResetClient()
     if os.time() - (self.state_change_timestamp or 0) < 10 then
@@ -57,8 +71,8 @@ function MosquittoClient:ResetClient()
     self.mosquitto_client.ON_LOG = function(...) self:OnMosquittoLog(...) end
 
     self:CheckMosquittoResult({
-        self.mosquitto_client:login_set(mqtt_client_cfg.user,
-                                        mqtt_client_cfg.password)
+        self.mosquitto_client:login_set(self.config[CONFIG_KEY_MQTT_USER],
+                                        self.config[CONFIG_KEY_MQTT_PASSWORD])
     })
 
     self:CheckMosquittoResult({
@@ -67,8 +81,8 @@ function MosquittoClient:ResetClient()
     })
 
     self:CheckMosquittoResult({
-        self.mosquitto_client:connect_async(mqtt_client_cfg.host,
-                                            mqtt_client_cfg.port or 1883,
+        self.mosquitto_client:connect_async(self.config[CONFIG_KEY_MQTT_HOST],
+                                            self.config[CONFIG_KEY_MQTT_PORT],
                                             30)
     })
 
@@ -266,5 +280,6 @@ MosquittoClient.EventTable = {
     -- ["homie-client.enter-ready"] = RuleState.InitHomieNode,
     ["timer.basic.10_second"] = MosquittoClient.CheckConnectionStatus
 }
+-------------------------------------------------------------------------------
 
 return MosquittoClient

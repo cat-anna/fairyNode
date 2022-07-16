@@ -2,18 +2,25 @@ local copas = require "copas"
 local lfs = require "lfs"
 local file = require "pl.file"
 local json = require "json"
-local configuration = require("configuration")
+
+-------------------------------------------------------------------------------
+
+local CONFIG_KEY_STORAGE_PATH = "module.data.storage.path"
+
+-------------------------------------------------------------------------------
 
 local Storage = {}
 Storage.__index = Storage
 Storage.__deps = { }
-
-if not configuration.path.storage then
-    Storage.__disable = true
-    return Storage
-end
+Storage.__config = {
+    [CONFIG_KEY_STORAGE_PATH] = { type = "string", required = true }
+}
 
 -------------------------------------------------------------------------------
+
+function Storage:GetPath()
+    return self.config[CONFIG_KEY_STORAGE_PATH]
+end
 
 function Storage:LogTag()
     return "Storage"
@@ -23,15 +30,14 @@ function Storage:BeforeReload()
 end
 
 function Storage:AfterReload()
-    self.storage_path = configuration.path.storage
-    os.execute("mkdir -p " .. self.storage_path)
+    os.execute("mkdir -p " .. self:GetPath())
 end
 
 function Storage:Init()
 end
 
 function Storage:StorageFile(id)
-    return string.format("%s/%s", self.storage_path, id)
+    return string.format("%s/%s", self:GetPath(), id)
 end
 
 function Storage:WriteStorage(id, data)
@@ -88,9 +94,9 @@ end
 function Storage:CheckStorage()
     local total_size = 0
     local entry_count = 0
-    for file in lfs.dir(self.storage_path .. "/") do
+    for file in lfs.dir(self:GetPath() .. "/") do
         if file ~= "." and file ~= ".." then
-            local f = self.storage_path .. '/' .. file
+            local f = self:GetPath() .. '/' .. file
             local attr = lfs.attributes(f)
             if attr and attr.mode == "file" then
                 total_size = total_size + attr.size
@@ -124,9 +130,9 @@ end
 function Storage:ListEntries(regex)
     local result = { }
     regex = regex or ".*"
-    for file in lfs.dir(self.storage_path .. "/") do
+    for file in lfs.dir(self:GetPath() .. "/") do
         if file ~= "." and file ~= ".." then
-            local f = self.storage_path .. '/' .. file
+            local f = self:GetPath() .. '/' .. file
             local attr = lfs.attributes(f)
             if attr and attr.mode == "file" then
                 if not regex or file:match(regex) then

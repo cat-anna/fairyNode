@@ -1,7 +1,7 @@
 local json = require "json"
 local tablex = require "pl.tablex"
 local stringx = require "pl.stringx"
-local configuration = require("configuration")
+-- local configuration = require("configuration") TODO
 
 local RuleStateImport = {}
 RuleStateImport.__index = RuleStateImport
@@ -429,7 +429,9 @@ local function AddSink(env, _, source, sink, virtual)
         env.error("Sink is not a state")
         return
     end
-    if virtual == nil then virtual = configuration.debug or nil end
+    if virtual == nil then
+        virtual = true -- configuration.debug or nil
+    end
     source:AddSinkDependency(sink, virtual)
 end
 

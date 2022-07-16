@@ -11,8 +11,8 @@ end
 local MqttProvider = {}
 MqttProvider.__index = MqttProvider
 MqttProvider.__deps = {
-    mqtt_client = "mqtt-client",
-    event_bus = "event-bus",
+    mqtt_client = "mqtt/mqtt-client",
+    event_bus = "base/event-bus",
 }
 
 -------------------------------------------------------------------------------

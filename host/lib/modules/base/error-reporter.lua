@@ -4,7 +4,7 @@ local coxpcall = require "coxpcall"
 
 local current_error_handler = nil
 
-local is_debug_mode = require("configuration").debug
+local is_debug_mode = false
 
 function SafeCall(f, ...)
     if not f then
@@ -37,9 +37,10 @@ end
 local ErrorHandler = {}
 ErrorHandler.__index = ErrorHandler
 ErrorHandler.__deps = {
-    sysinfo = "sysinfo",
-    timers = "event-timers",
+    timers = "base/event-timers",
+    event_bus = "base/event-bus",
 }
+ErrorHandler.__config = { }
 
 function ErrorHandler:LogTag()
     return "ErrorHandler"
@@ -49,6 +50,8 @@ function ErrorHandler:BeforeReload()
 end
 
 function ErrorHandler:AfterReload()
+    is_debug_mode = self.config.debug
+
     self.active_errors = self.active_errors or { }
     current_error_handler = self
     self:UpdateActiveErrors()
@@ -60,13 +63,14 @@ function ErrorHandler:Init()
 end
 
 function ErrorHandler:TestFail()
-    SafeCall(function()
-        asd()
-    end)
+    SafeCall(function() asd() end)
 end
 
 function ErrorHandler:UpdateActiveErrors()
-    self.sysinfo:SetActiveErrors(self.active_errors)
+    self.event_bus:ProcessEvent({
+        event = "error-reporter.active_errors",
+        active_errors = self.active_errors,
+    })
 end
 
 function ErrorHandler:OnError(info)
@@ -83,7 +87,7 @@ function ErrorHandler:OnError(info)
 end
 
 ErrorHandler.EventTable = {
-    ["homie-client.ready"] = ErrorHandler.UpdateActiveErrors,
+    -- ["homie-client.ready"] = ErrorHandler.UpdateActiveErrors,
     -- ["timer.trigger_fail"] = ErrorHandler.TestFail
 }
 

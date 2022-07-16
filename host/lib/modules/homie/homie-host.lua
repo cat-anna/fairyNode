@@ -1,6 +1,4 @@
 local json = require "json"
-local tablex = require "pl.tablex"
-local configuration = require("configuration")
 
 ------------------------------------------------------------------------------
 
@@ -108,6 +106,46 @@ function Device:HandleStateChanged(topic, payload)
     print(self:LogTag() .. self.name .. " entered state " .. (payload or "<?>"))
 end
 
+local function FilterPropertyValues(values)
+    local max_delta = 10*60 -- 10min
+
+    local r = {}
+
+    local start_timestamp = nil
+    local end_timestamp = nil
+    local value_sum = 0
+    local value_count = 0
+
+
+    for i,v in ipairs(values) do
+        if start_timestamp == nil then
+            start_timestamp = v.timestamp
+            end_timestamp = v.timestamp
+            value_sum = v.value
+            value_count = 1
+        else
+            local delta_timestamp = v.timestamp - start_timestamp
+            if delta_timestamp > max_delta then
+                table.insert(r, {
+                    timestamp = start_timestamp + math.floor((end_timestamp - start_timestamp) / 2),
+                    value = value_sum / value_count,
+                    avg = true,
+                })
+                start_timestamp = v.timestamp
+                end_timestamp = v.timestamp
+                value_sum = v.value
+                value_count = 1
+            else
+                end_timestamp = v.timestamp
+                value_sum = value_sum + v.value
+                value_count = value_count + 1
+            end
+        end
+    end
+
+    return r
+end
+
 function Device:PushPropertyHistory(node, property, value, timestamp)
     local id = self:GetHistoryId(node, property.id)
     if not self.history[id] then
@@ -190,6 +228,10 @@ function Device:GetHistory(node_name, property_name)
     local id = self:GetHistoryId(node_name, property_name)
     local history = self.history[id]
     if history then
+        -- if history.values_filtered then
+            -- return history.values_filtered
+        -- end
+        -- return FilterPropertyValues(history.values)
         return history.values
     end
 end
@@ -219,7 +261,9 @@ function Device:HandlePropertyValue(topic, payload)
         end
     end
 
-    if changed and configuration.debug then
+    if changed
+    -- and configuration.debug --TODO
+     then
         print(self:LogTag() .. string.format("node %s.%s = %s -> %s", node_name, prop_name, property.raw_value or "", payload or ""))
     end
 
@@ -473,6 +517,50 @@ end
 
 function Device:IsReady()
     return self.state == "ready"
+end
+
+function Device:IsFairyNodeClient()
+    return self.variables["fw/FairyNode/mode"] == "client"
+end
+
+function Device:GetFirmwareStatus()
+    if not self:IsFairyNodeClient() then
+        return
+    end
+
+    local function get(what)
+        return {
+            hash =      self.variables[string.format("fw/FairyNode/%s/hash", what)],
+            timestamp =  tonumber(self.variables[string.format("fw/FairyNode/%s/timestamp", what)]),
+        }
+    end
+
+    return {
+        lfs = get("lfs"),
+        root = get("root"),
+        config = get("config"),
+    }
+end
+
+function Device:GetChipId()
+    if not self:IsFairyNodeClient() then
+        return
+    end
+    return string.upper(self.variables["hw/chip_id"])
+end
+
+function Device:GetLfsSize()
+    if not self:IsFairyNodeClient() then
+        return
+    end
+    return tonumber(self.variables["fw/NodeMcu/lfs_size"])
+end
+
+function Device:GetNodeMcuCommitId()
+    if not self:IsFairyNodeClient() then
+        return
+    end
+    return self.variables["fw/NodeMcu/git_commit_id"]
 end
 
 -------------------------------------------------------------------------------

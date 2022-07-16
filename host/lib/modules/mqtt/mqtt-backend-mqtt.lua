@@ -1,23 +1,37 @@
-local has_mqtt, mqtt = pcall(require, "mqtt")
-local configuration = require("configuration")
-
-if not has_mqtt or
-   (configuration.mqtt_backend ~= nil and configuration.mqtt_backend ~= "mqtt") then
-    return { }
-end
-
+local mqtt = require "mqtt"
 local copas = require "copas"
+-------------------------------------------------------------------------------
 
-local mqtt_client_cfg = configuration.credentials.mqtt
 local mqttloop = mqtt:get_ioloop()
+
+-------------------------------------------------------------------------------
+
+local CONFIG_KEY_MQTT_HOST = "module.mqtt.host.uri"
+local CONFIG_KEY_MQTT_KEEP_ALIVE = "module.mqtt.host.keep_alive"
+local CONFIG_KEY_MQTT_USER = "module.mqtt.user.name"
+local CONFIG_KEY_MQTT_PASSWORD = "module.mqtt.user.password"
+
+-------------------------------------------------------------------------------
 
 local MqttClient = {}
 MqttClient.__index = MqttClient
-MqttClient.__alias = "mqtt-client"
+MqttClient.__alias = "mqtt/mqtt-client"
 MqttClient.__deps = {
-    event_bus = "event-bus",
-    last_will = "mqtt-client-last-will",
+    event_bus = "base/event-bus",
+    -- last_will = "mqtt/mqtt-client-last-will",
 }
+MqttClient.__opt_deps = {
+    last_will = "mqtt/mqtt-client-last-will",
+}
+MqttClient.__config = {
+    [CONFIG_KEY_MQTT_HOST] = { type = "string", required = true, },
+    [CONFIG_KEY_MQTT_KEEP_ALIVE] = { type = "integer", required = false, default = 10 },
+
+    [CONFIG_KEY_MQTT_USER] = { type = "string", required = true },
+    [CONFIG_KEY_MQTT_PASSWORD] = { type = "string", required = true },
+}
+
+-------------------------------------------------------------------------------
 
 function MqttClient:ResetClient()
     if self.mqtt_client then
@@ -27,14 +41,14 @@ function MqttClient:ResetClient()
     end
 
     local mqtt_client = mqtt.client{
-        uri = mqtt_client_cfg.host,
-        username = mqtt_client_cfg.user,
-        password = mqtt_client_cfg.password,
+        uri = self.config[CONFIG_KEY_MQTT_HOST],
+        username = self.config[CONFIG_KEY_MQTT_USER],
+        password = self.config[CONFIG_KEY_MQTT_PASSWORD],
         clean = true,
         reconnect = 1,
-        keep_alive = 10,
+        keep_alive = self.config[CONFIG_KEY_MQTT_KEEP_ALIVE],
         version = mqtt.v311,
-        will = self.last_will
+        -- will = self.last_will
     }
     mqtt_client:on {
         connect = function(...) self:HandleConnect(...) end,
@@ -150,5 +164,7 @@ function MqttClient:Init()
         end
     end)
 end
+
+-------------------------------------------------------------------------------
 
 return MqttClient

@@ -1,24 +1,5 @@
 local http = require "lib/http-code"
 local tablex = require "pl.tablex"
-local zlib_wrap = require 'lib/zlib-wrap'
-
--------------------------------------------------------------------------------------
-
-local function plantuml_encode(data)
-    local b = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'
-    return ((data:gsub('.', function(x)
-        local r, b = '', x:byte()
-        for i = 8, 1, -1 do
-            r = r .. (b % 2 ^ i - b % 2 ^ (i - 1) > 0 and '1' or '0')
-        end
-        return r;
-    end) .. '0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
-        if (#x < 6) then return '' end
-        local c = 0
-        for i = 1, 6 do c = c + (x:sub(i, i) == '1' and 2 ^ (6 - i) or 0) end
-        return b:sub(c + 1, c + 1)
-    end) .. ({'', '==', '='})[#data % 3 + 1])
-end
 
 -------------------------------------------------------------------------------------
 
@@ -26,7 +7,8 @@ local RuleService = {}
 RuleService.__index = RuleService
 RuleService.__deps = {
     -- rule_script = "rule-script",
-    rule_state = "rule-state"
+    rule_state = "rule-state",
+    plantuml = "plantuml"
 }
 
 function RuleService:BeforeReload() end
@@ -37,7 +19,10 @@ function RuleService:Init() end
 
 -------------------------------------------------------------------------------------
 
-local StateClassMapping = {StateHomie = "interface", StateTime = "abstract"}
+local StateClassMapping = {
+    StateHomie = "interface",
+    StateTime = "abstract",
+}
 
 function RuleService:GenerateStateDiagram()
     local lines = {
@@ -145,9 +130,7 @@ value: %s %s
 end
 
 function RuleService:EncodedStateDiagram()
-    local diagram = table.concat(self:GenerateStateDiagram(), "\n")
-    local out = zlib_wrap.compress(diagram)
-    return "http://www.plantuml.com/plantuml/svg/~1" .. plantuml_encode(out)
+    return self.plantuml:EncodeUrl(self:GenerateStateDiagram())
 end
 
 function RuleService:GetGraphText()

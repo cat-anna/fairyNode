@@ -1,6 +1,5 @@
 
 local copas = require "copas"
-local coxpcall = require "coxpcall"
 
 -------------------------------------------------------------------------------
 
@@ -12,7 +11,7 @@ TimerMt.__index = TimerMt
 local EventTimer = {}
 EventTimer.__index = EventTimer
 EventTimer.__deps = {
-    event_bus = "event-bus",
+    event_bus = "base/event-bus",
 }
 
 function EventTimer:LogTag()
@@ -23,8 +22,6 @@ function EventTimer:BeforeReload()
 end
 
 function EventTimer:AfterReload()
-    self.timers = self.timers or { }
-
     for k,v in pairs({
         ["basic.second"] = 1,
         ["basic.10_second"] = 10,
@@ -43,7 +40,7 @@ function EventTimer:AfterReload()
 end
 
 function EventTimer:Init()
-    -- self:AfterReload()
+    self.timers = { }
 end
 
 function EventTimer:RegisterTimer(id, interval, delay, event_id)

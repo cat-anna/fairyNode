@@ -2,16 +2,19 @@ local copas = require "copas"
 local lfs = require "lfs"
 local file = require "pl.file"
 local json = require "json"
-local configuration = require("configuration")
+
+-------------------------------------------------------------------------------
+
+local CONFIG_KEY_CACHE_PATH = "module.data.cache.path"
+
+-------------------------------------------------------------------------------
 
 local Cache = {}
 Cache.__index = Cache
 Cache.__deps = {}
-
-if not configuration.path.cache then
-    Cache.__disable_module = true
-    return Cache
-end
+Cache.__config = {
+    [CONFIG_KEY_CACHE_PATH] = { type = "string" }
+}
 
 -------------------------------------------------------------------------------
 
@@ -20,15 +23,20 @@ function Cache:LogTag() return "Cache" end
 function Cache:BeforeReload() end
 
 function Cache:AfterReload()
-    self.cache_path = configuration.path.cache
-    self.configuration = self.configuration or {cache_ttl = 24 * 3600}
+    self.configuration = self.configuration or {
+        cache_ttl = 24 * 3600
+    }
 
-    os.execute("mkdir -p " .. self.cache_path)
+    os.execute("mkdir -p " .. self:GetPath())
 end
 
 function Cache:Init() end
 
-function Cache:CacheFile(id) return string.format("%s/%s", self.cache_path, id) end
+function Cache:GetPath()
+    return self.config[CONFIG_KEY_CACHE_PATH]
+end
+
+function Cache:CacheFile(id) return string.format("%s/%s",self:GetPath(), id) end
 
 function Cache:UpdateCache(id, data)
     local r = SafeCall(function()
@@ -95,9 +103,9 @@ end
 function Cache:CheckCache()
     local total_size = 0
     local entry_count = 0
-    for file in lfs.dir(self.cache_path .. "/") do
+    for file in lfs.dir(self:GetPath() .. "/") do
         if file ~= "." and file ~= ".." then
-            local f = self.cache_path .. '/' .. file
+            local f = self:GetPath() .. '/' .. file
             local attr = lfs.attributes(f)
             if attr and attr.mode == "file" then
                 if os.time() > attr.modification + self.configuration.cache_ttl then

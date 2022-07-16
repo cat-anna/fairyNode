@@ -1,13 +1,18 @@
 -- local copas = require "copas"
 -- local lfs = require "lfs"
 -- local file = require "pl.file"
-local json = require "json"
+-- local json = require "json"
+
+-------------------------------------------------------------------------------
 
 local Daylight = {}
 Daylight.__index = Daylight
-Daylight.__deps = { }
-
-local config = require "configuration"
+Daylight.__deps = {
+    event_bus = "base/event-bus",
+    data_ro = "base/data-ro",
+}
+Daylight.__config = {
+}
 
 --All timestamps are in UTC
 
@@ -128,7 +133,7 @@ function Daylight:BeforeReload()
 end
 
 function Daylight:AfterReload()
-    self.last_update_timestamp=nil
+    self.last_update_timestamp = nil
     self:UpdateSunPosition()
 end
 
@@ -139,7 +144,8 @@ end
 
 function Daylight:CurrentDataFileName()
     local current_year = CurrentDate().year
-    local fn = string.format("%s/SunEarthTools_AnnualSunPath_%04d.csv", config.path.data, current_year)
+    local file_name = string.format("SunEarthTools_AnnualSunPath_%04d.csv", current_year)
+    local fn = self.data_ro:GetFilePath(file_name)
     print(self:LogTag(), "Using data file " .. fn)
     return fn
 end
@@ -194,6 +200,12 @@ function Daylight:UpdateSunPosition()
     self:UpdateProperty("sun_elevation", elevation.value)
 
     self.last_update_timestamp = current_time
+
+    self.event_bus:ProcessEvent({
+        event = "daylight.update",
+        "sun_azimuth", azimuth.value,
+        "sun_elevation", elevation.value,
+    })
 end
 
 function Daylight:UpdateProperty(name, updated)

@@ -4,6 +4,11 @@ local tablex = require "pl.tablex"
 
 local DateFormat = date.Format("yyyy-mm-dd HH:MM:SS")
 
+local current_log_file = io.open("fairy_node.log", "w")
+local function GetCurrentLogFile()
+    return current_log_file
+end
+
 local function FormatArgs(args)
     if not args then return {} end
     for i = 1, #args do args[i] = tostring(args[i]) end
@@ -21,13 +26,28 @@ local function logWrite(level_tag, args)
         table.concat(FormatArgs(args), " ")
     }
 
-    lua_print(table.concat(line, " "))
+    local line = table.concat(line, " ")
+    lua_print(line)
+
+    local f = GetCurrentLogFile()
+    if f then
+        f:write(line)
+        f:write("\n")
+        f:flush()
+    end
 end
 
 local function GenerateHandler(name)
     return function(...) logWrite(name, {...}) end
 end
 
+local function GenerateHandlerFormat(name)
+    return function(...)
+        logWrite(name, {string.format(...)})
+    end
+end
+
 LogInfo = GenerateHandler("Info ")
 LogError = GenerateHandler("Error")
 print = LogInfo
+printf = GenerateHandlerFormat("Info ")
