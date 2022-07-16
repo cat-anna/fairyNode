@@ -18,7 +18,7 @@ MosquittoClient.__index = MosquittoClient
 MosquittoClient.__alias = "mqtt-client"
 MosquittoClient.__deps = {
     event_bus = "event-bus",
-    -- last_will = "mqtt-client-last-will"
+    last_will = "mqtt-client-last-will"
 }
 MosquittoClient.__opt_deps = {
     last_will = "mqtt/mqtt-client-last-will",
@@ -75,10 +75,12 @@ function MosquittoClient:ResetClient()
                                         self.config[CONFIG_KEY_MQTT_PASSWORD])
     })
 
-    self:CheckMosquittoResult({
-        self.mosquitto_client:will_set(self.last_will.topic,
-                                       self.last_will.payload, 0, true)
-    })
+    if self.last_will then
+        self:CheckMosquittoResult({
+            self.mosquitto_client:will_set(self.last_will.topic,
+                                        self.last_will.payload, 0, true)
+        })
+    end
 
     self:CheckMosquittoResult({
         self.mosquitto_client:connect_async(self.config[CONFIG_KEY_MQTT_HOST],

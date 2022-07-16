@@ -1,5 +1,6 @@
 
 local path = require "pl.path"
+local socket = require "socket"
 
 -------------------------------------------------------------------------------
 
@@ -17,18 +18,20 @@ function Package.GetConfig(base_path)
             "base/event-bus",
             "base/event-timers",
             "base/error-reporter",
-            "base/data-cache",
-            "base/data-storage",
-            "base/data-ro",
         },
 
         ["loader.class.paths"] = { base_path .. "/host/lib/classes" },
 
+        ["rest.endpoint.paths"] = { base_path .. "/host/lib/rest/endpoint" },
+        ["rest.endpoint.list"] = { },
+
         ["module.data.storage.path"] = cwd .. "/runtime/storage",
         ["module.data.cache.path"] = cwd .. "/runtime/cache",
-        ["module.data.ro.path"] = { base_path .. "/host/data", },
+        ["module.data.ro.paths"] = { base_path .. "/host/data", },
 
         ["plantuml.host.url"] = "http://www.plantuml.com/plantuml",
+
+        ["module.homie-client.name"] = socket.dns.gethostname()
     }
 end
 

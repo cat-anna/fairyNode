@@ -4,7 +4,8 @@
 local ConfigHandler = { }
 ConfigHandler.__index = ConfigHandler
 ConfigHandler.__default_config = {
-    ["debug"] = { default = false, type="boolean", }
+    ["debug"] = { default = false, type="boolean", },
+    ["verbose"] = { default = false, type="boolean", },
 }
 
 function ConfigHandler:Init()

@@ -1,4 +1,5 @@
 local lfs = require "lfs"
+local path = require "pl.path"
 
 local M = {}
 
@@ -20,6 +21,17 @@ function M.GetLuaFiles(base_dir)
     end
     table.sort(files, function(a, b) return a.path < b.path end)
     return files
+end
+
+function M.FindScriptByPathList(name, ...)
+    for _,base_path_list in ipairs({...}) do
+        for _,base_path in ipairs(base_path_list) do
+            local full = base_path .. "/" .. name .. ".lua"
+            if path.isfile(full) then
+                return path.normpath(full)
+            end
+        end
+    end
 end
 
 return M

@@ -34,9 +34,7 @@ PlantUml.__config = {
 
 function PlantUml:BeforeReload() end
 
-function PlantUml:AfterReload()
-
-end
+function PlantUml:AfterReload()end
 
 function PlantUml:Init() end
 

@@ -18,6 +18,11 @@ MqttProvider.__deps = {
 -------------------------------------------------------------------------------
 
 function MqttProvider:AfterReload()
+    if self.mqtt_client:IsConnected() then
+        self:OnMqttConnected()
+    else
+        self:OnMqttDisconnected()
+    end
 end
 
 function MqttProvider:BeforeReload()

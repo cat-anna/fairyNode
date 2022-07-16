@@ -1,11 +1,12 @@
 local copas = require "copas"
 local lfs = require "lfs"
+local fs = require "lib/fs"
 local path = require "pl.path"
 local file = require "pl.file"
 
 -------------------------------------------------------------------------------
 
-local CONFIG_KEY_RODATA_PATH = "module.data.ro.path"
+local CONFIG_KEY_RODATA_PATH = "module.data.ro.paths"
 
 -------------------------------------------------------------------------------
 

@@ -1,13 +1,17 @@
 local http = require "lib/http-code"
 local copas = require "copas"
-local modules = require("lib/loader-module")
+-- local modules = require("lib/loader-module")
+
+-------------------------------------------------------------------------------------
 
 local ServiceCommand = {}
 ServiceCommand.__index = ServiceCommand
 ServiceCommand.__deps = {
-    event_bus = "event-bus",
+    event_bus = "base/event-bus",
     -- mqtt = "mqtt-provider"
 }
+
+-------------------------------------------------------------------------------------
 
 function ServiceCommand:LogTag()
     return "ServiceCommand"
@@ -82,7 +86,7 @@ function ServiceCommand:AfterReload()
     self.commands = self.commands or {}
 
     self:RegisterCommand("ServiceCommand", "exit", nil, function(...) return self:ExitCommand(...) end)
-    self:RegisterCommand("ServiceCommand", "reload_modules", nil, function(...) return self:ReloadModules(...) end)
+    -- self:RegisterCommand("ServiceCommand", "reload_modules", nil, function(...) return self:ReloadModules(...) end)
 end
 
 function ServiceCommand:Init()
@@ -90,7 +94,7 @@ function ServiceCommand:Init()
 end
 
 function ServiceCommand:ReloadModules()
-    modules.Reload()
+    -- modules.Reload()
     return true
 end
 
@@ -111,5 +115,7 @@ function ServiceCommand:ExitCommand()
     end)
     return true
 end
+
+-------------------------------------------------------------------------------------
 
 return ServiceCommand

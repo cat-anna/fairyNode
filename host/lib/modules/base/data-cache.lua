@@ -78,7 +78,9 @@ function Cache:GetFromCache(id)
         local attr = lfs.attributes(file_name)
 
         if (not attr) or attr.mode ~= "file" then
-            print("NOT IN CACHE:", id)
+            if self.config.verbose then
+                print("NOT IN CACHE:", id)
+            end
             return
         end
 
@@ -89,9 +91,10 @@ function Cache:GetFromCache(id)
             return
         end
 
-        if configuration.debug then
+        if self.config.verbose then
             print("CACHE GET:", id)
         end
+
         lfs.touch(file_name)
         local data = file.read(file_name)
 

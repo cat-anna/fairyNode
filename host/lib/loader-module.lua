@@ -26,14 +26,14 @@ function ModuleLoader:ReloadModuleMetatable(module)
     if not module.file then
         module.file = self:FindModuleFile(module.name)
         if not module.file then
-            printf("MODLE: Failed to find file for module %s", module.name)
+            printf("MODULES: Failed to find file for module %s", module.name)
             return false
         end
     end
 
     local file_attrib = lfs.attributes(module.file)
     if not file_attrib then
-        printf("MODLE: Failed to get attributes of file for module %s", module.name)
+        printf("MODULES: Failed to get attributes of file for module %s", module.name)
         return false
     end
 
@@ -47,6 +47,8 @@ function ModuleLoader:ReloadModuleMetatable(module)
         printf("MODULES: Message: %s", new_metatable)
         return false
     end
+    new_metatable.__type = new_metatable.__type or "module"
+    assert(new_metatable.__type == "module")
 
     new_metatable.__index = new_metatable.__index or new_metatable
     module.metatable = new_metatable
@@ -56,29 +58,45 @@ function ModuleLoader:ReloadModuleMetatable(module)
 end
 
 function ModuleLoader:UpdateModuleAlias(module)
-    local alias = module.metatable.__alias
-    if alias then
-        if self.loaded_modules[alias] then
-            assert(self.loaded_modules[alias].name == module.name)
-        else
-            module.alias = alias
-            self.loaded_modules[alias] = module
-            printf("MODULES: module %s aliased to %s", module.name, alias)
-        end
+    local metatable = module.metatable
+    if not metatable then
+        return false
     end
+
+    local alias = metatable.__alias
+    if alias then
+        local aliased = self.loaded_modules[alias]
+        if aliased and aliased.loading_as_dependency == nil then
+            -- assert(aliased.name == module.name)
+            return true
+        end
+
+        module.alias = alias
+        self.loaded_modules[alias] = module
+        printf("MODULES: module %s aliased to %s", module.name, alias)
+    end
+
     return true
 end
 
 function ModuleLoader:UpdateModuleDeps(module)
     local metatable = module.metatable
+    if not metatable then
+        return false
+    end
     if metatable.__deps == nil then
         return true
     end
 
     for member, dep_name in pairs(metatable.__deps) do
         local dep = self.loaded_modules[dep_name]
+        if not dep then
+            printf("MODULES: Module %s dependency %s is unknown. Marking to load", module.name, dep_name)
+            self:LoadDependency(dep_name)
+            return false
+        end
 
-        if (not dep) or (not dep.instance) or (not dep.initialized) then
+        if (not dep.instance) or (not dep.initialized) then
             printf("MODULES: Module %s dependency %s is not yet satisfied", module.name, dep_name)
             return false
         else
@@ -91,6 +109,28 @@ end
 
 function ModuleLoader:UpdateModuleConfig(module)
     module.instance.config = config_handler:Query(module.instance.__config or {})
+    return true
+end
+
+function ModuleLoader:UpdateObjectDeps(object, deps)
+    deps = deps or object.__deps
+
+    for member, dep_name in pairs(deps or {}) do
+        local dep = self.loaded_modules[dep_name]
+        if not dep then
+            printf("MODULES: Object %s dependency %s is unknown. Marking to load", tostring(object), dep_name)
+            self:LoadDependency(dep_name)
+            return false
+        end
+
+        if (not dep.instance) or (not dep.initialized) then
+            printf("MODULES: Object %s dependency %s is not yet satisfied", tostring(object), dep_name)
+            return false
+        else
+            object[member] = dep.instance
+        end
+    end
+
     return true
 end
 
@@ -122,19 +162,20 @@ function ModuleLoader:UpdateModule(module)
         return
     end
 
-    if not module.initialized and module.instance.Init then
-        local success, err_msg = pcall(function()
-            module.instance:Init()
-        end)
+    if not module.initialized then
+        if module.instance.Init then
+            local success, err_msg = pcall(function()
+                module.instance:Init()
+            end)
 
-        if not success then
-            module.instance = nil
-            print("MODULES: Failed to initialize module:", module.name)
-            print("MODULES: Error:", err_msg)
-            return
-        else
-            module.initialized = true
+            if not success then
+                module.instance = nil
+                print("MODULES: Failed to initialize module:", module.name)
+                print("MODULES: Error:", err_msg)
+                return
+            end
         end
+        module.initialized = true
     end
 
     if module.instance.AfterReload then
@@ -142,6 +183,8 @@ function ModuleLoader:UpdateModule(module)
     end
 
     module.needs_reload = false
+    module.loading_as_dependency = nil
+
     printf("MODULES: Reloaded module: %s", module.name)
 
     for _,target in pairs(self.watchers) do
@@ -171,24 +214,43 @@ function ModuleLoader:FindModuleFile(name)
             return full
         end
     end
+    printf("MODULES: Failed to find source for module %s", name)
 end
 
-function ModuleLoader:PreCreateModule(name)
-    local m = {
-        name = name,
-        timestamp = 0,
-        type = "module",
-        initialized = false,
-        needs_reload = true,
-    }
-    self.loaded_modules[name] = m
-    return m
+function ModuleLoader:LoadModule(name)
+    printf("MODULES: Loading module %s", name)
+    local m = self:InitModule(name)
+    if m.needs_reload then
+        self:UpdateModule(m)
+    end
+    return m.instance
+end
+
+function ModuleLoader:LoadDependency(name)
+    if not self.loaded_modules[name] then
+        local m = self:InitModule(name)
+        m.loading_as_dependency = true
+    end
+end
+
+function ModuleLoader:InitModule(name)
+    if not self.loaded_modules[name] then
+        self.loaded_modules[name] = {
+            name = name,
+            timestamp = 0,
+            type = "module",
+            initialized = false,
+            needs_reload = true,
+            instance = { }
+        }
+    end
+    return self.loaded_modules[name]
 end
 
 -------------------------------------------------------------------------------
 
 function ModuleLoader:RegisterStaticModule(name, instance)
-    local m = self:PreCreateModule(name)
+    local m = self:InitModule(name)
     m.static = true
     m.instance = instance
     m.needs_reload = false
@@ -210,6 +272,11 @@ function ModuleLoader:RegisterWatcher(name, functor)
     self.watchers[name] = functor
 end
 
+function ModuleLoader:GetModule(name)
+    local m = self.loaded_modules[name] or { }
+    return m.instance
+end
+
 -------------------------------------------------------------------------------
 
 function ModuleLoader:Init()
@@ -219,7 +286,7 @@ function ModuleLoader:Init()
     self.config = config_handler:Query(self.__config)
 
     for _,v in pairs(self.config[CONFIG_KEY_LIST]) do
-       self:PreCreateModule(v)
+       self:InitModule(v)
     end
 
     self:RegisterStaticModule("base/loader-module", self)

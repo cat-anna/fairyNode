@@ -18,7 +18,7 @@ MqttClient.__index = MqttClient
 MqttClient.__alias = "mqtt/mqtt-client"
 MqttClient.__deps = {
     event_bus = "base/event-bus",
-    -- last_will = "mqtt/mqtt-client-last-will",
+    last_will = "mqtt/mqtt-client-last-will",
 }
 MqttClient.__opt_deps = {
     last_will = "mqtt/mqtt-client-last-will",
@@ -48,7 +48,7 @@ function MqttClient:ResetClient()
         reconnect = 1,
         keep_alive = self.config[CONFIG_KEY_MQTT_KEEP_ALIVE],
         version = mqtt.v311,
-        -- will = self.last_will
+        will = self.last_will
     }
     mqtt_client:on {
         connect = function(...) self:HandleConnect(...) end,
@@ -98,6 +98,7 @@ function MqttClient:HandleMessage(msg)
     local payload = msg.payload
 
     self.event_bus:PushEvent({
+        silent = true,
         event = "mqtt-client.message",
         argument = {topic=topic,payload=payload}
     })
@@ -116,6 +117,7 @@ function MqttClient:PublishMessage(topic, payload, retain)
     }
 
     self.event_bus:PushEvent({
+        silent = true,
         event = "mqtt-client.publish",
         argument = { topic=topic, payload=payload }
     })

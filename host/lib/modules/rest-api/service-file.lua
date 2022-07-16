@@ -3,10 +3,14 @@ local copas = require "copas"
 local file = require "pl.file"
 local path = require "pl.path"
 
+-------------------------------------------------------------------------------
+
 local ServiceFile = {}
 ServiceFile.__index = ServiceFile
 ServiceFile.__deps = {
 }
+
+-------------------------------------------------------------------------------
 
 local FileSearchPaths = {
     "./files",
@@ -18,12 +22,15 @@ local MimeTypes = {
     [".html"] = "text/html",
     [".css"] = 	"text/css",
 }
+
 local function DetectMimeType(fn)
     local base
     local ext
     base, ext = path.splitext(fn)
     return MimeTypes[ext] or "text/plain"
 end
+
+-------------------------------------------------------------------------------
 
 function ServiceFile:LogTag()
     return "ServiceFile"
@@ -58,5 +65,7 @@ end
 
 function ServiceFile:Init()
 end
+
+-------------------------------------------------------------------------------
 
 return ServiceFile

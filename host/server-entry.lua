@@ -39,8 +39,8 @@ require_alternative("dkjson", {"json", "cjson"})
 
 local args = lapp [[
 FairyNode server entry
-    --debug            Enter debug mode
-    --package (string) Load package
+    --debug               Enter debug mode
+    -p,--package (string) Load package
 ]]
     -- <args...> (string) Key=Value config items to set
 
@@ -57,11 +57,13 @@ local package_loader = require "lib/loader-package"
 package_loader:Load(fairy_node_base)
 
 if args.package then
-    package_loader:Load(args.package)
+    local pkgs = string.split(args.package,",")
+    for _,v in ipairs(pkgs) do
+        package_loader:Load(v)
+    end
 end
 
-require "lib/loader-class"
 require "lib/loader-module"
--- require "lib/loader-rest-api"
+require "lib/loader-class"
 
 copas.loop()

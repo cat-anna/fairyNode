@@ -65,15 +65,23 @@ end
 
 -------------------------------------------------------------------------------
 
+local CONFIG_KEY_HOMIE_NAME = "module.homie-client.name"
+
+-------------------------------------------------------------------------------
+
 local HomieClient = {}
 HomieClient.__index = HomieClient
 HomieClient.__deps = {
-    mqtt = "mqtt-provider",
-    mqtt_client = "mqtt-client",
-    event_bus = "event-bus",
-    timers = "event-timers",
-    homie_common = "homie-common",
+    mqtt = "mqtt/mqtt-provider",
+    event_bus = "base/event-bus",
+    timers = "base/event-timers",
+    homie_common = "homie/homie-common",
 }
+HomieClient.__config = {
+    [CONFIG_KEY_HOMIE_NAME] = { type = "string", default = socket.dns.gethostname(), required = true },
+}
+
+-------------------------------------------------------------------------------
 
 function HomieClient:Publish(sub_topic, payload, retain)
     local retain_flag = (retain ~= nil) and retain or self.retain
@@ -105,31 +113,6 @@ function HomieClient:EnterInitState()
     self:Publish("/$fw/FairyNode/os", "linux")
 
     self:Publish("/$name", self.client_name)
-
--- MQTT: homie/Lamp2/$fw/FairyNode/config/hash <- 9c8d71ff7f14e5d33884fcbccefe13b8
--- MQTT: homie/Lamp2/$fw/FairyNode/config/timestamp <- 1614022976
--- MQTT: homie/Lamp2/$fw/FairyNode/lfs/hash <- 615a995a616178163713b6fa5a0d06af
--- MQTT: homie/Lamp2/$fw/FairyNode/lfs/timestamp <- 1614023689
--- MQTT: homie/Lamp2/$fw/FairyNode/root/hash <- c871498a53818e351b51b94b4d0c6a55
--- MQTT: homie/Lamp2/$fw/FairyNode/root/timestamp <- 1581243232
-
--- MQTT: homie/Lamp2/$fw/NodeMcu/git_branch <- release
--- MQTT: homie/Lamp2/$fw/NodeMcu/git_commit_dts <- 202102010145
--- MQTT: homie/Lamp2/$fw/NodeMcu/git_commit_id <- 136e09739b835d6dcdf04034141d70ab755468c6
--- MQTT: homie/Lamp2/$fw/NodeMcu/git_release <- 3.0.0-release_20210201
--- MQTT: homie/Lamp2/$fw/NodeMcu/lfs_size <- 131072
--- MQTT: homie/Lamp2/$fw/NodeMcu/number_type <- float
--- MQTT: homie/Lamp2/$fw/NodeMcu/ssl <- false
--- MQTT: homie/Lamp2/$fw/NodeMcu/version <- 3.0.0
-
--- MQTT: homie/Lamp2/$hw/chip_id <- 569754
--- MQTT: homie/Lamp2/$hw/flash_id <- 164020
--- MQTT: homie/Lamp2/$hw/flash_mode <- 2
--- MQTT: homie/Lamp2/$hw/flash_size <- 4096
--- MQTT: homie/Lamp2/$hw/flash_speed <- 40000000
-
--- MQTT: homie/Lamp2/$localip <- 192.168.2.105
--- MQTT: homie/Lamp2/$mac <- cc:50:e3:56:97:54
 
     self.nodes = {}
 
@@ -295,7 +278,7 @@ function HomieClient:AfterReload()
 end
 
 function HomieClient:Init()
-    self.client_name = socket.dns.gethostname()
+    self.client_name = self.config[CONFIG_KEY_HOMIE_NAME]
     self.base_topic = "homie/" .. self.client_name
     self.retain = true
 end
