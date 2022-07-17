@@ -774,7 +774,7 @@ function refresh() {
     }
 }
 
-function FairyNodeOverviewStart() {
+function FairyNodeStart() {
     FairyNode_InitOverview()
 
     refresh();

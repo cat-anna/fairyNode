@@ -2,9 +2,8 @@ var fn_src_base
 var fn_rest_base
 
 function FairyNodeExecute(page_name, src_base, rest_base) {
-
-    $.getScript(src_base + "overview.js", function() {
-        FairyNodeOverviewStart()
+    $.getScript(src_base + page_name + ".js", function() {
+        FairyNodeStart()
     });
     fn_src_base = src_base
     fn_rest_base = rest_base

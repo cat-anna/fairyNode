@@ -2,6 +2,7 @@ local lfs = require "lfs"
 local fs = require "lib/fs"
 local copas = require "copas"
 local config_handler = require "lib/config-handler"
+local uuid = require "uuid"
 
 -------------------------------------------------------------------------------
 
@@ -48,13 +49,14 @@ function ClassLoader:ReloadClass(class)
 
     local new_mt = dofile(class.file)
     new_mt.__type = new_mt.__type or "class"
-    assert(new_mt.__type == "class")
+    assert(new_mt.__type == "class" or new_mt.__type == "interface")
 
     if not new_mt.__index then
         new_mt.__index = new_mt
     end
 
     new_mt.__class = class.name
+    class.interface = new_mt.__type == "interface"
     class.metatable = new_mt
     class.timestamp = att.modification
 
@@ -114,13 +116,25 @@ function ClassLoader:GetClass(class_name)
     return self.loaded_classes[class_name]
 end
 
+function ClassLoader:EnumerateClasses(functor)
+    for k, v in pairs(self.loaded_classes) do
+        SafeCall(functor, k, v)
+    end
+end
+
 -------------------------------------------------------------------------------
 
 function ClassLoader:CreateObject(class_name, object_arg)
     local class = self:GetClass(class_name)
     assert(class ~= nil)
-    local obj = setmetatable({}, class.metatable)
-    table.insert(class.instances, obj)
+    assert(not class.interface)
+
+    local obj = {
+        uuid = uuid(),
+    }
+
+    obj = setmetatable(obj, class.metatable)
+    class.instances[obj.uuid] = obj
 
     self:UpdateObjectDeps(class, obj)
     if obj.Init then

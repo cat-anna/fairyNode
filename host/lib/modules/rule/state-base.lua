@@ -4,7 +4,7 @@ local tablex = require "pl.tablex"
 
 local State = {}
 State.__index = State
-State.__type = "class"
+State.__type = "interface"
 State.__class_name = "StateBase"
 State.__is_state_class = true
 
@@ -178,6 +178,12 @@ function State:GetDependencyList(list)
     end
     return r
 end
+
+-------------------------------------------------------------------------------------
+
+State.EventTable = {
+    ["timer.basic.30_second"] = State.OnTimer,
+}
 
 -------------------------------------------------------------------------------------
 

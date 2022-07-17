@@ -35,13 +35,9 @@ function RuleService:GenerateStateDiagram()
         "hide empty description", --
         "hide empty members", --
         "left to right direction", --
-        "scale 0.7" --
+        "scale 0.7", --
+        "",
     }
-
-    local function name_to_id(n)
-        local r = n:gsub("[%.-/]", "_")
-        return r
-    end
 
     local transition_names = {}
 
@@ -103,7 +99,7 @@ value: %s %s
 ..
 %s
 }
-]], mode, name_to_id(state.global_id), state:GetName(), state_style_text, value,
+]], mode,  self.plantuml:NameToId(state.global_id), state:GetName(), state_style_text, value,
                                          members, state.global_id)
 
         table.insert(lines, state_line)
@@ -111,12 +107,14 @@ value: %s %s
         transition_names[id] = state:GetSourceDependencyDescription()
     end
 
+    table.insert(lines, "")
+
     for _, state in pairs(self.rule_state:GetStates() or {}) do
         for _, dep in ipairs(state:GetSinkDependencyList() or {}) do
 
             local arrow = dep.virtual and "..>" or "-->"
 
-            local l = {name_to_id(state.global_id), arrow, name_to_id(dep.id)}
+            local l = { self.plantuml:NameToId(state.global_id), arrow,  self.plantuml:NameToId(dep.id)}
             if transition_names[dep] then
                 tablex.icopy(l, {":", transition_names[dep]}, #l + 1)
             end

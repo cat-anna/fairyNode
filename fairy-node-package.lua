@@ -18,6 +18,9 @@ function Package.GetConfig(base_path)
             "base/event-bus",
             "base/event-timers",
             "base/error-reporter",
+            "base/data-cache",
+            "base/data-storage",
+            "base/data-ro",
         },
 
         ["loader.class.paths"] = { base_path .. "/host/lib/classes" },

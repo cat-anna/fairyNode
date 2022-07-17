@@ -1,5 +1,6 @@
 
 local lfs = require "lfs"
+local uuid = require "uuid"
 local copas = require "copas"
 local path = require "pl.path"
 local config_handler = require "lib/config-handler"
@@ -258,7 +259,9 @@ function ModuleLoader:InitModule(name)
             type = "module",
             initialized = false,
             needs_reload = true,
-            instance = { }
+            instance = {
+                uuid = uuid(),
+            },
         }
     end
     return self.loaded_modules[name]
@@ -270,6 +273,7 @@ function ModuleLoader:RegisterStaticModule(name, instance)
     local m = self:InitModule(name)
     m.static = true
     m.instance = instance
+    m.instance.uuid = uuid()
     m.needs_reload = false
     m.initialized = true
     return m

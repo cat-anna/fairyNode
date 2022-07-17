@@ -50,7 +50,7 @@ function m.Unpack(packed_image)
       position = position + bytes
       return block
    end
-   
+
    local files = { }
 
    while true do
