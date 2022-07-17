@@ -1,12 +1,19 @@
 
 local StateHomie = {}
 StateHomie.__index = StateHomie
-StateHomie.__base = "State"
-StateHomie.__class = "StateHomie"
+StateHomie.__base = "rule/state-base"
+StateHomie.__class_name = "StateHomie"
 StateHomie.__type = "class"
 StateHomie.__deps =  {
-    homie_host = "homie-host",
+    homie_host = "homie/homie-host",
 }
+
+function StateHomie:Init(config)
+    self.super.Init(self, config)
+    self.property_instance = config.property_instance
+    self.property_path = config.property_path
+    self:Update()
+end
 
 function StateHomie:GetValue()
     if self.property_instance then
@@ -42,16 +49,17 @@ function StateHomie:Update()
     if not self.subscribed and self.property_instance then
         self.property_instance:Subscribe(self.global_id, self)
     end
+
+    return self.super.Update(self)
 end
 
-function StateHomie:PropertyStateChanged(property)
-    local v =  property:GetValue()
-    self.subscribed = v ~= nil
+function StateHomie:PropertyStateChanged(property, value)
+    self.subscribed = value ~= nil
     if not self.subscribed then
         return
     end
     -- print(self:GetLogTag(), "PropertyStateChanged")
-    self:CallSinkListeners(property:GetValue())
+    self:CallSinkListeners(value)
     if self.expected_value_valid and not self:HasSinkDependencies() then
         self:SetValue(self.expected_value)
     end
@@ -61,30 +69,8 @@ function StateHomie:SourceChanged(source, source_value)
     self:SetValue(source_value)
 end
 
-function StateHomie:Create(config)
-    self.BaseClass.Create(self, config)
-    self.property_instance = config.property_instance
-    self.property_path = config.property_path
-    self:Update()
-end
-
 function StateHomie:IsReady()
-    return self.subscribed and self:GetValue() ~= nil
+    return self.subscribed and (self:GetValue() ~= nil)
 end
 
-return {
-    Class = StateHomie,
-    BaseClass = "State",
-
-    __deps = {
-        class_reg = "state-class-reg",
-        state = "state-base",
-    },
-
-    AfterReload = function(instance)
-        local BaseClass = instance.state.Class
-        StateHomie.BaseClass = BaseClass
-        setmetatable(StateHomie, { __index = BaseClass })
-        instance.class_reg:RegisterStateClass(StateHomie)
-    end,
-}
+return StateHomie

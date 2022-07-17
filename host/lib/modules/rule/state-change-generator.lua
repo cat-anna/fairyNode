@@ -1,10 +1,27 @@
 local tablex = require "pl.tablex"
 
+-------------------------------------------------------------------------------------
+
 local StateChangeGenerator = {}
 StateChangeGenerator.__index = StateChangeGenerator
-StateChangeGenerator.__class = "StateChangeGenerator"
-StateChangeGenerator.__base = "State"
+StateChangeGenerator.__class_name = "StateChangeGenerator"
+StateChangeGenerator.__base = "rule/state-base"
 StateChangeGenerator.__type = "class"
+
+-------------------------------------------------------------------------------------
+
+function StateChangeGenerator:Init(config)
+    self.super.Init(self, config)
+    self.interval = config.interval
+    self.value = config.value
+    if self.value == nil then
+        self.value = false
+    end
+    self.last_update_timestamp = os.time()
+end
+
+
+-------------------------------------------------------------------------------------
 
 function StateChangeGenerator:LocallyOwned()
     return true, "boolean"
@@ -17,7 +34,7 @@ end
 -- end
 
 function StateChangeGenerator:GetDescription()
-    local r = self.BaseClass.GetDescription(self)
+    local r = self.super.GetDescription(self)
     table.insert(r, "interval: " .. tostring(self.interval) .. "s")
     return r
 end
@@ -50,28 +67,6 @@ end
 
 function StateChangeGenerator:IsReady() return true end
 
-function StateChangeGenerator:Create(config)
-    self.BaseClass.Create(self, config)
-    self.interval = config.interval
-    self.value = config.value
-    if self.value == nil then
-        self.value = false
-    end
-    self.last_update_timestamp = os.time()
-end
-
 function StateChangeGenerator:OnTimer(config) self:Update() end
 
-return {
-    Class = StateChangeGenerator,
-    BaseClass = "State",
-
-    __deps = {class_reg = "state-class-reg", state = "state-base"},
-
-    AfterReload = function(instance)
-        local BaseClass = instance.state.Class
-        StateChangeGenerator.BaseClass = BaseClass
-        setmetatable(StateChangeGenerator, {__index = BaseClass})
-        instance.class_reg:RegisterStateClass(StateChangeGenerator)
-    end
-}
+return StateChangeGenerator

@@ -114,3 +114,7 @@ function string.format_seconds(t)
     return table.concat(r, " ")
 end
 
+local quotepattern = '(['..("%^$().[]*+-?"):gsub("(.)", "%%%1")..'])'
+string.escape = function(str)
+    return str:gsub(quotepattern, "%%%1")
+end

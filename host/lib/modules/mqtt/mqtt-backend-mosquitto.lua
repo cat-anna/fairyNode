@@ -231,7 +231,7 @@ function MosquittoClient:IsConnected() return self.connected end
 function MosquittoClient:AfterReload() end
 
 function MosquittoClient:LoopThread()
-    print("MOSQUITTO: starting...")
+    print("MOSQUITTO: Starting...")
     self:ResetClient()
 
     while true do

@@ -26,7 +26,6 @@ MqttClient.__opt_deps = {
 MqttClient.__config = {
     [CONFIG_KEY_MQTT_HOST] = { type = "string", required = true, },
     [CONFIG_KEY_MQTT_KEEP_ALIVE] = { type = "integer", required = false, default = 10 },
-
     [CONFIG_KEY_MQTT_USER] = { type = "string", required = true },
     [CONFIG_KEY_MQTT_PASSWORD] = { type = "string", required = true },
 }
@@ -149,7 +148,7 @@ function MqttClient:Init()
 
     copas.addthread(function()
         copas.sleep(1)
-        print("MQTT-CLIENT: starting...")
+        print("MQTT-CLIENT: Starting...")
         self:ResetClient()
         mqttloop:add(self.mqtt_client)
 

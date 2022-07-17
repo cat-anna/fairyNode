@@ -1,10 +1,30 @@
 local tablex = require "pl.tablex"
 
+-------------------------------------------------------------------------------------
+
 local StateFunction = {}
 StateFunction.__index = StateFunction
-StateFunction.__class = "StateFunction"
-StateFunction.__base = "State"
+StateFunction.__class_name = "StateFunction"
+StateFunction.__base = "rule/state-base"
 StateFunction.__type = "class"
+
+-------------------------------------------------------------------------------------
+
+function StateFunction:Init(config)
+    self.super.Init(self, config)
+
+    self.errors = {}
+    config.setup_errors(function() return self:LogTag() end, self.errors)
+
+    self.func = config.func
+    self.funcG = config.funcG
+    self.object = config.object
+    self.dynamic = config.dynamic
+    self.info_func = config.info_func
+    self.ready = true
+end
+
+-------------------------------------------------------------------------------------
 
 function StateFunction:LocallyOwned() return true, self.result_type end
 
@@ -15,7 +35,7 @@ function StateFunction:LocallyOwned() return true, self.result_type end
 -- end
 
 function StateFunction:GetDescription()
-    local r = self.BaseClass.GetDescription(self)
+    local r = self.super.GetDescription(self)
     if self.info_func then
         local call_result = {pcall(self.info_func, self.object)}
         if call_result[1] then
@@ -84,32 +104,10 @@ function StateFunction:IsReady()
     return self.ready
 end
 
-function StateFunction:Create(config)
-    self.BaseClass.Create(self, config)
-
-    self.errors = {}
-    config.setup_errors(function() return self:LogTag() end, self.errors)
-
-    self.func = config.func
-    self.funcG = config.funcG
-    self.object = config.object
-    self.dynamic = config.dynamic
-    self.info_func = config.info_func
-    self.ready = true
+function StateFunction:OnTimer(config)
+    if self.dynamic then
+        self:Update()
+    end
 end
 
-function StateFunction:OnTimer(config) if self.dynamic then self:Update() end end
-
-return {
-    Class = StateFunction,
-    BaseClass = "State",
-
-    __deps = {class_reg = "state-class-reg", state = "state-base"},
-
-    AfterReload = function(instance)
-        local BaseClass = instance.state.Class
-        StateFunction.BaseClass = BaseClass
-        setmetatable(StateFunction, {__index = BaseClass})
-        instance.class_reg:RegisterStateClass(StateFunction)
-    end
-}
+return StateFunction

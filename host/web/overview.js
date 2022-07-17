@@ -671,7 +671,10 @@ function UpdateDevice(entry) {
         GetOrCreateDiv("INFO_" + pages_id, pages_id, my_class + " DevicePage DevicePageButton tab_button", { html: "Device info", data: "INFO" }),
         GetOrCreateDiv("CMD_" + pages_id, pages_id, my_class + " DevicePage DevicePageButton tab_button", { html: "Commands", data: "CMD" }),
     ]
-    if (first)
+
+    var del_btn = GetOrCreateDiv("DELETE_" + pages_id, pages_id, my_class + " DevicePageButtonDelete ", { html: "&nbsp;", data: "DELETE" })
+
+    if (first) {
         for (var i in btns) {
             $(btns[i]).click(function (event) {
                 $(".DevicePage.tab_active." + my_class).removeClass("tab_active")
@@ -680,6 +683,12 @@ function UpdateDevice(entry) {
                 $(this).addClass("tab_button_active")
             });
         }
+        $(del_btn).click(function (event) {
+            HomieDeleteDevice(entry.name, function(resp) {
+                setTimeout(function() { window.location.reload(true); }, 10000);
+            })
+        });
+    }
 
     var pages = [
         SetDeviceNodesPage(entry, sub_id, "NODES_" + sub_id),

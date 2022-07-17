@@ -70,7 +70,7 @@ function RestServer:AddEndpoint(endpoint_def)
 
     for _,endpoint in ipairs(endpoint_def.endpoints) do
         if endpoint.service_method then
-            endpoint.handler = self:HandlerModule(module, endpoint.service_method)
+            endpoint.handler = self:HandlerModule(endpoint_def.service, module, endpoint.service_method)
             endpoint_def.service_method = nil
         end
     end
@@ -92,7 +92,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function RestServer:StartServer()
+function RestServer:InitServer()
     copas.sleep(1)
     local port = self.config[CONFIG_KEY_REST_PORT]
     local server = restserver:new()
@@ -102,16 +102,24 @@ function RestServer:StartServer()
         ["Access-Control-Allow-Origin"] = "*"
     })
     self:LoadEndpoints()
-    printf("REST: Starting server started on port %d", port)
-    server:enable("lib.rest.restserver.xavante"):start()
-    print("REST: Server stopped")
-    self.server = nil
-    self.server_thread = nil
+    printf("REST: Starting server initialized on port %d", port)
+end
+
+function RestServer:StartServer()
+    if not self.server_thread  then
+        self.server_thread = copas.addthread(function()
+            copas.sleep(1)
+            self.server:enable("lib.rest.restserver.xavante"):start()
+            print("REST: Server stopped")
+            self.server = nil
+            self.server_thread = nil
+        end)
+    end
 end
 
 -------------------------------------------------------------------------------
 
-function RestServer:HandlerModule(module, handler_name)
+function RestServer:HandlerModule(module_name, module, handler_name)
     local f = function(...)
         local args = { ... }
         local code, result, content_type
@@ -123,7 +131,7 @@ function RestServer:HandlerModule(module, handler_name)
             -- print(string.format("REST-REQUEST: %s.%s(%s)", module, handler_name, ConcatRequest(args, "; ")))
             local handler = (module or {})[handler_name]
             if not handler then
-                print(string.format("No handler for request : %s.%s(%s)", module, handler_name, ConcatRequest(args, "; ")))
+                print(string.format("No handler for request : %s.%s(%s)", module_name, handler_name, ConcatRequest(args, "; ")))
                 return
             end
             table.insert(args, request.params or {})
@@ -159,12 +167,14 @@ function RestServer:BeforeReload()
 end
 
 function RestServer:AfterReload()
-    if not self.server_thread then
-        self.server_thread = copas.addthread(function() self:StartServer() end)
-    end
 end
 
 function RestServer:Init()
+    copas.addthread(function() self:InitServer() end)
 end
+
+RestServer.EventTable = {
+    ["app.start"] = RestServer.StartServer
+}
 
 return RestServer

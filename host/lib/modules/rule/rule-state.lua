@@ -15,11 +15,13 @@ return true
 local RuleState = {}
 RuleState.__index = RuleState
 RuleState.__deps = {
-    event_bus = "event-bus",
-    timers = "event-timers",
-    storage = "storage",
-    rule_import = "rule-state-import",
+    event_bus = "base/event-bus",
+    timers = "base/event-timers",
+    storage = "base/data-storage",
+    rule_import = "rule/rule-state-import",
 }
+
+-------------------------------------------------------------------------------------
 
 function RuleState:Init()
     self.pending_states = {}
@@ -87,10 +89,10 @@ function RuleState:CheckUpdateQueue()
         for _,v in ipairs(self.pending_states) do
             local call_success, r = SafeCall(v.Update, v)
             if (not call_success) or (not r) then
-                print("RULE-SIMPLE: State " .. v.global_id .. " is not yet ready")
+                print("RULE-STATE: State " .. v.global_id .. " is not yet ready")
                 table.insert(t, v)
             else
-                print("RULE-SIMPLE: State " .. v.global_id .. " became ready")
+                print("RULE-STATE: State " .. v.global_id .. " became ready")
             end
         end
         self.pending_states = t
@@ -98,8 +100,6 @@ function RuleState:CheckUpdateQueue()
         self.ready = true
     end
 end
-
--------------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------------
 
@@ -124,15 +124,15 @@ function RuleState:SaveRule(rule_text)
 end
 
 function RuleState:GetRuleScriptId()
-    return string.format("rule.simple.lua")
+    return string.format("rule.state.lua")
 end
 
 function RuleState:GetRuleConfigId()
-    return string.format("rule.simple.json")
+    return string.format("rule.state.json")
 end
 
 function RuleState:RuleError(rule, error_key, message)
-    print(string.format("RULE-SIMPLE: ERROR: %s -> %s", error_key, message))
+    print(string.format("RULE-STATE: ERROR: %s -> %s", error_key, message))
 end
 
 function RuleState:ReloadRule()

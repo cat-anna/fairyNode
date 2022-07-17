@@ -1,54 +1,54 @@
-return function(server)
-    local rest = require("lib/rest")
-
-    server:add_resource("device", {
+return {
+    service = "homie/service-homie",
+    resource = "device",
+    endpoints = {
         {
             method = "GET",
             path = "/",
             produces = "application/json",
-            handler = rest.HandlerModule("service-device", "ListDevices"),
-        },
-
-        {
+            service_method = "ListDevices"
+        }, {
             method = "GET",
             path = "/{[^/]+}/node/{[^/]+}",
             produces = "application/json",
-            handler = rest.HandlerModule("service-device", "GetNode"),
-        },
-        {
+            service_method = "GetNode"
+        }, {
             method = "GET",
             path = "/{[^/]+}/node/{[^/]+}/{[^/]+}",
             produces = "application/json",
-            handler = rest.HandlerModule("service-device", "GetProperty"),
-        },
-        {
+            service_method = "GetProperty"
+        }, {
             method = "GET",
             path = "/{[^/]+}/history/{[^/]+}/{[^/]+}",
             produces = "application/json",
-            handler = rest.HandlerModule("service-device", "GetPropertyHistory"),
-        },
-
-        {
+            service_method = "GetPropertyHistory"
+        }, {
             method = "POST",
             path = "/{[^/]+}/node/{[^/]+}/{[^/]+}",
             consumes = "application/json",
             produces = "application/json",
-            handler = rest.HandlerModule("service-device", "SetProperty"),
+            service_method = "SetProperty"
         },
         {
             method = "POST",
             path = "/{[^/]+}/command",
             consumes = "application/json",
             produces = "application/json",
-            handler = rest.HandlerModule("service-device", "SendCommand"),
+            service_method = "SendCommand"
+        },
+        {
+            method = "POST",
+            path = "/{[^/]+}/delete",
+            consumes = "application/json",
+            produces = "application/json",
+            service_method = "DeleteDevice"
         },
         {
             method = "GET",
             path = "/{[^/]+}/command/result",
             consumes = "application/json",
             produces = "application/json",
-            handler = rest.HandlerModule("service-device", "GetCommandResult"),
-        },
-    })
-
-end
+            service_method = "GetCommandResult"
+        }
+    }
+}

@@ -3,7 +3,7 @@ local http = require "lib/http-code"
 local DevSrv = {}
 DevSrv.__index = DevSrv
 DevSrv.__deps = {
-    device = "homie-host"
+    device = "homie/homie-host"
 }
 
 function DevSrv:BeforeReload()
@@ -100,6 +100,20 @@ function DevSrv:GetNode(request, device, node)
     local dev = self.device:GetDevice(device)
     local node = dev.nodes[node]
     return http.OK, node
+end
+
+function DevSrv:DeleteDevice(request, device)
+    local dev = self.device:GetDevice(device)
+    if not dev then
+        printf("SERVICE-HOMIE: Cannot remove non-existing device '%s'", device)
+        return http.BadRequest, {}
+    end
+
+    if not self.device:DeleteDevice(device) then
+        return http.ServiceUnavailable, {}
+    end
+
+    return http.OK, {}
 end
 
 function DevSrv:SendCommand(request, device)

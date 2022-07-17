@@ -7,8 +7,8 @@ local RuleService = {}
 RuleService.__index = RuleService
 RuleService.__deps = {
     -- rule_script = "rule-script",
-    rule_state = "rule-state",
-    plantuml = "plantuml"
+    rule_state = "rule/rule-state",
+    plantuml = "util/plantuml"
 }
 
 function RuleService:BeforeReload() end

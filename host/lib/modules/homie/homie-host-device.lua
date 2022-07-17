@@ -1,5 +1,5 @@
 local json = require "json"
-
+local scheduler = require "lib/scheduler"
 ------------------------------------------------------------------------------
 
 local HomieDevice = {}
@@ -13,6 +13,59 @@ HomieDevice.__deps = {
     event_bus = "base/event-bus",
     cache = "base/data-cache",
 }
+
+------------------------------------------------------------------------------
+
+local HomieStates = {
+--homie 3.0
+    init="init",
+    ready = "ready",
+    lost="lost",
+-- extension
+    ota="ota",
+}
+local HomieTopicState = "/$state"
+
+------------------------------------------------------------------------------
+
+function HomieDevice:Init(arg)
+    self.name = arg.name
+    self.id = arg.id
+    self.homie_version = arg.homie_version
+    self.history = arg.history
+    self.configuration = arg.configuration
+
+    self.active_errors = {}
+    self.variables = { }
+    self.nodes = {}
+    self.subscriptions = {}
+end
+
+function HomieDevice:BeforeReload()
+    self:Finalize()
+end
+
+function HomieDevice:AfterReload()
+    for _,n in pairs(self.nodes) do
+        setmetatable(n, self:GetNodeMT())
+        for _,p in pairs(n.properties or {}) do
+            setmetatable(p, self:GetPropertyMT(n))
+        end
+    end
+
+    self:WatchTopic(HomieTopicState, self.HandleStateChanged)
+    self:WatchTopic("/$nodes", self.HandleNodes)
+    self:WatchRegex("/$hw/#", self.HandleDeviceInfo)
+    self:WatchRegex("/$fw/#", self.HandleDeviceInfo)
+    self:WatchTopic("/$mac", self.HandleDeviceInfo)
+    self:WatchTopic("/$localip", self.HandleDeviceInfo)
+    self:WatchTopic("/$implementation", self.HandleDeviceInfo)
+    self:WatchTopic("/$cmd/output", self.HandleCommandOutput)
+end
+
+function HomieDevice:Finalize()
+    self.mqtt:StopWatching(self:MqttId())
+end
 
 ------------------------------------------------------------------------------
 
@@ -52,6 +105,10 @@ function HomieDevice:GetPropertyMT(parent_node)
         return property.value
     end
     function mt.SetValue(property, value)
+        if self.deleting then
+            print(self:LogTag() ..  string.format("Failed to set value %s.%s - deleting device", parent_node.id, property.id))
+            return
+        end
         if not property.settable then
             error(self:LogTag() .. string.format(" %s.%s is not settable", parent_node.id, property.id))
         end
@@ -64,10 +121,13 @@ function HomieDevice:GetPropertyMT(parent_node)
         return string.format("%s.%s.%s", self.id, parent_node.id, property.id)
     end
     function mt.Subscribe(property, id, handler)
+        if self.deleting then
+            print(self:LogTag() .. "Failed to add subscription to " .. id .. " deleting device")
+            return
+        end
         print(self:LogTag() .. "Adding subscription to " .. id)
 
         local my_id = property:GetId()
-        self.subscriptions = self.subscriptions or {}
         if not self.subscriptions[my_id] then
             self.subscriptions[my_id] = setmetatable({}, { __mode = "v" })
         end
@@ -75,16 +135,14 @@ function HomieDevice:GetPropertyMT(parent_node)
         local prop_subs = self.subscriptions[my_id]
         prop_subs[id] = handler
         if property.value ~= nil then
-            handler:PropertyStateChanged(property)
+            handler:PropertyStateChanged(property, property:GetValue())
         end
     end
     function mt.CallSubscriptions(property)
-        if self.subscriptions then
-            local list = self.subscriptions[property:GetId()]
-            if list then
-                for _,v in pairs(list) do
-                    SafeCall(function() v:PropertyStateChanged(property) end)
-                end
+        local list = self.subscriptions[property:GetId()]
+        if list then
+            for _,v in pairs(list) do
+                SafeCall(function() v:PropertyStateChanged(property, property:GetValue()) end)
             end
         end
     end
@@ -100,6 +158,13 @@ function HomieDevice:WatchRegex(topic, handler)
 end
 
 function HomieDevice:HandleStateChanged(topic, payload)
+    if not payload then
+        scheduler.CallLater(function()
+            self:Delete()
+        end)
+        return
+    end
+
     self.event_bus:PushEvent({
         event = "device.event.state-change",
         argument = {
@@ -248,9 +313,16 @@ function HomieDevice:GetHistory(node_name, property_name)
 end
 
 function HomieDevice:HandlePropertyValue(topic, payload)
+    if not payload then
+        return
+    end
     local node_name, prop_name = topic:match("/([^/]+)/([^/]+)$")
 
     local node = self.nodes[node_name]
+    if not node then
+        print(self:LogTag() .. string.format("property %s.%s is unknown", node_name, prop_name))
+        return
+    end
     local property = node.properties[prop_name]
 
     local changed = true
@@ -317,9 +389,16 @@ function HomieDevice:HandlePropertyValue(topic, payload)
 end
 
 function HomieDevice:HandlePropertyConfigValue(topic, payload)
+    if not payload then
+        return
+    end
     local node_name, prop_name, config_name = topic:match("/([^/]+)/([^/]+)/$([^/]+)$")
 
     local node = self.nodes[node_name]
+    if not node then
+        print(self:LogTag() .. string.format("property %s.%s is unknown", node_name, prop_name))
+        return
+    end
     local property = node.properties[prop_name]
 
     local formatters = {
@@ -353,12 +432,19 @@ function HomieDevice:GetHistoryId(node_id, prop_id)
 end
 
 function HomieDevice:HandleNodeProperties(topic, payload)
-    local props = (payload or ""):split(",")
+    if not payload then
+        return
+    end
+    local props = payload:split(",")
     local node_name = topic:match("/([^/]+)/$properties$")
 
     print(self:LogTag() .. string.format("node (%s) properties (%d): %s", node_name, #props, payload))
 
     local node = self.nodes[node_name]
+    if not node then
+        print(self:LogTag() .. string.format("node %s is unknown", node_name))
+        return
+    end
     if not node.properties then
         node.properties = {}
     end
@@ -395,6 +481,9 @@ function HomieDevice:HandleNodeProperties(topic, payload)
 end
 
 function HomieDevice:HandleNodeValue(topic, payload)
+    if not payload then
+        return
+    end
     local node_name, value = topic:match("/([^/]+)/$(.+)$")
     local node = self.nodes[node_name]
 
@@ -407,7 +496,10 @@ function HomieDevice:HandleNodeValue(topic, payload)
 end
 
 function HomieDevice:HandleNodes(topic, payload)
-    local nodes = (payload or ""):split(",")
+    if not payload then
+        return
+    end
+    local nodes = payload:split(",")
     print("HomieDevice: nodes (" .. tostring(#nodes) .. "): ", payload)
 
     local existing_nodes = {}
@@ -447,6 +539,9 @@ function HomieDevice:HandleDeviceInfo(topic, payload)
 end
 
 function HomieDevice:HandleCommandOutput(topic, payload)
+    if not payload then
+        return
+    end
     local cb = self.command_pending
     self.command_pending = nil
     if not cb then
@@ -481,33 +576,9 @@ function HomieDevice:SendEvent(event)
     self.mqtt:PublishMessage(self:BaseTopic() .. "/$event", event, false)
 end
 
-function HomieDevice:BeforeReload()
-    self.mqtt:StopWatching(self:MqttId())
-end
-
-function HomieDevice:AfterReload()
-    self.variables = self.variables or { }
-    self.nodes = self.nodes or {}
-
-    for _,n in pairs(self.nodes) do
-        setmetatable(n, self:GetNodeMT())
-        for _,p in pairs(n.properties or {}) do
-            setmetatable(p, self:GetPropertyMT(n))
-        end
-    end
-
-    self:WatchTopic("/$state", self.HandleStateChanged)
-    self:WatchTopic("/$nodes", self.HandleNodes)
-    self:WatchRegex("/$hw/#", self.HandleDeviceInfo)
-    self:WatchRegex("/$fw/#", self.HandleDeviceInfo)
-    self:WatchTopic("/$mac", self.HandleDeviceInfo)
-    self:WatchTopic("/$localip", self.HandleDeviceInfo)
-    self:WatchTopic("/$implementation", self.HandleDeviceInfo)
-    self:WatchTopic("/$cmd/output", self.HandleCommandOutput)
-end
-
-function HomieDevice:Init()
-    self.active_errors = {}
+function HomieDevice:Publish(topic, payload, retain)
+    print(self:LogTag() .. "Publishing: " .. topic .. "=" .. payload)
+    self.mqtt:PublishMessage(self:BaseTopic() .. topic, payload, retain or false)
 end
 
 HomieDevice.AdditionalHistoryHandlers = {
@@ -572,6 +643,50 @@ function HomieDevice:GetNodeMcuCommitId()
         return
     end
     return self.variables["fw/NodeMcu/git_commit_id"]
+end
+
+function HomieDevice:Delete()
+    if self.deleting then
+        return
+    end
+    self.deleting = true
+    print(self:LogTag() .. "Deleting device " .. self.name)
+
+    self.event_bus:PushEvent({
+        event = "device.delete.start",
+        device = self.name,
+    })
+
+    self:Finalize()
+    self:Publish(HomieTopicState, HomieStates.lost, true)
+
+    for _,n in pairs(self.nodes) do
+        for _,p in pairs(n.properties or {}) do
+           p.value = nil
+           p:CallSubscriptions()
+        end
+    end
+
+    scheduler.Delay(1, function()
+        print(self:LogTag() .. "Starting topic clear")
+        self:WatchRegex("/#", self.HandleTopicClear)
+    end)
+    scheduler.Delay(5, function()
+        self.event_bus:PushEvent({
+            event = "device.delete.finished",
+            device = self.name,
+        })
+        self:Finalize()
+        self.host:FinishDeviceRemoval(self.name)
+    end)
+end
+
+function HomieDevice:HandleTopicClear(topic, payload)
+    payload = payload or ""
+    if payload ~= "" then
+        print(self:LogTag() .. "Clearing: " .. topic .. "=" .. payload)
+        self.mqtt:PublishMessage(topic, "", true)
+    end
 end
 
 ------------------------------------------------------------------------------

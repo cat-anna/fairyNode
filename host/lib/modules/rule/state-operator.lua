@@ -1,8 +1,4 @@
-local StateOperator = {}
-StateOperator.__index = StateOperator
-StateOperator.__class = "StateOperator"
-StateOperator.__base = "State"
-StateOperator.__type = "class"
+
 
 -------------------------------------------------------------------------------------
 
@@ -60,6 +56,25 @@ local function MakeFunctionOperator(func)
             return {result = func(table.unpack(raw))}
         end
     }
+end
+
+-------------------------------------------------------------------------------------
+
+local StateOperator = {}
+StateOperator.__index = StateOperator
+StateOperator.__class_name = "StateOperator"
+StateOperator.__base = "rule/state-base"
+StateOperator.__type = "class"
+
+-------------------------------------------------------------------------------------
+
+function StateOperator:Init(config)
+    self.super.Init(self, config)
+    self.operator = config.operator
+    self.range = config.range
+    self:RetireValue()
+
+    assert(self.OperatorFunctors[self.operator])
 end
 
 -------------------------------------------------------------------------------------
@@ -165,7 +180,7 @@ function StateOperator:Update()
 end
 
 function StateOperator:GetDescription()
-    local r = self.BaseClass.GetDescription(self)
+    local r = self.super.GetDescription(self)
     table.insert(r, "function: " .. self:GetFunctionDescription())
     -- table.insert(r, "operator: " .. self.operator)
     return r
@@ -181,27 +196,4 @@ function StateOperator:GetSourceDependencyDescription() return nil end
 
 -------------------------------------------------------------------------------------
 
-function StateOperator:Create(config)
-    self.BaseClass.Create(self, config)
-    self.operator = config.operator
-    self.range = config.range
-    self:RetireValue()
-
-    assert(self.OperatorFunctors[self.operator])
-end
-
--------------------------------------------------------------------------------------
-
-return {
-    Class = StateOperator,
-    BaseClass = "State",
-
-    __deps = {class_reg = "state-class-reg", state = "state-base"},
-
-    AfterReload = function(instance)
-        local BaseClass = instance.state.Class
-        StateOperator.BaseClass = BaseClass
-        setmetatable(StateOperator, {__index = BaseClass})
-        instance.class_reg:RegisterStateClass(StateOperator)
-    end
-}
+return StateOperator

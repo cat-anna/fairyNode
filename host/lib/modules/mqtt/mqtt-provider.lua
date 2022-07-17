@@ -2,7 +2,10 @@ local scheduler = require "lib/scheduler"
 
 -------------------------------------------------------------------------------
 
+
 local function topic2regexp(topic)
+    local escape_pattern = '(['..("%^$().[]*-?"):gsub("(.)", "%%%1")..'])'
+    topic = topic:gsub(escape_pattern, "%%%1")
     return "^" .. topic:gsub("+", "([^/]+)"):gsub("#", "(.*)") .. "$"
 end
 
@@ -128,7 +131,7 @@ function MqttProvider:StopWatching(id)
         end
         local r = {}
         for i,v in ipairs(list) do
-            if v.id ~= id then
+            if not v.id:match(id) then
                 table.insert(r, v)
             end
         end

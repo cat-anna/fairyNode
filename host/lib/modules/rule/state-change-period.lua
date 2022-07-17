@@ -1,10 +1,22 @@
 local tablex = require "pl.tablex"
 
+-------------------------------------------------------------------------------------
+
 local StateMaxChangePeriod = {}
 StateMaxChangePeriod.__index = StateMaxChangePeriod
-StateMaxChangePeriod.__class = "StateMaxChangePeriod"
-StateMaxChangePeriod.__base = "State"
+StateMaxChangePeriod.__class_name = "StateMaxChangePeriod"
 StateMaxChangePeriod.__type = "class"
+StateMaxChangePeriod.__base = "rule/state-base"
+
+-------------------------------------------------------------------------------------
+
+function StateMaxChangePeriod:Init(config)
+    self.super.Init(self, config)
+    self.delay = config.delay
+    self:RetireValue()
+end
+
+-------------------------------------------------------------------------------------
 
 function StateMaxChangePeriod:LocallyOwned()
     return true, self.result_type
@@ -17,7 +29,7 @@ end
 -- end
 
 function StateMaxChangePeriod:GetDescription()
-    local r = self.BaseClass.GetDescription(self)
+    local r = self.super.GetDescription(self)
     table.insert(r, "Max change period: " .. string.format_seconds(self.delay))
     return r
 end
@@ -66,24 +78,6 @@ end
 
 function StateMaxChangePeriod:IsReady() return true end
 
-function StateMaxChangePeriod:Create(config)
-    self.BaseClass.Create(self, config)
-    self.delay = config.delay
-    self:RetireValue()
-end
-
 function StateMaxChangePeriod:OnTimer(config) self:Update() end
 
-return {
-    Class = StateMaxChangePeriod,
-    BaseClass = "State",
-
-    __deps = {class_reg = "state-class-reg", state = "state-base"},
-
-    AfterReload = function(instance)
-        local BaseClass = instance.state.Class
-        StateMaxChangePeriod.BaseClass = BaseClass
-        setmetatable(StateMaxChangePeriod, {__index = BaseClass})
-        instance.class_reg:RegisterStateClass(StateMaxChangePeriod)
-    end
-}
+return StateMaxChangePeriod

@@ -17,8 +17,9 @@ function FairyNodeStart(src_base, rest_base, style, page_name) {
 
     $.getScript(src_base + "Chart.bundle.min.js", function() {})
     $.getScript(src_base + "moment.min.js", function() {})
-
-    $.getScript(src_base + "common.js", function() {
-        FairyNodeExecute(page_name, src_base, rest_base)
-    });
+    $.getScript(src_base + "endpoint.js", function() {
+        $.getScript(src_base + "common.js", function() {
+            FairyNodeExecute(page_name, src_base, rest_base)
+        });
+    })
 }

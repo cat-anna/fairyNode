@@ -1,8 +1,21 @@
+
+-------------------------------------------------------------------------------------
+
 local StateTime = {}
 StateTime.__index = StateTime
-StateTime.__class = "StateTime"
-StateTime.__base = "State"
+StateTime.__class_name = "StateTime"
 StateTime.__type = "class"
+StateTime.__base = "rule/state-base"
+
+-------------------------------------------------------------------------------------
+
+function StateTime:Init(config)
+    self.super.Init(self, config)
+    self.range = config.range
+    self.current_value = self:CheckSchedule()
+end
+
+-------------------------------------------------------------------------------------
 
 function StateTime:LocallyOwned() return true, "boolean" end
 
@@ -43,22 +56,4 @@ function StateTime:CheckSchedule()
     end
 end
 
-function StateTime:Create(config)
-    self.BaseClass.Create(self, config)
-    self.range = config.range
-    self.current_value = self:CheckSchedule()
-end
-
-return {
-    Class = StateTime,
-    BaseClass = "State",
-
-    __deps = {class_reg = "state-class-reg", state = "state-base"},
-
-    AfterReload = function(instance)
-        local BaseClass = instance.state.Class
-        StateTime.BaseClass = BaseClass
-        setmetatable(StateTime, {__index = BaseClass})
-        instance.class_reg:RegisterStateClass(StateTime)
-    end
-}
+return StateTime

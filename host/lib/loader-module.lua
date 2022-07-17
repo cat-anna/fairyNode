@@ -195,13 +195,30 @@ function ModuleLoader:UpdateModule(module)
 end
 
 function ModuleLoader:Update()
-    local all = true
-    for _,module in pairs(self.loaded_modules) do
+    local pending = { }
+    for module_name,module in pairs(self.loaded_modules) do
         if not self:UpdateModule(module) then
-            all = false
+            table.insert(pending, module_name)
         end
     end
-    return all
+
+    if  #pending > 0 then
+        self.all_loaded = false
+        printf("MODULES: Pending modules: (%d) %s", #pending, table.concat(pending, ","))
+        return true
+    else
+        if self.config.verbose or not self.config.debug then
+            print("MODULES: All modules are loaded")
+        end
+
+        if not self.all_loaded then
+            for _,target in pairs(self.watchers) do
+                SafeCall(function() target:AllModulesLoaded() end)
+            end
+        end
+        self.all_loaded = true
+        return false
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -293,11 +310,16 @@ function ModuleLoader:Init()
 
     self.update_thread = copas.addthread(function()
         copas.sleep(1)
-        local continue = true
-        while continue do
-            continue = self:Update() or self.config.debug
-            copas.sleep(5)
+        print("MODULES: Loading thread started")
+
+        local loading = true
+        while loading or self.config.debug do
+            loading = self:Update()
+            copas.sleep(loading and 1 or 5)
         end
+
+        print("MODULES: Loading thread finished")
+        self.update_thread = nil
     end)
 end
 

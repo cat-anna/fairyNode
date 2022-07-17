@@ -33,6 +33,16 @@ function EventBus:AfterReload()
 end
 
 function EventBus:Init()
+    self.notify_once = { }
+end
+
+function EventBus:AllModulesLoaded()
+    self:PushEvent({ event = "module.load_complete", })
+
+    if not self.notify_once.app_start then
+        self:PushEvent({ event = "app.start", })
+        self.notify_once.app_start = true
+    end
 end
 
 function EventBus:ModuleReloaded(module_name)

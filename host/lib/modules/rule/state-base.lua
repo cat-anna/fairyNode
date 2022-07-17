@@ -5,11 +5,34 @@ local tablex = require "pl.tablex"
 local State = {}
 State.__index = State
 State.__type = "class"
-State.__class = "State"
+State.__class_name = "StateBase"
 State.__is_state_class = true
 
 -------------------------------------------------------------------------------------
 
+function State:Init(config)
+    self.global_id = config.global_id
+    self.class_id = config.class_id
+    self.name = config.name
+
+    if type(config.description) ~= "table" then
+        self.description = {config.description}
+    else
+        self.description = config.description
+    end
+
+    self.sink_dependencies = {}
+    self.source_dependencies = {}
+
+    for k, v in pairs(config.source_dependencies or {}) do
+        self:AddSourceDependency(v, type(k) == "string" and k or nil)
+    end
+    for _, v in ipairs(config.sink_dependencies or {}) do
+        self:AddSinkDependency(v)
+    end
+end
+
+function State:BeforeReload() end
 function State:AfterReload() end
 
 --------------------------------------------------------------------------
@@ -156,36 +179,6 @@ function State:GetDependencyList(list)
     return r
 end
 
-function State:Create(config)
-    assert(self.global_id)
-    self.name = config.name
-    if type(config.description) ~= "table" then
-        self.description = {config.description}
-    else
-        self.description = config.description
-    end
-
-    self.sink_dependencies = {}
-    self.source_dependencies = {}
-
-    for k, v in pairs(config.source_dependencies or {}) do
-        self:AddSourceDependency(v, type(k) == "string" and k or nil)
-    end
-    for _, v in ipairs(config.sink_dependencies or {}) do
-        self:AddSinkDependency(v)
-    end
-end
-
 -------------------------------------------------------------------------------------
 
-return {
-    Class = State,
-    -- BaseClass = nil,
-
-    __deps = {
-        class_reg = "state-class-reg",
-    },
-
-    Init = function(instance)
-    end
-}
+return State

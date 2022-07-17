@@ -6,9 +6,22 @@ local stringx = require "pl.stringx"
 local RuleStateImport = {}
 RuleStateImport.__index = RuleStateImport
 RuleStateImport.__deps = {
-    device_tree = "device-tree",
-    datetime_utils = "datetime-utils",
-    state_class_reg = "state-class-reg"
+    device_tree = "homie/device-tree",
+    datetime_utils = "util/datetime-utils",
+    class = "base/loader-class",
+}
+RuleStateImport.__config = {
+}
+
+local StateClassMapping = {
+    StateOperator = "rule/state-operator",
+    StateHomie = "rule/state-homie",
+    StateTime = "rule/state-time",
+    StateFunction = "rule/state-function",
+    StateMovingAvg = "rule/state-avg-moving",
+    StateMapping = "rule/state-mapping",
+    StateMaxChangePeriod = "rule/state-change-period",
+    StateChangeGenerator = "rule/state-change-generator",
 }
 
 -------------------------------------------------------------------------------------
@@ -94,7 +107,7 @@ local function MakeBooleanOperator(env, operator, limit)
         end
         env.assert(operator)
         return MakeStateRule {
-            class = "StateOperator",
+            class = StateClassMapping.StateOperator,
             operator = operator,
             source_dependencies = data
         }
@@ -135,7 +148,7 @@ local function MakeNumericOperator(env, operator)
             threshold = threshold_as_num
         end
         return MakeStateRule {
-            class = "StateOperator",
+            class = StateClassMapping.StateOperator,
             operator = operator,
             source_dependencies = deps,
             range = {threshold = threshold}
@@ -159,7 +172,7 @@ local function MakeMathFunction(env, operator)
             end
         end
         return MakeStateRule {
-            class = "StateOperator",
+            class = StateClassMapping.StateOperator,
             operator = operator,
             source_dependencies = deps,
             range = {threshold = threshold}
@@ -180,7 +193,7 @@ local function MakeRangeOperator(env)
             return
         end
         return MakeStateRule {
-            class = "StateOperator",
+            class = StateClassMapping.StateOperator,
             operator = "range",
             source_dependencies = {data[1]},
             range = {min = tonumber(data[2]), max = tonumber(data[3])}
@@ -195,7 +208,7 @@ local function MakeTimeSchedule(env)
             return
         end
         return MakeStateRule {
-            class = "StateTime",
+            class = StateClassMapping.StateTime,
             range = {from = tonumber(data[1]), to = tonumber(data[2])}
         }
     end
@@ -219,7 +232,7 @@ local function MakeMaxChangePeriod(env)
             return
         end
         return MakeStateRule {
-            class = "StateMaxChangePeriod",
+            class = StateClassMapping.StateMaxChangePeriod,
             source_dependencies = {data[1]},
             delay = delay_as_num
         }
@@ -238,7 +251,7 @@ local function MakeBooleanGenerator(env)
             return
         end
         return MakeStateRule {
-            class = "StateChangeGenerator",
+            class = StateClassMapping.StateChangeGenerator,
             interval = interval,
             value = data[2]
         }
@@ -253,7 +266,7 @@ local function MakeMapping(env)
             env.error("Boolean operator requires three arguments")
         end
         return MakeStateRule {
-            class = "StateMapping",
+            class = StateClassMapping.StateMapping,
             mapping_mode = "any",
             source_dependencies = {data[1]},
             mapping = data[2]
@@ -267,7 +280,7 @@ local function MakeStringMapping(env)
     --         env.error("Boolean operator requires three arguments")
     --     end
     --     return MakeStateRule{
-    --         class = "StateMapping",
+    --         class = StateClassMapping.StateMapping,
     --         mapping_mode = "string",
     --         source_dependencies = {data[1]},
     --         mapping = data[2],
@@ -281,7 +294,7 @@ local function MakeBooleanMapping(env)
             env.error("BooleanMapping operator requires three arguments")
         end
         return MakeStateRule {
-            class = "StateMapping",
+            class = StateClassMapping.StateMapping,
             source_dependencies = {data[1]},
             mapping_mode = "boolean",
             mapping = {[true] = data[2], [false] = data[3]}
@@ -295,7 +308,7 @@ local function MakeIntegerMapping(env)
     --     env.error("TimeSchedule operator requires two arguments")
     -- end
     -- return MakeStateRule{
-    --     class = "StateTime",
+    --     class = StateClassMapping.StateTime,
     --     range = {from = tonumber(data[1]), to = tonumber(data[2])}
     -- }
     -- end
@@ -315,7 +328,7 @@ local function MakeMovingAvg(env)
         end
         return MakeStateRule {
             source_dependencies = {data[1]},
-            class = "StateMovingAvg",
+            class = StateClassMapping.StateMovingAvg,
             period = data.period
         }
     end
@@ -344,7 +357,7 @@ local function MakeFunction(env)
 
         return MakeStateRule {
             source_dependencies = data.input or {},
-            class = "StateFunction",
+            class = StateClassMapping.StateFunction,
             info_func = data.info,
             func = func,
             funcG = funcG,
@@ -430,7 +443,7 @@ local function AddSink(env, _, source, sink, virtual)
         return
     end
     if virtual == nil then
-        virtual = true -- configuration.debug or nil
+        virtual = env.debug_mode
     end
     source:AddSinkDependency(sink, virtual)
 end
@@ -439,13 +452,11 @@ end
 
 function RuleStateImport:ImportHomieState(env_object, property_path, homie_property,
                                           homie_device)
-    local class_reg = self.state_class_reg
-
     local homie_id = string.format("%s.%s.%s", property_path.device, property_path.node, property_path.property)
     local global_id = string.format("Homie.%s", homie_id)
     if not env_object.states[global_id] then
-        env_object.states[global_id] = class_reg:Create({
-            class = "StateHomie",
+        env_object.states[global_id] = self.class:CreateObject(StateClassMapping.StateHomie, {
+            class = StateClassMapping.StateHomie,
             name = homie_id,
             global_id = global_id,
             class_id = homie_id,
@@ -479,7 +490,7 @@ function RuleStateImport:AddState(env_object, definition)
 
         ValidateMapping(env_object, state_def)
 
-        local obj = class_reg:Create(state_def)
+        local obj = self.class:CreateObject(state_def.class, state_def)
         env_object.states[global_id] = obj
         env_object.env.State[definition.name] = obj
         return obj
@@ -492,7 +503,9 @@ function RuleStateImport:AddState(env_object, definition)
 end
 
 function RuleStateImport:CreateStateEnv()
-    local env = {}
+    local env = {
+        debug_mode = self.config.debug
+    }
     local object = {env = env, states = {}, errors = {}, state_prototype = {}}
 
     local StateMt = {}

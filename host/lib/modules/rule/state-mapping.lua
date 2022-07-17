@@ -1,10 +1,23 @@
 local tablex = require "pl.tablex"
+-------------------------------------------------------------------------------------
 
 local StateMapping = {}
 StateMapping.__index = StateMapping
-StateMapping.__base = "State"
-StateMapping.__class = "StateMapping"
+StateMapping.__base = "rule/state-base"
+StateMapping.__class_name = "StateMapping"
 StateMapping.__type = "class"
+
+-------------------------------------------------------------------------------------
+
+function StateMapping:Init(config)
+    self.super.Init(self, config)
+    self.mapping = config.mapping
+    self.result_type = config.result_type
+    self.mapping_mode = config.mapping_mode
+    self:RetireValue()
+end
+
+-------------------------------------------------------------------------------------
 
 function StateMapping:LocallyOwned() return true, self.result_type end
 
@@ -66,26 +79,6 @@ end
 
 function StateMapping:IsReady() return self.cached_value_valid end
 
-function StateMapping:Create(config)
-    self.BaseClass.Create(self, config)
-    self.mapping = config.mapping
-    self.result_type = config.result_type
-    self.mapping_mode = config.mapping_mode
-    self:RetireValue()
-end
-
 function StateMapping:OnTimer(config) self:Update() end
 
-return {
-    Class = StateMapping,
-    BaseClass = "State",
-
-    __deps = {class_reg = "state-class-reg", state = "state-base"},
-
-    AfterReload = function(instance)
-        local BaseClass = instance.state.Class
-        StateMapping.BaseClass = BaseClass
-        setmetatable(StateMapping, {__index = BaseClass})
-        instance.class_reg:RegisterStateClass(StateMapping)
-    end
-}
+return StateMapping

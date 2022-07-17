@@ -61,8 +61,10 @@ end
 
 function HomeHost:GetDeviceList()
     local r = {}
-    for k,_ in pairs(self.devices) do
-        table.insert(r, k)
+    for k,v in pairs(self.devices) do
+        if not v.deleting then
+            table.insert(r, k)
+        end
     end
     return r
 end
@@ -77,7 +79,7 @@ end
 function HomeHost:FindDeviceById(id)
     for _,v in pairs(self.devices) do
         print(id, v.variables["hw/chip_id"], v.name)
-        if v.variables["hw/chip_id"] == id then
+        if (not v.deleting) and v.variables["hw/chip_id"] == id then
             return v
         end
     end
@@ -121,6 +123,24 @@ function HomeHost:FindProperty(path)
     end
 
     return n.properties[property]
+end
+
+function HomeHost:DeleteDevice(device)
+    local dev = self:GetDevice(device)
+    if not dev then
+        return false
+    end
+
+    printf("HOMIE-HOST: Deleting device '%s'", device)
+    dev:Delete()
+
+    return true
+end
+
+function HomeHost:FinishDeviceRemoval(device)
+    self.devices[device] = nil
+    self.history[device] = nil
+    printf("HOMIE-HOST: Device '%s' removal finished", device)
 end
 
 ------------------------------------------------------------------------------

@@ -1,8 +1,30 @@
 local tablex = require "pl.tablex"
+-------------------------------------------------------------------------------------
 
 local StateMovingAvg = {}
 StateMovingAvg.__index = StateMovingAvg
-StateMovingAvg.__class = "StateMovingAvg"
+StateMovingAvg.__class_name = "StateMovingAvg"
+StateMovingAvg.__base = "rule/state-base"
+StateMovingAvg.__type = "class"
+StateMovingAvg.__deps = {
+    cache = "base/data-cache",
+}
+-------------------------------------------------------------------------------------
+
+function StateMovingAvg:Init(config)
+    self.super.Init(self, config)
+
+    self.samples =  {}
+    local cache = self.cache:GetFromCache(self.global_id)
+    if cache then
+        self.samples = cache.samples or { }
+    end
+
+    self.period = config.period
+    self:RetireValue()
+end
+
+-------------------------------------------------------------------------------------
 
 function StateMovingAvg:LocallyOwned()
     return true, self.result_type
@@ -15,7 +37,7 @@ end
 -- end
 
 function StateMovingAvg:GetDescription()
-    local r = self.BaseClass.GetDescription(self)
+    local r = self.super.GetDescription(self)
     table.insert(r, "Samples: " .. tostring(#self.samples))
     if self.period then
         table.insert(r, "Avg period: " .. string.format_seconds(self.period))
@@ -96,28 +118,4 @@ function StateMovingAvg:IsReady()
     return true
 end
 
-function StateMovingAvg:Create(config)
-    self.samples =  {}
-    local cache = self.cache:GetFromCache(self.global_id)
-    if cache then
-        self.samples = cache.samples or { }
-    end
-
-    self.BaseClass.Create(self, config)
-    self.period = config.period
-    self:RetireValue()
-end
-
-return {
-    Class = StateMovingAvg,
-    BaseClass = "State",
-
-    __deps = {class_reg = "state-class-reg", state = "state-base"},
-
-    AfterReload = function(instance)
-        local BaseClass = instance.state.Class
-        StateMovingAvg.BaseClass = BaseClass
-        setmetatable(StateMovingAvg, {__index = BaseClass})
-        instance.class_reg:RegisterStateClass(StateMovingAvg)
-    end
-}
+return StateMovingAvg

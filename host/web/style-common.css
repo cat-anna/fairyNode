@@ -283,9 +283,24 @@ html {
     /* border: 1px solid red; */
     border-radius: 10px;
     margin-left: 5px;
-    ;
     margin-right: 5px;
-    ;
+}
+
+.DevicePageButtonDelete {
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    float: right;
+    clear: none;
+    text-align: center;
+    display: block;
+    /* border: 1px solid red; */
+    /* margin-left: 5px; */
+    /* margin-right: 5px; */
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAHYAAAB2AH6XKZyAAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAetJREFUeJztm78uREEYxX+LAlkliZAIJbWER1DRrEK8gjcQ3kbW7gOoadY7iILV0bCrUFHsJciMvXPvzJ6V+/2Sr5ncnDnfyf0zO3svxKcGHAJXQB94L1l94BI4yLTHmkmgSfmmfXWWzTG2nJKu+c86Hlk3gcwAPdIH8AJMxzI9EUsI2ATqEfV8zGVzRWEqlhAw7xnfL6nbcowtlNT8ImYAvrOpHXGOYXPphP4rFoDagBrfPWAbWA7U2vKMNwJ1ysz1Fw9AJ+/BLdI/z0ddrqeJXQIWgNqAmsoHEEID981FjctT7idP5c8AC0BtQI0FoDagxgJQG1BjAagNqIm5J+jDtSrrMPh9/p1lBvsQv0mxp1iIokvhvEvV1PpOKn8JWABqA2osALUBNRaA2oAaC0BtQI0FoDagxgJQG1BjAagNqLEA1AbUWABqA2oqH8AodoXzvuPfDjg2GpU/AywAtQE1FoDagBoLQG1ATUgAPc/4YgwjBVnyjD/nFQgJ4N4zfhSgERvf3N28AiErrxqDEFzfEbSAC+A1QK8MdWAH99/gXWCFRG+xnqB/739YJf2wsg7cjkGTvroBZpN1n7EBPIkbddUjsJ6w7x+sAdeJGwqpDrCatGMHNWAPOAfugLcCxovWWzZnE9ilxM/oD011gNdOg6eyAAAAAElFTkSuQmCC);
+    background-size: contain;
+    background-repeat: no-repeat;
+    cursor: pointer;
 }
 
 .DevicePageContent {

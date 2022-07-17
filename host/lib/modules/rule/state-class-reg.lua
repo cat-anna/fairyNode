@@ -1,13 +1,23 @@
 
+-- return {
+--     Class = StateOperator,
+--     BaseClass = "State",
+
+--     AfterReload = function(instance)
+--         local BaseClass = instance.state.Class
+--         StateOperator.BaseClass = BaseClass
+--         setmetatable(StateOperator, {__index = BaseClass})
+--         instance.class_reg:RegisterStateClass(StateOperator)
+--     end
+-- }
+
+
 local StateClassReg = {}
 StateClassReg.__index = StateClassReg
 StateClassReg.__deps = {
     cache = "cache",
     homie_host = "homie-host",
 }
-
-function StateClassReg:BeforeReload()
-end
 
 function StateClassReg:AfterReload()
     for _,v in pairs(self.created_states or {}) do

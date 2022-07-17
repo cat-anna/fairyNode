@@ -40,9 +40,8 @@ require_alternative("dkjson", {"json", "cjson"})
 local args = lapp [[
 FairyNode server entry
     --debug               Enter debug mode
-    -p,--package (string) Load package
+    <packages...> (string) Packages to load
 ]]
-    -- <args...> (string) Key=Value config items to set
 
 local config_handler = require "lib/config-handler"
 config_handler:SetBaseConfig{
@@ -56,11 +55,8 @@ config_handler:SetCommandLineArgs{
 local package_loader = require "lib/loader-package"
 package_loader:Load(fairy_node_base)
 
-if args.package then
-    local pkgs = string.split(args.package,",")
-    for _,v in ipairs(pkgs) do
-        package_loader:Load(v)
-    end
+for _,v in ipairs(args.packages) do
+    package_loader:Load(v)
 end
 
 require "lib/loader-module"

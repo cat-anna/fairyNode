@@ -1,3 +1,4 @@
+local lfs = require "lfs"
 local fs = require "lib/fs"
 local copas = require "copas"
 local config_handler = require "lib/config-handler"
@@ -29,59 +30,22 @@ function ClassLoader:FindClassFile(class_name)
     return fn
 end
 
--- function ClassLoader.Reload(class, new_metatable, group, name, filename,
---                             filetime)
---     print("CLASS: Reloading class:", name)
-
---     if new_metatable.__disable then
---         print("CLASS: Disabled class:", name)
---         -- Module is disabled. Pretend to be not loaded
---         DisableModule(class, filetime)
---         return false, false
---     end
-
---     if not new_metatable.__index then new_metatable.__index = new_metatable end
-
---     local alias = new_metatable.__alias
---     if alias then
---         if loaded_classes[alias] then
---             assert(loaded_classes[alias].name == name)
---         else
---             class.alias = alias
---             loaded_classes[alias] = class
---         end
---         print("CLASS: class " .. name .. " aliased to " .. alias)
---     end
-
---     if not class.instances then return end
-
---     -- TODO
--- end
-
--- function ClassLoader:Create(group, name, filename, filetime)
-    -- print("CLASS: New class:", name)
-    -- local class = {
-    --     timestamp = 0,
-    --     name = name,
-    --     group = group,
-    --     -- black_listed = TestBlackList(name),
-    --     type = "class",
-    --     instances = setmetatable({}, {__mode = "v"})
-    -- }
-    -- loaded_classes[name] = class
-    -- if class.black_listed then
-    --     DisableModule(class, filetime)
-    --     return false,true
-    -- end
-    -- return class
--- end
+-------------------------------------------------------------------------------
 
 function ClassLoader:Update()
+    for _,class in pairs(self.loaded_classes) do
+        self:ReloadClass(class)
+    end
 end
 
 -------------------------------------------------------------------------------
 
 function ClassLoader:ReloadClass(class)
+    local att = lfs.attributes(class.file)
+    if att == nil or att.modification == class.timestamp then
+        return
+    end
+
     local new_mt = dofile(class.file)
     new_mt.__type = new_mt.__type or "class"
     assert(new_mt.__type == "class")
@@ -90,8 +54,22 @@ function ClassLoader:ReloadClass(class)
         new_mt.__index = new_mt
     end
 
-    new_mt.__class_name = class.name
+    new_mt.__class = class.name
     class.metatable = new_mt
+    class.timestamp = att.modification
+
+    if new_mt.__base then
+        local base = self:GetClass(new_mt.__base)
+        base.base_for[class.name] = class
+        new_mt.super = base.metatable
+        setmetatable(new_mt, {
+            __index =  new_mt.super,
+        })
+    end
+
+    for _,v in pairs(class.base_for) do
+        self:ReloadClass(v)
+    end
 
     for _,v in pairs(class.instances) do
         printf("CLASS: Update mt %s of %s", class.name, tostring(v))
@@ -118,9 +96,10 @@ function ClassLoader:InitClass(class_name)
     local class = {
         name = class_name,
         file = file,
-        -- timestamp = 0,
+        timestamp = 0,
         metatable = { },
-        instances = setmetatable({}, {__mode="kv"})
+        base_for = setmetatable({}, {__mode="kv"}),
+        instances = setmetatable({}, {__mode="kv"}),
     }
 
     self:ReloadClass(class)
@@ -140,12 +119,12 @@ end
 function ClassLoader:CreateObject(class_name, object_arg)
     local class = self:GetClass(class_name)
     assert(class ~= nil)
-    table.insert(class.instances, object_arg)
-    local obj = setmetatable(object_arg, class.metatable)
+    local obj = setmetatable({}, class.metatable)
+    table.insert(class.instances, obj)
 
     self:UpdateObjectDeps(class, obj)
     if obj.Init then
-        obj:Init()
+        obj:Init(object_arg)
     end
     if obj.AfterReload then
         obj:AfterReload()
@@ -162,13 +141,20 @@ function ClassLoader:Init()
     self.loaded_classes = { }
     self.config = config_handler:Query(self.__config)
 
-    self.update_thread = copas.addthread(function()
-        copas.sleep(1)
-        while self.config.debug do
-            self:Update()
-            copas.sleep(5)
-        end
-    end)
+    if self.config.debug then
+        self.update_thread = copas.addthread(function()
+            copas.sleep(1)
+            print("CLASS: Loading thread started")
+
+            while self.config.debug do
+                self:Update()
+                copas.sleep(5)
+            end
+
+            print("CLASS: Loading thread finished")
+            self.update_thread = nil
+        end)
+    end
 end
 
 -------------------------------------------------------------------------------
