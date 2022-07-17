@@ -3,9 +3,9 @@
 package.path = package.path .. ";/usr/lib/lua/?.lua;/usr/lib/lua/?/init.lua"
 
 local copas = require "copas"
-local lfs = require "lfs"
 local path = require "pl.path"
 local lapp = require 'pl.lapp'
+require("uuid").seed()
 
 local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
 package.path = package.path .. ";" ..
@@ -15,7 +15,7 @@ package.path = package.path .. ";" ..
 require "lib/ext"
 require "lib/logging"
 
-function require_alternative(wanted, alternatives)
+local function require_alternative(wanted, alternatives)
     local got_it, module = pcall(require, wanted)
     if got_it then
         return module
@@ -39,27 +39,30 @@ require_alternative("dkjson", {"json", "cjson"})
 
 local args = lapp [[
 FairyNode server entry
-    --debug               Enter debug mode
+    -d,--debug             Enter debug mode
+    -v,--verbose           Print more logs
+    --config      (string) Select configs to load, use ',' as separator
     <packages...> (string) Packages to load
 ]]
 
 local config_handler = require "lib/config-handler"
+
 config_handler:SetBaseConfig{
     debug = false,
+    verbose = false,
     ["path.fairy_node"] = fairy_node_base,
+    ["startup.packages"] = { fairy_node_base },
+    ["path.config_set"] = { fairy_node_base .. "/host/configset/" },
 }
 config_handler:SetCommandLineArgs{
     debug = args.debug,
+    verbose = args.verbose,
+    ["startup.config_sets"] = args.config:split(","),
+    ["startup.packages"] = args.packages,
 }
 
-local package_loader = require "lib/loader-package"
-package_loader:Load(fairy_node_base)
-
-for _,v in ipairs(args.packages) do
-    package_loader:Load(v)
-end
-
-require "lib/loader-module"
-require "lib/loader-class"
+require("lib/loader-package"):Init()
+require("lib/loader-module"):Init()
+require("lib/loader-class"):Init()
 
 copas.loop()

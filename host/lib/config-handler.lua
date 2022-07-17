@@ -1,4 +1,12 @@
 
+local posix = require "posix"
+
+-------------------------------------------------------------------------------
+
+local SET_INTERNAL_BASE = "internal.base"
+local SET_INTERNAL_COMMAND_LINE = "internal.command_line"
+local SET_INTERNAL_ENVIRONMENT = "internal.environment"
+
 -------------------------------------------------------------------------------
 
 local ConfigHandler = { }
@@ -10,22 +18,37 @@ ConfigHandler.__default_config = {
 
 function ConfigHandler:Init()
     self.package_configs = {
-        ["internal.base"] = {name="internal.base",config_items={}},
-        ["internal.commandline"] = {name="internal.commandline",config_items={}},
+        [SET_INTERNAL_BASE] = {name=SET_INTERNAL_BASE,config_items={}},
+        [SET_INTERNAL_COMMAND_LINE] = {name=SET_INTERNAL_COMMAND_LINE,config_items={}},
+        [SET_INTERNAL_ENVIRONMENT] = {name=SET_INTERNAL_ENVIRONMENT,config_items={}},
     }
 
     self.config_layers = {
-        self.package_configs["internal.base"],
-        self.package_configs["internal.commandline"],
+        self.package_configs[SET_INTERNAL_BASE],
+        self.package_configs[SET_INTERNAL_COMMAND_LINE],
+        self.package_configs[SET_INTERNAL_ENVIRONMENT],
     }
+
+    self:FetchEnvironment()
+end
+
+function ConfigHandler:FetchEnvironment()
+    --TODO
+
+    -- local env = posix.getenv()
+    -- for key,value in pairs(env) do
+    --     if key:match("fairy_node_") then
+    --         -- print(key, value)
+    --     end
+    -- end
 end
 
 function ConfigHandler:SetBaseConfig(args)
-    self:SetPackageConfig("internal.base", args)
+    self:SetPackageConfig(SET_INTERNAL_BASE, args)
 end
 
 function ConfigHandler:SetCommandLineArgs(args)
-    self:SetPackageConfig("internal.commandline", args)
+    self:SetPackageConfig(SET_INTERNAL_COMMAND_LINE, args)
 end
 
 function ConfigHandler:SetPackageConfig(package_name, config_items)

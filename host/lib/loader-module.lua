@@ -301,20 +301,16 @@ end
 -------------------------------------------------------------------------------
 
 function ModuleLoader:Init()
-    self.loaded_modules = { }
-    self.watchers = { }
-
-    self.config = config_handler:Query(self.__config)
-
-    for _,v in pairs(self.config[CONFIG_KEY_LIST]) do
-       self:InitModule(v)
-    end
-
     self:RegisterStaticModule("base/loader-module", self)
 
     self.update_thread = copas.addthread(function()
         copas.sleep(1)
+
         print("MODULES: Loading thread started")
+        self.config = config_handler:Query(self.__config)
+        for _,v in pairs(self.config[CONFIG_KEY_LIST]) do
+            self:InitModule(v)
+         end
 
         local loading = true
         while loading or self.config.debug do
@@ -329,10 +325,7 @@ end
 
 -------------------------------------------------------------------------------
 
-local function Init()
-    local loader = setmetatable({}, ModuleLoader)
-    loader:Init()
-    return loader
-end
-
-return Init()
+return setmetatable({
+    loaded_modules = { },
+    watchers = { }
+}, ModuleLoader)

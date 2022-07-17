@@ -152,6 +152,10 @@ end
 -------------------------------------------------------------------------------
 
 function ClassLoader:Init()
+    local loader_module = require "lib/loader-module"
+    loader_module:RegisterStaticModule("base/loader-class", self)
+    loader_module:UpdateObjectDeps(self)
+
     self.loaded_classes = { }
     self.config = config_handler:Query(self.__config)
 
@@ -173,16 +177,4 @@ end
 
 -------------------------------------------------------------------------------
 
-local function Init()
-    local loader = setmetatable({ }, ClassLoader)
-
-    local loader_module = require "lib/loader-module"
-    loader_module:RegisterStaticModule("base/loader-class", loader)
-    loader_module:UpdateObjectDeps(loader)
-
-    loader:Init()
-
-    return loader
-end
-
-return Init()
+return setmetatable({ }, ClassLoader)
