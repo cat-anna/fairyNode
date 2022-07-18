@@ -1,5 +1,7 @@
 local mqtt = require "mqtt"
 local copas = require "copas"
+local scheduler = require "lib/scheduler"
+
 -------------------------------------------------------------------------------
 
 local mqttloop = mqtt:get_ioloop()
@@ -29,6 +31,40 @@ MqttClient.__config = {
     [CONFIG_KEY_MQTT_USER] = { type = "string", required = true },
     [CONFIG_KEY_MQTT_PASSWORD] = { type = "string", required = true },
 }
+
+-------------------------------------------------------------------------------
+
+function MqttClient:Init()
+    self.connected = false
+    self.use_event_bus = false
+    self.watchers = setmetatable({}, {__mode = "vk"})
+
+    copas.addthread(function()
+        copas.sleep(1)
+        print("MQTT-CLIENT: Starting...")
+        self:ResetClient()
+        mqttloop:add(self.mqtt_client)
+
+        while true do
+            mqttloop:iteration()
+            -- copas.sleep(0.01)
+            scheduler.Sleep(0.01)
+        end
+    end)
+
+    copas.addthread(function()
+        while true do
+            copas.sleep(10)
+            self.mqtt_client:send_pingreq()
+        end
+    end)
+end
+
+-------------------------------------------------------------------------------
+
+function MqttClient:Register(name, target)
+    self.watchers[name] = target
+end
 
 -------------------------------------------------------------------------------
 
@@ -62,21 +98,31 @@ function MqttClient:Subscribe(regex)
     if not self.connected then
         return
     end
+
     print("MQTT-CLIENT: Subscribing to " .. regex)
     local r = self.mqtt_client:subscribe{
         topic=regex,
         qos=0,
-        callback = function(suback)
-            print("MQTT-CLIENT: Subscribed to " .. regex)
-            self.event_bus:PushEvent({
-                event = "mqtt-client.subscribed",
-                argument = {
-                    regex=regex,
-                }
-            })
-        end,
+        callback = function(suback) self:SubscriptionConfirmed(suback, regex) end,
     }
     assert(r)
+end
+
+function MqttClient:SubscriptionConfirmed(suback, regex)
+    print("MQTT-CLIENT: Subscribed to " .. regex)
+
+    if self.use_event_bus then
+        self.event_bus:PushEvent({
+            event = "mqtt-client.subscribed",
+            argument = {
+                regex=regex,
+            }
+        })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttSubscribed(regex) end)
+    end
 end
 
 function MqttClient:HandleConnect(connack)
@@ -86,21 +132,33 @@ function MqttClient:HandleConnect(connack)
     print("MQTT-CLIENT: Connected")
     self.connected = true
 
-    self.event_bus:PushEvent({
-        event = "mqtt-client.connected",
-        argument = {}
-    })
+    if self.use_event_bus then
+        self.event_bus:PushEvent({
+            event = "mqtt-client.connected",
+            argument = {}
+        })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttConnected() end)
+    end
 end
 
 function MqttClient:HandleMessage(msg)
     local topic = msg.topic
     local payload = msg.payload
 
-    self.event_bus:PushEvent({
-        silent = true,
-        event = "mqtt-client.message",
-        argument = {topic=topic,payload=payload}
-    })
+    if self.use_event_bus then
+        self.event_bus:PushEvent({
+            silent = true,
+            event = "mqtt-client.message",
+            argument = { topic=topic, payload=payload }
+        })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttMessage(topic, payload) end)
+    end
 end
 
 function MqttClient:PublishMessage(topic, payload, retain)
@@ -115,55 +173,49 @@ function MqttClient:PublishMessage(topic, payload, retain)
         retain = retain,
     }
 
-    self.event_bus:PushEvent({
-        silent = true,
-        event = "mqtt-client.publish",
-        argument = { topic=topic, payload=payload }
-    })
+    if self.use_event_bus then
+        self.event_bus:PushEvent({
+            silent = true,
+            event = "mqtt-client.publish",
+            argument = { topic=topic, payload=payload }
+        })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttPublished(topic, payload) end)
+    end
 end
 
 function MqttClient:HandleError(err)
     print("MQTT-CLIENT: client error:", err)
-    self.event_bus:PushEvent({
-        event = "mqtt-client.error",
-        argument = { error=err }
-    })
+
+    if self.use_event_bus then
+        self.event_bus:PushEvent({
+            event = "mqtt-client.error",
+            argument = { error = err }
+        })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttError(err, "?") end)
+    end
 end
 
 function MqttClient:HandleClose()
     print("MQTT-CLIENT: Disconnected")
     self.connected = false
-    self.event_bus:PushEvent({
-        event = "mqtt-client.disconnected",
-        argument = {}
-    })
+
+    if self.use_event_bus then
+        self.event_bus:PushEvent({ event = "mqtt-client.disconnected" })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttDisconnected() end)
+    end
 end
 
 function MqttClient:IsConnected()
     return self.connected
-end
-
-function MqttClient:Init()
-    self.connected = false
-
-    copas.addthread(function()
-        copas.sleep(1)
-        print("MQTT-CLIENT: Starting...")
-        self:ResetClient()
-        mqttloop:add(self.mqtt_client)
-
-        while true do
-            mqttloop:iteration()
-            copas.sleep(0.01)
-        end
-    end)
-
-    copas.addthread(function()
-        while true do
-            copas.sleep(10)
-            self.mqtt_client:send_pingreq()
-        end
-    end)
 end
 
 -------------------------------------------------------------------------------

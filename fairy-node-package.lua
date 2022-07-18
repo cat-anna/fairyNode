@@ -32,9 +32,12 @@ function Package.GetConfig(base_path)
         ["module.data.cache.path"] = cwd .. "/runtime/cache",
         ["module.data.ro.paths"] = { base_path .. "/host/data", },
 
+        ["logger.path"] = cwd .. "/log",
+        ["logger.enable"] = true,
+
         ["plantuml.host.url"] = "http://www.plantuml.com/plantuml",
 
-        ["module.homie-client.name"] = socket.dns.gethostname()
+        ["module.homie-client.name"] = socket.dns.gethostname(),
     }
 end
 

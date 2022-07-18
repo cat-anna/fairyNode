@@ -31,6 +31,27 @@ MosquittoClient.__config = {
     [CONFIG_KEY_MQTT_USER] = { type = "string", required = true },
     [CONFIG_KEY_MQTT_PASSWORD] = { type = "string", required = true },
 }
+
+-------------------------------------------------------------------------------
+
+function MosquittoClient:Init()
+    self.connected = false
+    self.use_event_bus = false
+    self.calls_on_fly = {}
+    self.watchers = setmetatable({}, {__mode = "vk"})
+
+    copas.addthread(function()
+        copas.sleep(1)
+        self:LoopThread()
+    end)
+end
+
+function MosquittoClient:AfterReload() end
+
+function MosquittoClient:Register(name, target)
+    self.watchers[name] = target
+end
+
 -------------------------------------------------------------------------------
 
 function MosquittoClient:ResetClient()
@@ -105,10 +126,17 @@ function MosquittoClient:OnMosquittoSubscribe(mid)
     local ctx = self:FetchCallContext(mid)
     assert(ctx)
     print("MOSQUITTO: Subscribed to " .. ctx.regex)
-    self.event_bus:PushEvent({
-        event = "mqtt-client.subscribed",
-        argument = {regex = ctx.regex}
-    })
+
+    if self.use_event_bus then
+        self.event_bus:PushEvent({
+            event = "mqtt-client.subscribed",
+            argument = {regex = ctx.regex}
+        })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttSubscribed(ctx.regex) end)
+    end
 end
 
 function MosquittoClient:OnMosquittoUnsubscribe()
@@ -123,7 +151,15 @@ function MosquittoClient:OnMosquittoConnect()
     if self.connected then return end
     print("MOSQUITTO: Connected")
     self.connected = true
-    self.event_bus:PushEvent({event = "mqtt-client.connected", argument = {}})
+
+    if self.use_event_bus then
+        self.event_bus:PushEvent({ event = "mqtt-client.connected" })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttConnected() end)
+    end
+
     self:ConnectionStatusChanged()
 end
 
@@ -131,21 +167,32 @@ function MosquittoClient:OnMosquittoDisconnect()
     if self.connected then
         print("MOSQUITTO: Disconnected")
         self.connected = false
-        self.event_bus:PushEvent({
-            event = "mqtt-client.disconnected",
-            argument = {}
-        })
+
+        if self.use_event_bus then
+            self.event_bus:PushEvent({ event = "mqtt-client.disconnected" })
+        end
+
+        for _,target in pairs(self.watchers) do
+            SafeCall(function() target:OnMqttDisconnected() end)
+        end
+
         scheduler.Delay(1, function() self:CheckConnectionStatus() end)
     end
 end
 
 function MosquittoClient:OnMosquittoMessage(mid, topic, payload)
     -- print("MOSQUITTO: OnMosquittoMessage")
-    self.event_bus:PushEvent({
-        silent = true,
-        event = "mqtt-client.message",
-        argument = {topic = topic, payload = payload}
-    })
+    if self.use_event_bus then
+        self.event_bus:PushEvent({
+            silent = true,
+            event = "mqtt-client.message",
+            argument = {topic = topic, payload = payload}
+        })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttMessage(topic, payload) end)
+    end
 end
 
 function MosquittoClient:CheckMosquittoResult(call_result, context)
@@ -156,11 +203,19 @@ function MosquittoClient:CheckMosquittoResult(call_result, context)
     end
 
     print(string.format("MOSQUITTO: Error(%d): %s", code, message))
-    self.event_bus:PushEvent({
-        event = "mqtt-client.error",
-        argument = {code = code, message = message}
-    })
-    --[==[
+
+    if self.use_event_bus then
+        self.event_bus:PushEvent({
+            event = "mqtt-client.error",
+            argument = {code = code, message = message}
+        })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttError(code, message) end)
+    end
+
+--[==[
     enum mosq_err_t {
         MOSQ_ERR_CONN_PENDING = -1,
         MOSQ_ERR_SUCCESS = 0,
@@ -180,11 +235,10 @@ function MosquittoClient:CheckMosquittoResult(call_result, context)
         MOSQ_ERR_ERRNO = 14,
         MOSQ_ERR_EAI = 15,
         MOSQ_ERR_PROXY = 16,
-            /* added because of CVE-2017-7653 */
-            MOSQ_ERR_MALFORMED_UTF8 = 18
+        /* added because of CVE-2017-7653 */
+        MOSQ_ERR_MALFORMED_UTF8 = 18
     };
-
-    ]==]
+--]==]
 
     copas.addthread(function() self:OnMosquittoDisconnect() end)
 
@@ -219,16 +273,21 @@ function MosquittoClient:PublishMessage(topic, payload, retain)
     })
 
     -- print("MOSQUITTO: " .. topic .. " <-- " .. payload)
-    self.event_bus:PushEvent({
-        silent = true,
-        event = "mqtt-client.publish",
-        argument = {topic = topic, payload = payload}
-    })
+
+    if self.use_event_bus then
+        self.event_bus:PushEvent({
+            silent = true,
+            event = "mqtt-client.publish",
+            argument = {topic = topic, payload = payload}
+        })
+    end
+
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnMqttPublished(topic, payload) end)
+    end
 end
 
 function MosquittoClient:IsConnected() return self.connected end
-
-function MosquittoClient:AfterReload() end
 
 function MosquittoClient:LoopThread()
     print("MOSQUITTO: Starting...")
@@ -238,25 +297,17 @@ function MosquittoClient:LoopThread()
         if self.mosquitto_client ~= nil then
             self.mosquitto_client:loop(1, 1)
         end
-        local before = os.time()
-        copas.sleep(0.01)
-        local after = os.time()
-        local diff = after - before
-        if diff > 1 then
-            print("MOSQUITTO: Update diff warn:", diff)
-        end
+        scheduler.Sleep(0.01)
+        -- local before = os.time()
+        -- copas.sleep(0.01)
+        -- local after = os.time()
+        -- local diff = after - before
+        -- if diff > 1 then
+        --     print("MOSQUITTO: Update diff warn:", diff)
+        -- end
     end
 end
 
-function MosquittoClient:Init()
-    self.connected = false
-    self.calls_on_fly = {}
-
-    copas.addthread(function()
-        copas.sleep(1)
-        self:LoopThread()
-    end)
-end
 
 -------------------------------------------------------------------------------------
 

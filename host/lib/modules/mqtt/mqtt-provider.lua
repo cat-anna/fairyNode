@@ -2,7 +2,6 @@ local scheduler = require "lib/scheduler"
 
 -------------------------------------------------------------------------------
 
-
 local function topic2regexp(topic)
     local escape_pattern = '(['..("%^$().[]*-?"):gsub("(.)", "%%%1")..'])'
     topic = topic:gsub(escape_pattern, "%%%1")
@@ -28,6 +27,7 @@ MqttProvider.__config = {
 -------------------------------------------------------------------------------
 
 function MqttProvider:AfterReload()
+    self.mqtt_client:Register("mqtt-provider", self)
     if self.mqtt_client:IsConnected() then
         self:OnMqttConnected()
     else
@@ -84,7 +84,7 @@ function MqttProvider:PublishMessage(topic, payload, retain)
 end
 
 function MqttProvider:RestoreSubscriptions()
-    if not self.mqtt_connected then
+    if not self:IsConnected() then
         return
     end
     for k,v in pairs(self.subscriptions) do
@@ -93,7 +93,7 @@ function MqttProvider:RestoreSubscriptions()
 end
 
 function MqttProvider:RestoreSubscription(sub)
-    if not self.mqtt_connected or sub.subscribed or sub.subscription_pending then
+    if not self:IsConnected() or sub.subscribed or sub.subscription_pending then
         return
     end
     print("MQTT-PROVIDER: Restoring subscription " .. sub.regex)
@@ -121,8 +121,10 @@ function MqttProvider:OnMqttMessage(topic, payload)
     self:NotifyWatchers(topic, payload)
 end
 
-function MqttProvider:OnMqttSubscribed(event)
-    local regex = event.argument.regex
+function MqttProvider:OnMqttPublished(topic, payload)
+end
+
+function MqttProvider:OnMqttSubscribed(regex)
     print("MQTT-PROVIDER: Subscription " .. regex .. " is confirmed")
 
     local sub = self.subscriptions[regex]
@@ -146,6 +148,35 @@ function MqttProvider:OnMqttDisconnected()
     end
 end
 
+function MqttProvider:OnMqttError(code, msg)
+    -- self:MqttLog("error", sub.regex)
+    -- print("MQTT-PROVIDER: Mqtt client had error")
+end
+
+-------------------------------------------------------------------------------
+
+function MqttProvider:OnMqttMessageEvent(event)
+    local topic = event.argument.topic
+    local payload = event.argument.payload
+    return self:OnMqttMessage(topic, payload)
+end
+
+function MqttProvider:OnMqttSubscribedEvent(event)
+    local regex = event.argument.regex
+    return self:OnMqttSubscribed(regex)
+end
+
+function MqttProvider:OnMqttConnectedEvent()
+    return self:OnMqttConnected()
+end
+
+function MqttProvider:OnMqttDisconnectedEvent()
+    return self:OnMqttDisconnected()
+end
+
+function MqttProvider:OnMqttErrorEvent()
+    return self:OnMqttError()
+end
 -------------------------------------------------------------------------------
 
 function MqttProvider:StopWatching(id)
@@ -255,16 +286,17 @@ end
 -------------------------------------------------------------------------------
 
 function MqttProvider:IsConnected()
-    return self.mqtt_connected
+    return self.mqtt_client:IsConnected()
 end
 
 -------------------------------------------------------------------------------
 
 MqttProvider.EventTable = {
-    ["mqtt-client.disconnected"] = MqttProvider.OnMqttDisconnected,
-    ["mqtt-client.connected"] = MqttProvider.OnMqttConnected,
-    ["mqtt-client.subscribed"] = MqttProvider.OnMqttSubscribed,
-    ["mqtt-client.message"] = MqttProvider.OnMqttMessage,
+    -- ["mqtt-client.disconnected"] = MqttProvider.OnMqttDisconnectedEvent,
+    -- ["mqtt-client.connected"] = MqttProvider.OnMqttConnectedEvent,
+    -- ["mqtt-client.subscribed"] = MqttProvider.OnMqttSubscribedEvent,
+    -- ["mqtt-client.message"] = MqttProvider.OnMqttMessageEvent,
+    -- ["mqtt-client.error"] = MqttProvider.OnMqttErrorEvent,
 }
 
 return MqttProvider
