@@ -41,11 +41,24 @@ end
 
 -------------------------------------------------------------------------------
 
+function ClassLoader:UpdateBase(class)
+    if class.base then
+        local base = self:GetClass(class.base)
+        base.base_for[class.name] = class
+        class.metatable.super = base.metatable
+        setmetatable(class.metatable, {
+            __index =  base.metatable,
+        })
+    end
+end
+
 function ClassLoader:ReloadClass(class)
     local att = lfs.attributes(class.file)
     if att == nil or att.modification == class.timestamp then
         return
     end
+
+    printf("CLASS: Reloading class %s", class.name)
 
     local new_mt = dofile(class.file)
     new_mt.__type = new_mt.__type or "class"
@@ -59,18 +72,12 @@ function ClassLoader:ReloadClass(class)
     class.interface = new_mt.__type == "interface"
     class.metatable = new_mt
     class.timestamp = att.modification
+    class.base = new_mt.__base
 
-    if new_mt.__base then
-        local base = self:GetClass(new_mt.__base)
-        base.base_for[class.name] = class
-        new_mt.super = base.metatable
-        setmetatable(new_mt, {
-            __index =  new_mt.super,
-        })
-    end
+    self:UpdateBase(class)
 
     for _,v in pairs(class.base_for) do
-        self:ReloadClass(v)
+        self:UpdateBase(v)
     end
 
     for _,v in pairs(class.instances) do
@@ -144,9 +151,19 @@ function ClassLoader:CreateObject(class_name, object_arg)
         obj:AfterReload()
     end
 
+    for _,target in pairs(self.watchers) do
+        SafeCall(function() target:OnObjectCreated(class_name, obj) end)
+    end
+
     printf("CLASS: Create %s of %s", class.name, tostring(obj))
 
     return obj
+end
+
+-------------------------------------------------------------------------------
+
+function ClassLoader:RegisterWatcher(name, functor)
+    self.watchers[name] = functor
 end
 
 -------------------------------------------------------------------------------
@@ -157,6 +174,7 @@ function ClassLoader:Init()
     loader_module:UpdateObjectDeps(self)
 
     self.loaded_classes = { }
+    self.watchers = { }
     self.config = config_handler:Query(self.__config)
 
     if self.config.debug then
