@@ -73,7 +73,7 @@ function EventTimer:TimerTick(timer)
         if timer.interval >= 60 then
             print("Timer: running: " .. timer.id)
         end
-        local cnt = self.event_bus:ProcessEvent({
+        local cnt = self.event_bus:PushEvent({
             silent = timer.interval < 60,
             event = timer.event_id,
             timer = timer ,

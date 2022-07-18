@@ -11,11 +11,18 @@ end
 
 -------------------------------------------------------------------------------
 
+local CONFIG_KEY_MQTT_LOG_ENABLE = "module.mqtt-client.log.enable"
+
+-------------------------------------------------------------------------------
+
 local MqttProvider = {}
 MqttProvider.__index = MqttProvider
 MqttProvider.__deps = {
     mqtt_client = "mqtt/mqtt-client",
     event_bus = "base/event-bus",
+}
+MqttProvider.__config = {
+    -- [CONFIG_KEY_MQTT_LOG_ENABLE] = { type = "boolean", default = false },
 }
 
 -------------------------------------------------------------------------------
@@ -35,6 +42,22 @@ function MqttProvider:Init()
     self.subscriptions = { }
     self.cache = { }
     self.regex_watchers = { }
+    self.logger = require("lib/logger"):New("mqtt", CONFIG_KEY_MQTT_LOG_ENABLE)
+end
+
+-------------------------------------------------------------------------------
+
+function MqttProvider:MqttLog(action, topic, payload, retain, qos)
+    if self.logger:Enabled() then
+        self.logger:WriteCsv{
+            os.string_timestamp(),
+            tostring(action or ""),
+            tostring(topic or ""),
+            tostring(payload or ""),
+            tostring(retain or ""),
+            tostring(qos or ""),
+        }
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -56,6 +79,7 @@ function MqttProvider:AddSubscription(id, regex)
 end
 
 function MqttProvider:PublishMessage(topic, payload, retain)
+    self:MqttLog("publish", topic, payload, retain)
     return self.mqtt_client:PublishMessage(topic, payload, retain)
 end
 
@@ -80,9 +104,8 @@ end
 
 -------------------------------------------------------------------------------
 
-function MqttProvider:OnMqttMessage(event)
-    local topic = event.argument.topic
-    local payload = event.argument.payload
+function MqttProvider:OnMqttMessage(topic, payload)
+    self:MqttLog("message", topic, payload)
 
     if not self.cache[topic] then
         self.cache[topic] = {}
@@ -105,17 +128,18 @@ function MqttProvider:OnMqttSubscribed(event)
     local sub = self.subscriptions[regex]
     sub.subscribed = true
     sub.subscription_pending = false
+    self:MqttLog("subscribe", regex)
 end
 
 function MqttProvider:OnMqttConnected()
     print("MQTT-PROVIDER: Mqtt client is connected")
-    self.mqtt_connected = true
+    self:MqttLog("connected")
     self:RestoreSubscriptions()
 end
 
 function MqttProvider:OnMqttDisconnected()
     print("MQTT-PROVIDER: Mqtt client disconnected")
-    self.mqtt_connected = false
+    self:MqttLog("disconnected")
     for _,v in pairs(self.subscriptions) do
         v.subscription_pending = false
         v.subscribed = false

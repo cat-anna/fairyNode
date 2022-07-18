@@ -18,11 +18,11 @@ HomieDevice.__deps = {
 
 local HomieStates = {
 --homie 3.0
-    init="init",
+    init = "init",
     ready = "ready",
-    lost="lost",
+    lost = "lost",
 -- extension
-    ota="ota",
+    ota = "ota",
 }
 local HomieTopicState = "/$state"
 
@@ -129,7 +129,7 @@ function HomieDevice:GetPropertyMT(parent_node)
 
         local my_id = property:GetId()
         if not self.subscriptions[my_id] then
-            self.subscriptions[my_id] = setmetatable({}, { __mode = "v" })
+            self.subscriptions[my_id] = setmetatable({}, { __mode = "kv" })
         end
 
         local prop_subs = self.subscriptions[my_id]

@@ -33,6 +33,7 @@ function State:Init(config)
 end
 
 function State:BeforeReload() end
+
 function State:AfterReload() end
 
 --------------------------------------------------------------------------
@@ -52,7 +53,7 @@ end
 function State:GetDescription() return tablex.copy(self.description or {}) end
 
 function State:GetSourceDependencyDescription()
-    return nil -- "[updates]"
+    return nil
 end
 
 function State:SetValue(v) error(self:LogTag() .. "abstract method called") end
@@ -182,7 +183,7 @@ end
 -------------------------------------------------------------------------------------
 
 State.EventTable = {
-    ["timer.basic.30_second"] = State.OnTimer,
+    ["timer.basic.30_second"] = function (self, ...) return self:OnTimer(...) end,
 }
 
 -------------------------------------------------------------------------------------

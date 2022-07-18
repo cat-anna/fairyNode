@@ -13,7 +13,7 @@ package.path = package.path .. ";" ..
             fairy_node_base .. "/host/?/init.lua"
 
 require "lib/ext"
-require "lib/logging"
+require("lib/logger"):Init()
 
 local function require_alternative(wanted, alternatives)
     local got_it, module = pcall(require, wanted)
@@ -64,5 +64,6 @@ config_handler:SetCommandLineArgs{
 require("lib/loader-package"):Init()
 require("lib/loader-module"):Init()
 require("lib/loader-class"):Init()
+require("lib/logger"):Start()
 
 copas.loop()

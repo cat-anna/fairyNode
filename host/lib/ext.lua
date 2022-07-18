@@ -2,6 +2,18 @@
 
 local copas = require "copas"
 local coxpcall = require "coxpcall"
+local posix = require "posix"
+
+-------------------------------------------------------------------------------
+
+local format = string.format
+local floor = math.floor
+local unpack = table.unpack or unpack
+local pairs = pairs
+local ipairs = ipairs
+local type = type
+
+-------------------------------------------------------------------------------
 
 if not table.unpack then
     table.unpack = unpack
@@ -22,7 +34,7 @@ function string:split(sep)
  end
 
 function string:trim()
-    return self:match "^%s*(.-)%s*$"
+    return self:match("^%s*(.-)%s*$")
 end
 
 function SafeCall(f, ...)
@@ -32,7 +44,7 @@ function SafeCall(f, ...)
 
     local args = { ... }
     local function call()
-        return f(table.unpack(args))
+        return f(unpack(args))
     end
     local function errh(msg)
         print("Call failed: ", msg)
@@ -103,9 +115,9 @@ end
 
 function string.format_seconds(t)
     local secs = t%60
-    t = math.floor(t / 60)
+    t = floor(t / 60)
     local min = t % 60
-    t = math.floor(t / 60)
+    t = floor(t / 60)
     local hour = t
     local r = {}
     if hour > 0 then table.insert(r, tostring(hour).."h") end
@@ -117,4 +129,23 @@ end
 local quotepattern = '(['..("%^$().[]*+-?"):gsub("(.)", "%%%1")..'])'
 string.escape = function(str)
     return str:gsub(quotepattern, "%%%1")
+end
+
+local clock_gettime = posix.clock_gettime
+local localtime = posix.localtime
+local CLOCK_REALTIME = posix.CLOCK_REALTIME
+
+function os.gettime()
+    local sec, nsec = clock_gettime(CLOCK_REALTIME)
+    return sec + (nsec / 1000000000)
+end
+
+function os.string_timestamp()
+    local tv_sec, tv_nsec = clock_gettime(CLOCK_REALTIME)
+    local tm = localtime(tv_sec)
+    return format("%04d-%02d-%02d %02d:%02d:%02d.%06d",
+        tm.year, tm.month, tm.day,
+        tm.hour, tm.min, tm.sec,
+        floor(tv_nsec / 1000)
+    )
 end

@@ -67,7 +67,7 @@ function ErrorHandler:TestFail()
 end
 
 function ErrorHandler:UpdateActiveErrors()
-    self.event_bus:ProcessEvent({
+    self.event_bus:PushEvent({
         event = "error-reporter.active_errors",
         active_errors = self.active_errors,
     })

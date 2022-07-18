@@ -201,10 +201,10 @@ function Daylight:UpdateSunPosition()
 
     self.last_update_timestamp = current_time
 
-    self.event_bus:ProcessEvent({
+    self.event_bus:PushEvent({
         event = "daylight.update",
-        "sun_azimuth", azimuth.value,
-        "sun_elevation", elevation.value,
+        sun_azimuth = azimuth.value,
+        sun_elevation = elevation.value,
     })
 end
 
