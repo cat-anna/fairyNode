@@ -14,6 +14,7 @@ function State:Init(config)
     self.global_id = config.global_id
     self.class_id = config.class_id
     self.name = config.name
+    self.group = config.group
 
     if type(config.description) ~= "table" then
         self.description = {config.description}
@@ -48,13 +49,13 @@ function State:Status()
     return self:IsReady(), self:GetValue()
 end
 
+function State:GetGroup()
+    return self.group
+end
+
 -------------------------------------------------------------------------------------
 
 function State:GetDescription() return tablex.copy(self.description or {}) end
-
-function State:GetSourceDependencyDescription()
-    return nil
-end
 
 function State:SetValue(v) error(self:LogTag() .. "abstract method called") end
 
@@ -175,7 +176,11 @@ end
 function State:GetDependencyList(list)
     local r = {}
     for id, v in pairs(list or {}) do
-        table.insert(r, {id = id, virtual = v.virtual, expired = v.target == nil})
+        table.insert(r, {
+            id = id,
+            virtual = v.virtual,
+            expired = v.target == nil,
+        })
     end
     return r
 end

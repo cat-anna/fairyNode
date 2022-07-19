@@ -50,7 +50,6 @@ end
 function MqttProvider:MqttLog(action, topic, payload, retain, qos)
     if self.logger:Enabled() then
         self.logger:WriteCsv{
-            os.string_timestamp(),
             tostring(action or ""),
             tostring(topic or ""),
             tostring(payload or ""),

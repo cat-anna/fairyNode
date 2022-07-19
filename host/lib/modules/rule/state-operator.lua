@@ -192,7 +192,6 @@ function StateOperator:GetFunctionDescription()
     return self.operator
 end
 
-function StateOperator:GetSourceDependencyDescription() return nil end
 
 -------------------------------------------------------------------------------------
 

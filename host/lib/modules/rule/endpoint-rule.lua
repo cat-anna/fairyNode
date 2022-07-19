@@ -33,6 +33,16 @@ return {
             path = "/state/graph/url",
             produces = "application/json",
             service_method = "GetGraphUrl"
+        }, {
+            method = "GET",
+            path = "/state/graph/group",
+            produces = "application/json",
+            service_method = "GetGraphGroup"
+        }, {
+            method = "GET",
+            path = "/state/graph/group/url",
+            produces = "application/json",
+            service_method = "GetGraphGroupUrl"
         },
         -------------------------------------------------------------------------------------
         {

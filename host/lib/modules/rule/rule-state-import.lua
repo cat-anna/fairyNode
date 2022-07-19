@@ -462,7 +462,8 @@ function RuleStateImport:ImportHomieState(env_object, property_path, homie_prope
             class_id = homie_id,
             property_instance = homie_property,
             property_path = property_path,
-            device = homie_device
+            device = homie_device,
+            group = env_object.group,
         })
     end
     return env_object.states[global_id]
@@ -482,6 +483,7 @@ function RuleStateImport:AddState(env_object, definition)
         state_def.display = definition.display
 
         state_def.class = state_def.class
+        state_def.group = env_object.group
 
         if not state_def.class then
             env_object.error("Unknown or invalid class for " .. global_id)
@@ -497,7 +499,9 @@ function RuleStateImport:AddState(env_object, definition)
     end
 
     local source = prepare(tablex.copy(definition.source))
-    for _, v in ipairs(definition.Sink or {}) do source:AddSinkDependency(v) end
+    for _, v in ipairs(definition.Sink or {}) do
+        source:AddSinkDependency(v)
+    end
 
     return source
 end
@@ -506,7 +510,14 @@ function RuleStateImport:CreateStateEnv()
     local env = {
         debug_mode = self.config.debug
     }
-    local object = {env = env, states = {}, errors = {}, state_prototype = {}}
+    local object = {
+        env = env,
+        states = {},
+        errors = {},
+        state_prototype = {},
+        group = "default",
+        default_group = "default",
+    }
 
     local StateMt = {}
     StateMt.__index = StateMt
@@ -525,6 +536,24 @@ function RuleStateImport:CreateStateEnv()
     SetupErrorFunctions(env, "RULE-STATE-IMPORT", object.errors)
 
     local state_prototype = object.state_prototype
+
+    env.Group = function(name)
+        name = tostring(name):trim()
+        if not name or name == "" then
+            object.group = object.default_group
+        else
+            object.group = name
+        end
+    end
+
+    env.DefaultGroup = function(name)
+        name = tostring(name):trim()
+        if not name or name == "" then
+            object.default_group = "default"
+        else
+            object.default_group = name
+        end
+    end
 
     state_prototype.State = setmetatable({}, StateMt)
     state_prototype.Homie = self.device_tree:GetPropertyPath(WrapCall(self,

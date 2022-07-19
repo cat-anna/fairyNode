@@ -14,7 +14,6 @@ function FairyNode_InitOverview() {
 
             <div id="PageRules" class="Page HiddenPage OverviewTable">
                 <div id="RuleStateChart">
-                    <div id="RuleStateChartImg"></div>
                 </div>
                 <div id="RuleStateEditorBlock">
                 </div>
@@ -753,15 +752,26 @@ function ResetRuleCodeEditor() {
     $("#RuleStateEditButton").click(OpenRuleCodeEditor)
 }
 
+
 function HandleRuleChartResponse(data) {
     console.log(data)
-    if ($("#RuleStateChartImg").attr("src") != data.url) {
-        console.log("Url changed")
-        AsyncRequest(data.url, function (response) {
-            $("#RuleStateChartImg").html(response)
-            $("#RuleStateChartImg").attr("src", data.url)
-        })
+
+    var root = $("#RuleStateChart")
+    if(root.attr("hash") != data.group_hash) {
+        root.html("")
     }
+
+    $(root).attr("hash", data.group_hash)
+
+    data.groups.forEach(function (entry) {
+        var div = GetOrCreateDiv("RULE_CHART_" + entry.id, "RuleStateChart", "RuleStateChartImg", { })
+        if ($(div).attr("src") != entry.url) {
+            AsyncRequest(entry.url, function (response) {
+                $(div).html("<div class='RuleStateChartTitle'>" + entry.name + "</div>" + response)
+                $(div).attr("src", entry.url)
+            })
+        }
+    });
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -770,7 +780,7 @@ function refresh() {
     if (ActivePage == "Devices") {
         QueryGet("/device", function (data) { HandleDeviceResponse(data) })
     } else {
-        QueryGet("/rule/state/graph/url", function (data) { HandleRuleChartResponse(data) })
+        QueryGet("/rule/state/graph/group/url", function (data) { HandleRuleChartResponse(data) })
     }
 }
 

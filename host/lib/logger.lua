@@ -45,7 +45,7 @@ function LoggerObject:WriteCsv(t)
     if not f then
         return
     end
-    StreamWrite(f, concat(t, ","), "\n")
+    StreamWrite(f, string_timestamp(), ",", concat(t, ","), "\n")
 end
 
 function LoggerObject:Write(...)
@@ -140,11 +140,18 @@ local function ExtractTag(object)
     if not object then
         return nil
     end
+    local tag = object.log_tag
+    if tag then
+        return tag
+    end
     local g = object.LogTag
     if g then
-        return g(object)
+        tag = g(object)
+    else
+        tag = object.uuid
     end
-    return object.uuid
+    object.log_tag = tag
+    return tag
 end
 
 -------------------------------------------------------------------------------

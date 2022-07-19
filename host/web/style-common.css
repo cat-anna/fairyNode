@@ -508,15 +508,22 @@ html {
     padding: 5px;
 }
 
-#RuleStateChartImg {
+.RuleStateChartImg {
     border: 2px solid silver;
     border-radius: 5px;
     padding: 10px;
-    margin: 10px;
-    margin: 0 auto;
+    margin: 5px;
     text-align: center;
     display: block;
     background-color: rgba(255, 255, 255, 0.2);
+}
+
+.RuleStateChartTitle {
+    border-radius: 5px;
+    border: 1px solid silver;
+    padding: 5px;
+    float: left;
+    width: fit-content;
 }
 
 #RuleStateEditorBlock {

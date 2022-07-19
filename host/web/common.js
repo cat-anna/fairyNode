@@ -64,7 +64,7 @@ function GetOrCreateDivAfter(id, after_id, classes, cfg) {
     return $element
 }
 
-function AsyncRequest(url, on_data) {
+function AsyncRequest(url, on_data, ctx) {
     async function getData(url) {
         const response = await fetch(url, {
             method: 'GET',
@@ -73,7 +73,7 @@ function AsyncRequest(url, on_data) {
         return await response.text()
     }
 
-    getData(url) .then((data) => { on_data(data); });
+    getData(url) .then((data) => { on_data(data, ctx); });
 }
 
 function QueryGet(sub_url, on_data) {

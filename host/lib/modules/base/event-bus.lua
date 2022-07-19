@@ -112,7 +112,6 @@ function EventBus:ProcessEvent(event_info)
     if self.logger:Enabled() then
         local finish = os.gettime()
         self.logger:WriteCsv{
-            os.string_timestamp(),
             "event=" .. event_info.event,
             "queued=" .. tostring(event_info.timestamp_queued),
             "start=" .. tostring(start),
