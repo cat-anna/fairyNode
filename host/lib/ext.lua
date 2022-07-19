@@ -113,6 +113,12 @@ function table.weak_values(t)
     return setmetatable(t or {}, WeakValuesMt)
 end
 
+local WeakMt = { __mode="vk" }
+function table.weak(t)
+    return setmetatable(t or {}, WeakMt)
+end
+
+
 function string.format_seconds(t)
     local secs = t%60
     t = floor(t / 60)

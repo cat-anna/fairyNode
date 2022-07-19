@@ -1,4 +1,14 @@
 local copas = require "copas"
+local uuid = require "uuid"
+
+-------------------------------------------------------------------------------
+
+local gettime = os.gettime
+local insert = table.insert
+local remove = table.remove
+local ipairs = ipairs
+local pairs = pairs
+local setmetatable = setmetatable
 
 -------------------------------------------------------------------------------
 
@@ -18,6 +28,19 @@ EventBus.__config = {
 
 -------------------------------------------------------------------------------
 
+local function CallHandler(instance, handler, arg)
+    if type(handler) == "string" then
+        handler = instance[handler]
+        if handler then
+            return handler(instance, arg)
+        end
+    else
+       return handler(instance, arg)
+    end
+end
+
+-------------------------------------------------------------------------------
+
 function EventBus:LogTag()
     return "EventBus"
 end
@@ -26,29 +49,34 @@ function EventBus:BeforeReload()
 end
 
 function EventBus:AfterReload()
-    self.event_queue = {}
-    self.process_thread = nil
-
     self.loader_module:RegisterWatcher(self:LogTag(), self)
     self.loader_class:RegisterWatcher(self:LogTag(), self)
-
-    if not self.process_thread then
-        self.process_thread = copas.addthread(function()
-            while true do
-                copas.sleep(0.1)
-                SafeCall(function() self:ProcessAllEvents() end)
-            end
-        end)
-    end
 end
 
 function EventBus:Init()
+    self.event_queue = {}
     self.notify_once = { }
-    self.subscriptions = setmetatable({ }, { __mode="vk" })
+    self.subscriptions = table.weak()
+
+    self:InvalidateHandlerCache()
+
     self.logger = require("lib/logger"):New("event-bus", CONFIG_KEY_EVENT_BUS_LOG_ENABLE)
+    self.process_thread = copas.addthread(function()
+        while true do
+            copas.sleep(0.1)
+            SafeCall(function()
+                self:ProcessAllEvents()
+            end)
+        end
+    end)
+end
+
+function EventBus:InvalidateHandlerCache()
+    self.handler_cache = {}
 end
 
 function EventBus:AllModulesLoaded()
+    self:InvalidateHandlerCache()
     self:PushEvent({ event = "module.load_complete", })
 
     if not self.notify_once.app_start then
@@ -57,7 +85,8 @@ function EventBus:AllModulesLoaded()
     end
 end
 
-function EventBus:ModuleReloaded(module_name)
+function EventBus:ModuleReloaded(module_name, module)
+    self:InvalidateHandlerCache()
     self:PushEvent({
         event = "module.reloaded",
         argument = { name = module_name }
@@ -65,6 +94,7 @@ function EventBus:ModuleReloaded(module_name)
 end
 
 function EventBus:AllModulesInitialized()
+    self:InvalidateHandlerCache()
     self:PushEvent({
         event = "module.initialized",
         argument = {  }
@@ -72,60 +102,90 @@ function EventBus:AllModulesInitialized()
 end
 
 function EventBus:OnObjectCreated(class_name, object)
+    self:InvalidateHandlerCache()
     self.subscriptions[object.uuid] = object
 end
 
 function EventBus:PushEvent(event_info)
     if self.config.debug and not event_info.silent then
-        print(self,"Push event " .. event_info.event)
+        print(self, "Push event " .. event_info.event)
     end
-    event_info.timestamp_queued = os.gettime()
-    table.insert(self.event_queue, event_info)
+    event_info.uuid = uuid()
+    event_info.timestamp_queued = gettime()
+    insert(self.event_queue, event_info)
 end
 
 function EventBus:ProcessAllEvents()
     while #self.event_queue > 0 do
-        self:ProcessEvent(table.remove(self.event_queue, 1))
+        self:ProcessEvent(remove(self.event_queue, 1))
     end
 end
 
 function EventBus:ProcessEvent(event_info)
-    local start = os.gettime()
-    event_info.timestamp_queued = event_info.timestamp_queued or start
+    local start = gettime()
 
     if self.config.debug and not event_info.silent then
-        print(self,"Processing event " .. event_info.event)
+        print(self, "Processing event " .. event_info.event)
     end
-    local run_stats = {
-        handlers_called = 0
-    }
-    self.loader_module:EnumerateModules(
-        function(name, module)
-            self:ApplyEvent(name, module, event_info, run_stats)
-        end
-    )
 
-    for uuid,v in pairs(self.subscriptions) do
-        self:ApplyEvent(uuid, v, event_info, run_stats)
+    local run_stats = {
+        handlers_called = 0,
+        handlers_expired = 0,
+    }
+
+    local cache = self.handler_cache[event_info.event]
+    if cache then
+        for _,v in ipairs(cache) do
+            local instance = v.instance
+            local handler = v.handler
+
+            if handler and instance then
+                CallHandler(instance, handler, setmetatable({}, { __index = event_info }))
+                run_stats.handlers_called = run_stats.handlers_called + 1
+            else
+                run_stats.handlers_expired = run_stats.handlers_expired + 1
+            end
+        end
+    else
+        local entry = table.weak()
+        self.handler_cache[event_info.event] = entry
+
+        self.loader_module:EnumerateModules(
+            function(name, module)
+                self:ApplyEvent(name, module, event_info, run_stats, entry)
+            end
+        )
+
+        for uuid,v in pairs(self.subscriptions) do
+            self:ApplyEvent(uuid, v, event_info, run_stats, entry)
+        end
+    end
+
+    local finish = gettime()
+    local processing_time = finish-start
+    if processing_time > 0.1 then
+        printf(self, "Processing of event %s(%s) took too long (%f)", event_info.event, event_info.uuid, processing_time)
     end
 
     if self.logger:Enabled() then
-        local finish = os.gettime()
         self.logger:WriteCsv{
+            "uuid=" .. event_info.uuid,
             "event=" .. event_info.event,
             "queued=" .. tostring(event_info.timestamp_queued),
             "start=" .. tostring(start),
             "finish=" .. tostring(finish),
-            "processing=" .. tostring(finish-start),
+            "processing=" .. tostring(processing_time),
             "delay=" .. tostring(start-event_info.timestamp_queued),
             "handlers_called=" .. tostring(run_stats.handlers_called),
+            "handlers_expired=" .. tostring(run_stats.handlers_expired),
+            "cache_hit=" .. tostring(cache ~= nil),
         }
     end
 
     return run_stats.handlers_called
 end
 
-function EventBus:ApplyEvent(name, instance, event_info, run_stats)
+function EventBus:ApplyEvent(name, instance, event_info, run_stats, cache_entry)
     local mt = instance
     local prev_table = nil
     while mt do
@@ -138,8 +198,14 @@ function EventBus:ApplyEvent(name, instance, event_info, run_stats)
             end
 
             -- print(self, "Apply event " .. event_info.event .. " to " .. name)
+
             run_stats.handlers_called = run_stats.handlers_called + 1
-            handler(instance, setmetatable({}, { __index = event_info }))
+            table.insert(cache_entry, table.weak {
+                instance = instance,
+                handler = handler,
+            })
+
+            CallHandler(instance, handler, setmetatable({}, { __index = event_info }))
         end
 
         mt = mt.super
