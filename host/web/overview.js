@@ -138,12 +138,16 @@ function newDate(timestamp) {
 }
 
 function RefreshChart(chart) {
-    console.log(chart.source_url)
-    QueryGet(chart.source_url, function (data) {
+    var url = chart.source_url + "?time_span=" + chart.time_span
+    console.log(url)
+    QueryGet(url, function (data) {
         console.log(data)
-        data.history.sort(function (a, b) { return a.timestamp < b.timestamp; })
-        chart.config.data.datasets[0].label = data.label + " (" + data.history.length + " samples)"
 
+        if(chart.last_timestamp == 0) {
+            chart.last_timestamp = data.timestamp - chart.time_span
+        }
+
+        data.history.sort(function (a, b) { return a.timestamp < b.timestamp; })
         for (var key in data.history) {
             var item = data.history[key]
             if (chart.last_timestamp < item.timestamp) {
@@ -155,9 +159,12 @@ function RefreshChart(chart) {
                 chart.last_timestamp = item.timestamp
             }
         }
+        chart.config.data.datasets[0].label = data.label + " (" + chart.config.data.datasets[0].data.length + " samples)"
         chart.update();
     })
 }
+
+var charts = { }
 
 function OpenDevicePropertyChart(url, parent_block) {
     var chart_div_id = "CHART_" + parent_block
@@ -165,15 +172,63 @@ function OpenDevicePropertyChart(url, parent_block) {
     var open_chart = GetOrCreateDivAfter(chart_div_id, parent_block, "DeviceNodePropertyEntry DeviceNodePropertyChartBlock", { html: "&nbsp" })
 
     if (exists) {
-        console.log("toggle")
-        $('#' + chart_div_id).toggle();
+        var chart = charts[chart_div_id]
+        charts[chart_div_id] = null
+        clearInterval(chart.timer_id)
+
+        $('#' + chart_div_id).remove();
         return
     }
 
-    var canvas_id = "CANVAS_" + parent_block
+    var header = GetOrCreateDiv("HEADER_" + chart_div_id, chart_div_id, "DeviceNodePropertyChartBlockHeader", { })
+
+    var times = {
+        "1H": 60*60,
+        "6H": 6*60*60,
+        "12H": 12*60*60,
+        "1D": 24*60*60,
+        "2D": 2*24*60*60,
+        "4D": 4*24*60*60,
+        "1W": 7*24*60*60,
+        "1Y": 365*24*60*60,
+    }
+    var default_time = times["1D"]
+
+    var chart_btn_div_id = chart_div_id + "_BTN"
+    for (var key in times) {
+        var value = times[key];
+        var item = jQuery('<div/>', {
+            id: chart_btn_div_id,
+            class: 'DeviceNodePropertyChartBlockHeaderButton',
+            html: key,
+            time_span: value,
+            click: function () {
+                $("." + chart_btn_div_id)
+                    .removeClass("DeviceNodePropertyChartBlockHeaderButtonSelected")
+                    .removeClass(chart_btn_div_id)
+
+                $(this).addClass("DeviceNodePropertyChartBlockHeaderButtonSelected")
+                $(this).addClass(chart_btn_div_id)
+
+                var c = charts[chart_div_id]
+                c.time_span = $(this).attr("time_span")
+                c.last_timestamp = 0
+                c.config.data.labels = []
+                c.config.data.datasets[0].data = []
+
+                RefreshChart(myChart)
+            }
+        })
+        item.appendTo(header);
+        if(value == default_time){
+            item.addClass("DeviceNodePropertyChartBlockHeaderButtonSelected")
+            item.addClass(chart_btn_div_id)
+        }
+    }
+
     var canvas = document.createElement('canvas');
     $(canvas)
-        .attr('id', canvas_id)
+        .attr('id', "CANVAS_" + parent_block)
         .toggleClass("DeviceNodePropertyChart")
         .text('unsupported browser')
         .appendTo("#" + chart_div_id);
@@ -235,9 +290,11 @@ function OpenDevicePropertyChart(url, parent_block) {
 
     myChart.last_timestamp = 0
     myChart.source_url = url
+    myChart.time_span = default_time
 
     RefreshChart(myChart)
-    setInterval(function () { RefreshChart(myChart) }, 10 * 1000)
+    myChart.timer_id = setInterval(function () { RefreshChart(myChart) }, 10 * 1000)
+    charts[chart_div_id] = myChart
 }
 
 function SetDeviceNodesPage(entry, sub_id, body_id) {

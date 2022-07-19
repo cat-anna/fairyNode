@@ -408,9 +408,36 @@ html {
 
 .DeviceNodePropertyChartBlock {
     width: 100%;
-    height: 440px;
+    height: 500px;
     background-color: rgba(0, 0, 0, 0.7);
-    padding: 20px;
+    padding: 10px;
+}
+
+.DeviceNodePropertyChartBlockHeader {
+    /* border: 1px solid gray; */
+    border-radius: 5px;
+    padding: 5px;
+    margin-left: 10px;
+    margin-right: 10px;
+    height: 20px;
+}
+
+.DeviceNodePropertyChartBlockHeaderButton {
+    display: block;
+    float: right;
+    clear: none;
+    padding-left: 2px;
+    padding-right: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+}
+
+.DeviceNodePropertyChartBlockHeaderButton:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.DeviceNodePropertyChartBlockHeaderButtonSelected {
+    color: gray;
 }
 
 .DeviceNodePropertyChart {

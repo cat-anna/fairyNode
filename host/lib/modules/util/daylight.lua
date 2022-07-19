@@ -133,7 +133,7 @@ function Daylight:BeforeReload()
 end
 
 function Daylight:AfterReload()
-    self.last_update_timestamp = nil
+    self.last_update_timestamp = 0
     self:UpdateSunPosition()
 end
 
@@ -189,7 +189,7 @@ function Daylight:UpdateSunPosition()
     end
 
     local current_time = os.time()
-    if self.last_update_timestamp ~= nil and current_time - self.last_update_timestamp < 10 then
+    if current_time - self.last_update_timestamp < 10 then
         return
     end
 
@@ -236,8 +236,8 @@ end
 Daylight.EventTable = {
     ["homie-client.init-nodes"] = Daylight.InitHomieNode,
     ["homie-client.ready"] = Daylight.UpdateSunPosition,
-    ["timer.basic.minute"] = Daylight.UpdateSunPosition,
-    -- ["timer.basic.second"] = Daylight.UpdateSunPosition,
+    -- ["timer.basic.minute"] = Daylight.UpdateSunPosition,
+    ["timer.basic.30_second"] = Daylight.UpdateSunPosition,
 }
 
 return Daylight

@@ -92,6 +92,7 @@ function DevSrv:GetPropertyHistory(request, device, node_name, property_name)
     local prop = node.properties[property_name]
     return http.OK, {
         label = node.name .. " - " .. prop.name,
+        timestamp = os.time(),
         history = dev:GetHistory(node_name, property_name)
     }
 end

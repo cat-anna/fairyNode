@@ -58,9 +58,9 @@ function EventBus:Init()
     self.notify_once = { }
     self.subscriptions = table.weak()
 
+    self.logger = require("lib/logger"):New("event-bus", CONFIG_KEY_EVENT_BUS_LOG_ENABLE)
     self:InvalidateHandlerCache()
 
-    self.logger = require("lib/logger"):New("event-bus", CONFIG_KEY_EVENT_BUS_LOG_ENABLE)
     self.process_thread = copas.addthread(function()
         while true do
             copas.sleep(0.1)
@@ -73,6 +73,9 @@ end
 
 function EventBus:InvalidateHandlerCache()
     self.handler_cache = {}
+    if self.logger:Enabled() then
+        self.logger:WriteCsv{ "flush=cache" }
+    end
 end
 
 function EventBus:AllModulesLoaded()
@@ -147,7 +150,7 @@ function EventBus:ProcessEvent(event_info)
             end
         end
     else
-        local entry = table.weak()
+        local entry = { }
         self.handler_cache[event_info.event] = entry
 
         self.loader_module:EnumerateModules(
