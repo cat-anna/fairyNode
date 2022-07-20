@@ -13,7 +13,7 @@ HomieDevice.__deps = {
     homie_common = "homie/homie-common",
     mqtt = "mqtt/mqtt-provider",
     event_bus = "base/event-bus",
-    cache = "base/data-cache",
+    server_storage = "base/server-storage",
 }
 
 ------------------------------------------------------------------------------
@@ -215,7 +215,7 @@ end
 function HomieDevice:PushPropertyHistory(node, property, value, timestamp)
     local id = self:GetHistoryId(node, property.id)
     if not self.history[id] then
-        self.history[id] =  self.cache:GetFromCache(id) or {
+        self.history[id] =  self.server_storage:GetFromCache(id) or {
             values = {}
         }
     end
@@ -249,7 +249,7 @@ function HomieDevice:PushPropertyHistory(node, property, value, timestamp)
     --     self.history.values_filtered = FilterPropertyValues(history.values)
     -- end
 
-    self.cache:UpdateCache(id, history)
+    self.server_storage:UpdateCache(id, history)
 end
 
 function HomieDevice:AppendErrorHistory(node, property, value, timestamp)
@@ -373,7 +373,7 @@ function HomieDevice:HandlePropertyValue(topic, payload)
     end
 
     self:PushPropertyHistory(node_name, property, value, timestamp)
-    self.cache:UpdateCache(self:GetPropertyId(node_name, prop_name), property)
+    self.server_storage:UpdateCache(self:GetPropertyId(node_name, prop_name), property)
 end
 
 function HomieDevice:HandlePropertyConfigValue(topic, payload)
@@ -445,7 +445,7 @@ function HomieDevice:HandleNodeProperties(topic, payload)
 
     for _,prop_name in ipairs(props) do
         if not properties[prop_name] then
-            properties[prop_name] = self.cache:GetFromCache(self:GetPropertyId(node_name, prop_name)) or {}
+            properties[prop_name] = self.server_storage:GetFromCache(self:GetPropertyId(node_name, prop_name)) or {}
         end
         local property = properties[prop_name]
         property.id = prop_name

@@ -7,7 +7,7 @@ StateMovingAvg.__class_name = "StateMovingAvg"
 StateMovingAvg.__base = "rule/state-base"
 StateMovingAvg.__type = "class"
 StateMovingAvg.__deps = {
-    cache = "base/data-cache",
+    server_storage = "base/server-storage",
 }
 -------------------------------------------------------------------------------------
 
@@ -15,7 +15,7 @@ function StateMovingAvg:Init(config)
     self.super.Init(self, config)
 
     self.samples =  {}
-    local cache = self.cache:GetFromCache(self.global_id)
+    local cache = self.server_storage:GetFromCache(self.global_id)
     if cache then
         self.samples = cache.samples or { }
     end
@@ -86,8 +86,7 @@ function StateMovingAvg:RetireValue()
 end
 
 function StateMovingAvg:SaveCache()
-    local cache_id = self.global_id
-    self.cache:UpdateCache(self.global_id, {samples=self.samples})
+    self.server_storage:UpdateCache(self.global_id, {samples=self.samples})
 end
 
 function StateMovingAvg:Update()

@@ -6,7 +6,6 @@ local HomeHost = {}
 HomeHost.__index = HomeHost
 HomeHost.__deps = {
     event_bus = "base/event-bus",
-    cache = "base/data-cache",
     class = "base/loader-class",
     mqtt = "mqtt/mqtt-provider",
     homie_common = "homie/homie-common",
@@ -24,7 +23,6 @@ end
 
 function HomeHost:AfterReload()
     self.mqtt:AddSubscription("HomeHost", "homie/#")
-    self.mqtt:WatchRegex("HomeHost", function(...) self:AddDevice(...) end, "homie/+/$homie")
 end
 
 function HomeHost:Init()
@@ -34,6 +32,13 @@ function HomeHost:Init()
         max_history_entries = 1000,
     }
 end
+
+function HomeHost:OnAppStarted()
+    print(self, "Starting")
+    self.mqtt:WatchRegex("HomeHost", function(...) self:AddDevice(...) end, "homie/+/$homie")
+end
+
+------------------------------------------------------------------------------
 
 function HomeHost:AddDevice(topic, payload)
     local device_name = topic:match("homie/([^.]+)/$homie")
@@ -131,7 +136,7 @@ function HomeHost:DeleteDevice(device)
         return false
     end
 
-    printf("HOMIE-HOST: Deleting device '%s'", device)
+    printf(self, "Deleting device '%s'", device)
     dev:Delete()
 
     return true
@@ -140,12 +145,13 @@ end
 function HomeHost:FinishDeviceRemoval(device)
     self.devices[device] = nil
     self.history[device] = nil
-    printf("HOMIE-HOST: Device '%s' removal finished", device)
+    printf(self, "Device '%s' removal finished", device)
 end
 
 ------------------------------------------------------------------------------
 
 HomeHost.EventTable = {
+    ["app.start"] = HomeHost.OnAppStarted,
 }
 
 ------------------------------------------------------------------------------

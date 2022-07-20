@@ -34,4 +34,24 @@ function M.FindScriptByPathList(name, ...)
     end
 end
 
+function M.CountFilesInFolder(folder)
+    local size = 0
+    local count = 0
+    for file in lfs.dir(folder .. "/") do
+        if file ~= "." and file ~= ".." then
+            local f = folder .. '/' .. file
+            local attr = lfs.attributes(f)
+            if attr and attr.mode == "file" then
+                size = size + attr.size
+                count = count + 1
+            end
+        end
+    end
+
+    return {
+        size = size,
+        count = count,
+    }
+end
+
 return M

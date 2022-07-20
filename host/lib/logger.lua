@@ -18,7 +18,7 @@ local lua_print = print
 
 -------------------------------------------------------------------------------
 
-local CONFIG_KEY_LOG_DIR = "logger.path"
+local CONFIG_KEY_LOG_PATH = "logger.path"
 local CONFIG_KEY_LOG_ENABLE = "logger.enable"
 
 -------------------------------------------------------------------------------
@@ -64,12 +64,12 @@ function LoggerObject:Start()
         return
     end
 
-    pl_dir.makepath(self.config[CONFIG_KEY_LOG_DIR])
+    pl_dir.makepath(self.config[CONFIG_KEY_LOG_PATH])
     local timestamp = DateFormat:tostring(os.time())
     if self.config.debug then
         timestamp = DateFormat:tostring(0)
     end
-    local file_path = path.abspath(format("%s/%s_%s.log", self.config[CONFIG_KEY_LOG_DIR], timestamp, self.name))
+    local file_path = path.abspath(format("%s/%s_%s.log", self.config[CONFIG_KEY_LOG_PATH], timestamp, self.name))
     printf("LOGGER(%s): Logging to '%s'", self.name, file_path)
 
     self.file_name = file_path
@@ -174,7 +174,7 @@ function Logger:Create(name, enable_key, default_enable)
         config = { },
         __config = {
             [CONFIG_KEY_LOG_ENABLE] = { type = "boolean", default = true },
-            [CONFIG_KEY_LOG_DIR] = { type = "string", default = "." },
+            [CONFIG_KEY_LOG_PATH] = { type = "string", default = "." },
         }
     }, LoggerObject)
 

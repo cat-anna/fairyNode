@@ -17,7 +17,7 @@ RuleState.__index = RuleState
 RuleState.__deps = {
     event_bus = "base/event-bus",
     timers = "base/event-timers",
-    storage = "base/data-storage",
+    server_storage = "base/server-storage",
     rule_import = "rule/rule-state-import",
 }
 
@@ -120,7 +120,7 @@ function RuleState:GetRuleText()
 end
 
 function RuleState:SaveRule(rule_text)
-    self.storage:WriteStorage(self:GetRuleScriptId(), rule_text)
+    self.server_storage:WriteStorage(self:GetRuleScriptId(), rule_text)
 end
 
 function RuleState:GetRuleScriptId()
@@ -141,7 +141,7 @@ function RuleState:ReloadRule()
     self.homie_node = nil
     self.homie_props = nil
 
-    local rule_load_script_content = self.storage:GetFromStorage(self:GetRuleScriptId())
+    local rule_load_script_content = self.server_storage:GetFromStorage(self:GetRuleScriptId())
     if not rule_load_script_content then
         rule_load_script_content = ""
     end

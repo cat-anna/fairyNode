@@ -17,9 +17,7 @@ function Package.GetConfig(base_path)
             "base/event-bus",
             "base/event-timers",
             "base/error-reporter",
-            "base/data-cache",
-            "base/data-storage",
-            "base/data-ro",
+            "base/server-storage",
 
             "base/sensors",
             "base/health-monitor",
@@ -33,9 +31,9 @@ function Package.GetConfig(base_path)
         ["logger.path"] = cwd .. "/log",
         ["logger.enable"] = true,
 
-        ["module.data.storage.path"] = cwd .. "/runtime/storage",
-        ["module.data.cache.path"] = cwd .. "/runtime/cache",
-        ["module.data.ro.paths"] = { base_path .. "/host/data", },
+        ["module.server-storage.rw.path"] = cwd .. "/runtime/storage",
+        ["module.server-storage.cache.path"] = cwd .. "/runtime/cache",
+        ["module.server-storage.ro.paths"] = { base_path .. "/host/data", },
     }
 end
 

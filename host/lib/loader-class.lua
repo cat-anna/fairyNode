@@ -145,6 +145,7 @@ function ClassLoader:CreateObject(class_name, object_arg)
 
     obj.config = config_handler:Query(obj.__config)
     self:UpdateObjectDeps(class, obj)
+
     if obj.Init then
         obj:Init(object_arg)
     end
