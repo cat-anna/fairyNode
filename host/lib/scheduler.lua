@@ -25,12 +25,15 @@ end
 
 function Scheduler.Sleep(timeout)
     local before = os.gettime()
+    local mem_before = collectgarbage "count"
     copas.sleep(timeout)
+    local mem_after = collectgarbage "count"
     local after = os.gettime()
 
     local dt = after - before
     if timeout * 10 < dt then
-        printf("WARNING: APP IS UNDERRUNNING. Thread slept %.3f, but wanted %.3f. stack: %s", dt, timeout, debug.traceback())
+        printf("WARNING: APP IS UNDERRUNNING. Thread slept %.3f, but wanted %.3f; mem %f->%f; %s",
+            dt, timeout, mem_before, mem_after, debug.traceback())
     end
 end
 

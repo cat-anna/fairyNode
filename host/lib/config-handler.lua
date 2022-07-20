@@ -72,7 +72,7 @@ function ConfigHandler:Query(wanted_configs)
         r[key] = self:QueryConfigItem(key, query_args)
     end
 
-    for key,query_args in pairs(wanted_configs) do
+    for key,query_args in pairs(wanted_configs or { }) do
         r[key] = self:QueryConfigItem(key, query_args)
     end
 

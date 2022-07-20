@@ -10,6 +10,8 @@ local config_handler = require "lib/config-handler"
 local CONFIG_KEY_LIST = "loader.module.list"
 local CONFIG_KEY_PATHS = "loader.module.paths"
 
+-------------------------------------------------------------------------------
+
 local ModuleLoader = { }
 ModuleLoader.__index = ModuleLoader
 ModuleLoader.__config = {

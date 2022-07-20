@@ -1,11 +1,13 @@
 local json = require "json"
 local scheduler = require "lib/scheduler"
+
 ------------------------------------------------------------------------------
 
 local HomieDevice = {}
 HomieDevice.__index = HomieDevice
 HomieDevice.__type = "class"
 HomieDevice.__class_name = "HomieDevice"
+HomieDevice.__config = { }
 HomieDevice.__deps = {
     host = "homie/homie-host",
     homie_common = "homie/homie-common",
@@ -13,18 +15,6 @@ HomieDevice.__deps = {
     event_bus = "base/event-bus",
     cache = "base/data-cache",
 }
-
-------------------------------------------------------------------------------
-
-local HomieStates = {
---homie 3.0
-    init = "init",
-    ready = "ready",
-    lost = "lost",
--- extension
-    ota = "ota",
-}
-local HomieTopicState = "/$state"
 
 ------------------------------------------------------------------------------
 
@@ -53,7 +43,7 @@ function HomieDevice:AfterReload()
         end
     end
 
-    self:WatchTopic(HomieTopicState, self.HandleStateChanged)
+    self:WatchTopic(self.homie_common.TopicState, self.HandleStateChanged)
     self:WatchTopic("/$nodes", self.HandleNodes)
     self:WatchRegex("/$hw/#", self.HandleDeviceInfo)
     self:WatchRegex("/$fw/#", self.HandleDeviceInfo)
@@ -70,7 +60,7 @@ end
 ------------------------------------------------------------------------------
 
 function HomieDevice:LogTag()
-    return string.format("DEVICE(%s): ", self.name)
+    return string.format("DEVICE(%s)", self.name)
 end
 
 function HomieDevice:MqttId()
@@ -106,26 +96,26 @@ function HomieDevice:GetPropertyMT(parent_node)
     end
     function mt.SetValue(property, value)
         if self.deleting then
-            print(self:LogTag() ..  string.format("Failed to set value %s.%s - deleting device", parent_node.id, property.id))
+            print(self, string.format("Failed to set value %s.%s - deleting device", parent_node.id, property.id))
             return
         end
         if not property.settable then
-            error(self:LogTag() .. string.format(" %s.%s is not settable", parent_node.id, property.id))
+            error(self, string.format(" %s.%s is not settable", parent_node.id, property.id))
         end
         value = self.homie_common.ToHomieValue(property.datatype, value)
         local topic = property:GetValueSetTopic()
         self.mqtt:PublishMessage(topic, value, property.retained)
-        print(self:LogTag() .. string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
+        print(self,string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
     end
     function mt.GetId(property)
         return string.format("%s.%s.%s", self.id, parent_node.id, property.id)
     end
     function mt.Subscribe(property, id, handler)
         if self.deleting then
-            print(self:LogTag() .. "Failed to add subscription to " .. id .. " deleting device")
+            print(self, "Failed to add subscription to " .. id .. " deleting device")
             return
         end
-        print(self:LogTag() .. "Adding subscription to " .. id)
+        print(self, "Adding subscription to " .. id)
 
         local my_id = property:GetId()
         if not self.subscriptions[my_id] then
@@ -174,12 +164,12 @@ function HomieDevice:HandleStateChanged(topic, payload)
     })
 
     if self.state == "ota" and payload == "lost" then
-        print(self:LogTag() .. self.name .. " 'ota -> lost' state transition ignored")
+        print(self,self.name .. " 'ota -> lost' state transition ignored")
         return
     end
 
     self.state = payload
-    print(self:LogTag() .. self.name .. " entered state " .. (payload or "<?>"))
+    print(self,self.name .. " entered state " .. (payload or "<?>"))
 end
 
 local function FilterPropertyValues(values)
@@ -263,7 +253,7 @@ function HomieDevice:PushPropertyHistory(node, property, value, timestamp)
 end
 
 function HomieDevice:AppendErrorHistory(node, property, value, timestamp)
-    print(self:LogTag() .. string.format("error state changed to '%s'", value))
+    print(self,string.format("error state changed to '%s'", value))
     self.active_errors = self.active_errors or {}
 
     local device_errors = json.decode(value)
@@ -271,7 +261,7 @@ function HomieDevice:AppendErrorHistory(node, property, value, timestamp)
     local add_entry = function(operation, key, value)
         key = key or "<nil>"
         value = json.encode(value or "")
-        print(self:LogTag() .. string.format("%s error %s=%s", operation, key, value))
+        print(self,string.format("%s error %s=%s", operation, key, value))
     end
 
     local new_active_errors = {}
@@ -320,7 +310,7 @@ function HomieDevice:HandlePropertyValue(topic, payload)
 
     local node = self.nodes[node_name]
     if not node then
-        print(self:LogTag() .. string.format("property %s.%s is unknown", node_name, prop_name))
+        print(self,string.format("property %s.%s is unknown", node_name, prop_name))
         return
     end
     local property = node.properties[prop_name]
@@ -344,10 +334,8 @@ function HomieDevice:HandlePropertyValue(topic, payload)
         end
     end
 
-    if changed
-    -- and configuration.debug --TODO
-     then
-        print(self:LogTag() .. string.format("node %s.%s = %s -> %s", node_name, prop_name, property.raw_value or "", payload or ""))
+    if changed and self.config.verbose then
+        print(self, string.format("node %s.%s = %s -> %s", node_name, prop_name, property.raw_value or "", payload or ""))
     end
 
     property.value = value
@@ -396,7 +384,7 @@ function HomieDevice:HandlePropertyConfigValue(topic, payload)
 
     local node = self.nodes[node_name]
     if not node then
-        print(self:LogTag() .. string.format("property %s.%s is unknown", node_name, prop_name))
+        print(self,string.format("property %s.%s is unknown", node_name, prop_name))
         return
     end
     local property = node.properties[prop_name]
@@ -416,7 +404,7 @@ function HomieDevice:HandlePropertyConfigValue(topic, payload)
     end
 
     property[config_name] = payload
-    -- print(self:LogTag() .. string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
+    -- print(self,string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
 end
 
 function HomieDevice:GetFullPropertyName(node_id, prop_id)
@@ -438,11 +426,11 @@ function HomieDevice:HandleNodeProperties(topic, payload)
     local props = payload:split(",")
     local node_name = topic:match("/([^/]+)/$properties$")
 
-    print(self:LogTag() .. string.format("node (%s) properties (%d): %s", node_name, #props, payload))
+    print(self,string.format("node (%s) properties (%d): %s", node_name, #props, payload))
 
     local node = self.nodes[node_name]
     if not node then
-        print(self:LogTag() .. string.format("node %s is unknown", node_name))
+        print(self,string.format("node %s is unknown", node_name))
         return
     end
     if not node.properties then
@@ -492,7 +480,7 @@ function HomieDevice:HandleNodeValue(topic, payload)
     end
 
     node[value] = payload
-    print(self:LogTag() .. string.format("node (%s) %s=%s", node_name, value, payload ~= nil and payload or ""))
+    print(self,string.format("node (%s) %s=%s", node_name, value, payload ~= nil and payload or ""))
 end
 
 function HomieDevice:HandleNodes(topic, payload)
@@ -535,7 +523,7 @@ function HomieDevice:HandleDeviceInfo(topic, payload)
     end
 
     self.variables[variable] = payload
-    -- print(self:LogTag() .. self.name .. " " .. variable .. "=" .. payload)
+    -- print(self,self.name .. " " .. variable .. "=" .. payload)
 end
 
 function HomieDevice:HandleCommandOutput(topic, payload)
@@ -545,10 +533,10 @@ function HomieDevice:HandleCommandOutput(topic, payload)
     local cb = self.command_pending
     self.command_pending = nil
     if not cb then
-        print(self:LogTag() .. "Got unexpected command result: " .. payload)
+        print(self,"Got unexpected command result: " .. payload)
         return
     end
-    print(self:LogTag() .. "Got command result: " .. payload)
+    print(self,"Got command result: " .. payload)
 
     self.last_command_result = { response = payload, timestamp = os.time() }
 
@@ -567,17 +555,17 @@ function HomieDevice:SendCommand(cmd, callback)
     end
 
     self.command_pending = callback or function () end
-    print(self:LogTag() .. "Sending command: " .. cmd)
+    print(self,"Sending command: " .. cmd)
     self.mqtt:PublishMessage(self:BaseTopic() .. "/$cmd", cmd, false)
 end
 
 function HomieDevice:SendEvent(event)
-    print(self:LogTag() .. "Sending event: " .. event)
+    print(self,"Sending event: " .. event)
     self.mqtt:PublishMessage(self:BaseTopic() .. "/$event", event, false)
 end
 
 function HomieDevice:Publish(topic, payload, retain)
-    print(self:LogTag() .. "Publishing: " .. topic .. "=" .. payload)
+    print(self,"Publishing: " .. topic .. "=" .. payload)
     self.mqtt:PublishMessage(self:BaseTopic() .. topic, payload, retain or false)
 end
 
@@ -650,7 +638,7 @@ function HomieDevice:Delete()
         return
     end
     self.deleting = true
-    print(self:LogTag() .. "Deleting device " .. self.name)
+    print(self,"Deleting device " .. self.name)
 
     self.event_bus:PushEvent({
         event = "device.delete.start",
@@ -658,7 +646,7 @@ function HomieDevice:Delete()
     })
 
     self:Finalize()
-    self:Publish(HomieTopicState, HomieStates.lost, true)
+    self:Publish(self.homie_common.TopicState, self.homie_common.States.lost, true)
 
     for _,n in pairs(self.nodes) do
         for _,p in pairs(n.properties or {}) do
@@ -668,7 +656,7 @@ function HomieDevice:Delete()
     end
 
     scheduler.Delay(1, function()
-        print(self:LogTag() .. "Starting topic clear")
+        print(self,"Starting topic clear")
         self:WatchRegex("/#", self.HandleTopicClear)
     end)
     scheduler.Delay(5, function()
@@ -684,7 +672,7 @@ end
 function HomieDevice:HandleTopicClear(topic, payload)
     payload = payload or ""
     if payload ~= "" then
-        print(self:LogTag() .. "Clearing: " .. topic .. "=" .. payload)
+        print(self,"Clearing: " .. topic .. "=" .. payload)
         self.mqtt:PublishMessage(topic, "", true)
     end
 end

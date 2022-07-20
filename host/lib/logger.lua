@@ -65,7 +65,11 @@ function LoggerObject:Start()
     end
 
     pl_dir.makepath(self.config[CONFIG_KEY_LOG_DIR])
-    local file_path = path.abspath(format("%s/%s_%s.log", self.config[CONFIG_KEY_LOG_DIR], DateFormat:tostring(os.time()), self.name))
+    local timestamp = DateFormat:tostring(os.time())
+    if self.config.debug then
+        timestamp = DateFormat:tostring(0)
+    end
+    local file_path = path.abspath(format("%s/%s_%s.log", self.config[CONFIG_KEY_LOG_DIR], timestamp, self.name))
     printf("LOGGER(%s): Logging to '%s'", self.name, file_path)
 
     self.file_name = file_path
@@ -140,7 +144,7 @@ local function ExtractTag(object)
     if not object then
         return nil
     end
-    local tag = object.log_tag
+    local tag = object.__log_tag
     if tag then
         return tag
     end
@@ -148,9 +152,13 @@ local function ExtractTag(object)
     if g then
         tag = g(object)
     else
-        tag = object.uuid
+        if object.__class_name then
+            tag = object.__class_name
+        else
+            tag = object.__name
+        end
     end
-    object.log_tag = tag
+    object.__log_tag = tag or object.uuid
     return tag
 end
 

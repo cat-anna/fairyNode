@@ -51,12 +51,13 @@ end
 
 function ErrorHandler:AfterReload()
     is_debug_mode = self.config.debug
+    current_error_handler = self
 
     self.active_errors = self.active_errors or { }
-    current_error_handler = self
+
     self:UpdateActiveErrors()
 
-    self.timers:RegisterTimer("trigger_fail", 10)
+    -- self.timers:RegisterTimer("trigger_fail", 10)
 end
 
 function ErrorHandler:Init()
@@ -74,6 +75,7 @@ function ErrorHandler:UpdateActiveErrors()
 end
 
 function ErrorHandler:OnError(info)
+    print("ErrorHandler:OnError(info)")
     if not info then
         return
     end
@@ -87,8 +89,8 @@ function ErrorHandler:OnError(info)
 end
 
 ErrorHandler.EventTable = {
-    -- ["homie-client.ready"] = ErrorHandler.UpdateActiveErrors,
-    -- ["timer.trigger_fail"] = ErrorHandler.TestFail
+    ["homie-client.state.ready"] = ErrorHandler.UpdateActiveErrors,
+    ["timer.trigger_fail"] = ErrorHandler.TestFail
 }
 
 return ErrorHandler

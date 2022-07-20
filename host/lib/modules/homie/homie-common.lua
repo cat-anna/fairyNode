@@ -1,7 +1,6 @@
 
 
 local HomieCommon = {}
-HomieCommon.__index = HomieCommon
 
 ------------------------------------------------------------------------------
 
@@ -54,6 +53,19 @@ function HomieCommon.ToHomieValue(datatype, value)
     end
     return fmt.to_homie(value)
 end
+
+------------------------------------------------------------------------------
+
+HomieCommon.States = {
+--homie 3.0
+    init = "init",
+    ready = "ready",
+    lost = "lost",
+-- extension
+    ota = "ota",
+}
+
+HomieCommon.TopicState = "/$state"
 
 ------------------------------------------------------------------------------
 

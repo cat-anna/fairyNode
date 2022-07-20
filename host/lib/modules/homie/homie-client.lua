@@ -1,5 +1,8 @@
 local socket = require("socket")
 local tablex = require "pl.tablex"
+local scheduler = require "lib/scheduler"
+
+-- local homie_common = require "lib/modules/homie/homie_common"
 
 -------------------------------------------------------------------------------
 
@@ -71,11 +74,13 @@ local CONFIG_KEY_HOMIE_NAME = "module.homie-client.name"
 
 local HomieClient = {}
 HomieClient.__index = HomieClient
+HomieClient.__name = "HomieClient"
 HomieClient.__deps = {
     mqtt = "mqtt/mqtt-provider",
     event_bus = "base/event-bus",
     timers = "base/event-timers",
     homie_common = "homie/homie-common",
+    loader_module = "base/loader-module"
 }
 HomieClient.__config = {
     [CONFIG_KEY_HOMIE_NAME] = { type = "string", default = socket.dns.gethostname(), required = true },
@@ -83,82 +88,159 @@ HomieClient.__config = {
 
 -------------------------------------------------------------------------------
 
-function HomieClient:Publish(sub_topic, payload, retain)
-    local retain_flag = (retain ~= nil) and retain or self.retain
-    self.mqtt:PublishMessage(self.base_topic .. sub_topic, tostring(payload), retain_flag)
+local ClientStates = {
+    unknown = "unknown",
+    goto_init = "goto_init",
+    init = "init",
+    goto_ready = "goto_ready",
+    ready = "ready",
+}
+
+-------------------------------------------------------------------------------
+
+function HomieClient:BeforeReload()
 end
 
-function HomieClient:BatchPublish(values, retain)
-    local retain_flag = (retain ~= nil) and retain or self.retain
-    for _,v in ipairs(values) do
-        local sub_topic, payload = table.unpack(v)
-        self.mqtt:PublishMessage(self.base_topic .. sub_topic, tostring(payload), retain_flag)
+function HomieClient:AfterReload()
+    self.state = ClientStates.unknown
+    self.mqtt:AddSubscription(self.uuid, self.base_topic .. "/#")
+
+    self:OnAppReset()
+end
+
+function HomieClient:Init()
+    self.client_name = self.config[CONFIG_KEY_HOMIE_NAME]
+    self.base_topic = "homie/" .. self.client_name
+    self.retain = true
+
+    self.state = ClientStates.unknown
+    self.app_started = false
+
+    self.nodes = table.weak()
+end
+
+-------------------------------------------------------------------------------
+
+function HomieClient:OnAppStarted()
+    print(self, "Starting")
+    self.app_started = true
+    self:EnterState(ClientStates.goto_init)
+end
+
+function HomieClient:OnAppReset()
+    if self.app_started then
+        self:EnterState(ClientStates.goto_init)
     end
 end
 
 -------------------------------------------------------------------------------
 
-function HomieClient:EnterInitState()
-    self.ready_pending = nil
-    self.ready_state = nil
-    self:Publish("/$homie", "3.0.0")
-
-    self:Publish("/$state", "init")
-
-    self:Publish("/$implementation", "fairyNode")
-    self:Publish("/$fw/name", "fairyNode")
-
-    self:Publish("/$fw/FairyNode/version", "0.0.4")
-    self:Publish("/$fw/FairyNode/mode", "host")
-    self:Publish("/$fw/FairyNode/os", "linux")
-
-    self:Publish("/$name", self.client_name)
-
-    self.nodes = {}
-
-    self.ready_pending = true
-    self.event_bus:PushEvent({
-        event = "homie-client.init-nodes",
-        client = self,
-    })
-
-    self.event_bus:PushEvent({
-        event = "homie-client.enter-ready",
-        client = self,
-    })
+function HomieClient:GetClientMode()
+    if self.loader_module:GetModule("homie/homie-host") then
+        return "host"
+    else
+        return "client"
+    end
 end
 
-function HomieClient:EnterReadyState()
-    if self.ready_state or not self.ready_pending then
-        return
-    end
+function HomieClient:GetInitMessages()
+    return {
+        { "/$state", self.homie_common.States.init },
+        { "/$name", self.client_name },
+        { "/$homie", "3.0.0" },
 
+        { "/$implementation", "fairyNode" },
+        { "/$fw/name", "fairyNode" },
+        { "/$fw/FairyNode/version", "0.0.4" },
+        { "/$fw/FairyNode/mode", self:GetClientMode() },
+        { "/$fw/FairyNode/os", "linux" },
+    }
+end
+
+function HomieClient:GetReadyMessages()
+    return {
+        { "/$nodes", table.concat(tablex.keys(self.nodes), ",") },
+        { "/$state", self.homie_common.States.ready },
+    }
+end
+
+-------------------------------------------------------------------------------
+
+function HomieClient:AreNodesReady()
     for k,v in pairs(self.nodes) do
         if not v.ready then
-            print(string.format("HOMIE: Cannot enter ready state, node '%s' is not yet ready", k))
-            return
+            return false
+        end
+    end
+    return true
+end
+
+function HomieClient:AddNode(node_name, node)
+    self.nodes[node_name] = node
+
+    -- node = {
+    --     ready = true,
+    --     name = "some prop name",
+    --     properties = {
+    --         temperature = {
+    --             unit = "...", datatype = "...", name = "...", handler = ...,
+    --         }
+    --     }
+    -- }
+
+    node.id = node_name
+
+    local prop_names = { }
+    node.properties = node.properties or {}
+    for prop_name,property in pairs(node.properties) do
+        table.insert(prop_names, prop_name)
+        property.id=prop_name
+
+        printf(self, "Add %s.%s", node_name or "?", prop_name or "?")
+
+        local ignored_entries = {
+            value = true,
+            settable = true,
+            retained = true,
+            handler = true,
+        }
+
+        for k,v in pairs(property or {}) do
+            local t = type(v)
+            if k[1] ~= "_" and not ignored_entries[k] and t ~= "table" and t ~= "function" then
+                self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
+            end
+        end
+
+        self:PublishNodeProperty(node_name, prop_name, "$retained", property.retained and "true" or "false")
+        self:PublishNodeProperty(node_name, prop_name, "$settable", property.handler ~= nil or property.settable)
+
+        property.controller = self
+        property.node = node
+        property.homie_common = self.homie_common
+        setmetatable(property, PropertyMT)
+
+        -- if property.handler then
+        --     local settable_topic = self:GetHomiePropertySetTopic(node_name, prop_name)
+        --     print("HOMIE: Settable address:", settable_topic)
+
+        --     local function proxy_handler(topic, payload)
+        --         return property:ImportValue(topic, payload)
+        --     end
+        --     self.mqtt:WatchTopic(self:WatchTopicId(settable_topic), proxy_handler, settable_topic)
+        -- end
+
+        if property.value ~= nil then
+            property:SetValue(property.value, true)
         end
     end
 
-    local nodes=  table.concat(tablex.keys(self.nodes), ",")
-    self:Publish("/$nodes",nodes)
-    self:Publish("/$state", "ready")
-    self.ready_state = true
-    self.ready_pending = nil
+    self:PublishNode(node_name, "$name", node.name)
+    self:PublishNode(node_name, "$properties", table.concat(prop_names, ","))
 
-    self.event_bus:PushEvent({
-        event = "homie-client.ready",
-        client = self,
-    })
-end
-
-function HomieClient:CheckStatus()
-    if self.ready_pending then
-        self.event_bus:PushEvent({
-            event = "homie-client.enter-ready",
-            client = self,
-        })
-    end
+    node.controller = self
+    self:OnAppReset()
+    return setmetatable(node, NodeObject)
 end
 
 -------------------------------------------------------------------------------
@@ -183,111 +265,136 @@ function HomieClient:PublishNode(node, sub_topic, payload)
     return self:Publish(string.format("/%s/%s", node, sub_topic), payload)
 end
 
-function HomieClient:MqttId()
-    return "HomieClient"
-end
-
 function HomieClient:WatchTopicId(topic)
    return self:MqttId() .. "-topic-" .. topic
 end
 
-function HomieClient:AddNode(node_name, node)
-    self.nodes[node_name]= node
-    -- --[[
-    -- node = {
-    --     ready = true,
-    --     name = "some prop name",
-    --     properties = {
-    --         temperature = {
-    --             unit = "...",
-    --             datatype = "...",
-    --             name = "...",
-    --             handler = ...,
-    --         }
-    --     }
-    -- }
-    -- ]]
+-------------------------------------------------------------------------------
 
-    node.id = node_name
+function HomieClient:Publish(sub_topic, payload, retain)
+    local retain_flag = (retain ~= nil) and retain or self.retain
+    self.mqtt:PublishMessage(self.base_topic .. sub_topic, tostring(payload), retain_flag)
+end
 
-    if not node.ready then
-        return
+function HomieClient:BatchPublish(values, retain)
+    local retain_flag = (retain ~= nil) and retain or self.retain
+    local mqtt = self.mqtt
+    for _,v in ipairs(values) do
+        local sub_topic, payload = table.unpack(v)
+        mqtt:PublishMessage(self.base_topic .. sub_topic, tostring(payload), retain_flag)
     end
-
-    local prop_names = { }
-    node.properties = node.properties or {}
-    for prop_name,property in pairs(node.properties) do
-        table.insert(prop_names, prop_name)
-        property.id=prop_name
-
-        -- print(string.format("HOMIE: %s.%s", node_name or "?", prop_name or "?"))
-
-        local ignored_entries = {
-            value=true,
-            settable=true,
-            retained=true,
-            handler=true,
-        }
-        for k,v in pairs(property or {}) do
-            local t = type(v)
-            if k[1] ~= "_" and not ignored_entries[k] and t ~= "table" and t ~= "function" then
-                self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
-            end
-        end
-
-        self:PublishNodeProperty(node_name, prop_name, "$retained", property.retained and "true" or "false")
-        self:PublishNodeProperty(node_name, prop_name, "$settable", property.handler ~= nil or property.settable)
-
-        property.controller = self
-        property.node = node
-        property.homie_common = self.homie_common
-        setmetatable(property, PropertyMT)
-
-        if property.handler then
-            local settable_topic = self:GetHomiePropertySetTopic(node_name, prop_name)
-            print("HOMIE: Settable address:", settable_topic)
-
-            local function proxy_handler(topic, payload)
-                return property:ImportValue(topic, payload)
-            end
-            self.mqtt:WatchTopic(self:WatchTopicId(settable_topic), proxy_handler, settable_topic)
-        end
-
-        if property.value ~= nil then
-            property:SetValue(property.value, true)
-        end
-    end
-
-    self:PublishNode(node_name, "$name", node.name)
-    self:PublishNode(node_name, "$properties", table.concat(prop_names, ","))
-
-    node.controller = self
-    return setmetatable(node, NodeObject)
 end
 
 -------------------------------------------------------------------------------
 
-function HomieClient:BeforeReload()
-end
+function HomieClient:PrepareForInit()
+    local mqtt_connected = self.mqtt:IsConnected()
 
-function HomieClient:AfterReload()
-    if self.mqtt:IsConnected() then
-        self:EnterInitState()
+    if mqtt_connected and self.app_started then
+        self:EnterState(ClientStates.init)
+        return
     end
-    self.mqtt:AddSubscription("HomieClient", "homie/#")
 end
 
-function HomieClient:Init()
-    self.client_name = self.config[CONFIG_KEY_HOMIE_NAME]
-    self.base_topic = "homie/" .. self.client_name
-    self.retain = true
+function HomieClient:OnEnterInit()
+    self:BatchPublish(self:GetInitMessages())
 end
+
+function HomieClient:HandleInitState()
+    self:EnterState(ClientStates.goto_ready)
+end
+
+function HomieClient:HandleNodeWaitForReady(state_data)
+    if os.gettime() - state_data.enter_time < 10 then
+        return
+    end
+
+    local nodes_ready = self:AreNodesReady()
+
+    if nodes_ready then
+        self:EnterState(ClientStates.ready)
+    end
+end
+
+function HomieClient:OnEnterReady()
+    self:BatchPublish(self:GetReadyMessages())
+end
+
+-------------------------------------------------------------------------------
+
+HomieClient.StateMachineHandlers = {
+    [ClientStates.unknown] = { },
+    [ClientStates.goto_init] = {
+        process = HomieClient.PrepareForInit,
+    },
+    [ClientStates.init] = {
+        enter = HomieClient.OnEnterInit,
+        process = HomieClient.HandleInitState
+    },
+    [ClientStates.goto_ready] = {
+        process = HomieClient.HandleNodeWaitForReady,
+    },
+    [ClientStates.ready] = {
+        enter = HomieClient.OnEnterReady,
+    },
+}
+
+function HomieClient:EnterState(target_state)
+    self.pending_state = target_state
+    scheduler.CallLater(function ()
+        self:ProcessStateMachine()
+    end)
+end
+
+function HomieClient:ProcessStateMachine()
+    local current_state = self.current_state or ClientStates.unknown
+    local pending_state = self.pending_state or current_state
+    self.pending_state = nil
+
+    local function call(func)
+        if func then
+            return func(self, self.state_data)
+        end
+    end
+
+    if self.config.verbose then
+        printf(self, "Current state %s", current_state)
+    end
+    local current_handler = self.StateMachineHandlers[current_state]
+    if pending_state == current_state then
+        call(current_handler.process)
+        return
+    end
+
+    printf(self, "Transition %s->%s", current_state, pending_state)
+    local target_handler = self.StateMachineHandlers[pending_state]
+    call(current_handler.exit)
+
+    self.current_state = pending_state
+    self.state_data = call(target_handler.data) or { }
+    self.state_data.enter_time = os.gettime()
+
+    call(target_handler.enter)
+    call(target_handler.process)
+
+    self.event_bus:PushEvent({
+        event = string.format("homie-client.state.%s", pending_state),
+        client = self,
+    })
+end
+
+-------------------------------------------------------------------------------
 
 HomieClient.EventTable = {
-    ["homie-client.enter-ready"] = HomieClient.EnterReadyState,
-    ["mqtt-client.connected"] = HomieClient.EnterInitState,
-    ["module.initialized"] = HomieClient.EnterInitState,
-    ["timer.basic.10_second"] = HomieClient.CheckStatus,
+    ["mqtt-client.disconnected"] = HomieClient.OnAppReset,
+
+    ["mqtt-client.connected"] = HomieClient.ProcessStateMachine,
+    ["timer.basic.10_second"] = HomieClient.ProcessStateMachine,
+
+    ["app.start"] = HomieClient.OnAppStarted,
+    ["module.reloaded"]  = HomieClient.OnAppReset,
 }
+
+-------------------------------------------------------------------------------
 
 return HomieClient

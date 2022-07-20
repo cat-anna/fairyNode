@@ -210,8 +210,6 @@ end
 
 RuleState.EventTable = {
     ["module.initialized"] = RuleState.OnAppInitialized,
-    ["homie-client.init-nodes"] = RuleState.InitHomieNode,
-    ["homie-client.enter-ready"] = RuleState.InitHomieNode,
 
     ["timer.basic.10_second"] = RuleState.CheckUpdateQueue,
 }

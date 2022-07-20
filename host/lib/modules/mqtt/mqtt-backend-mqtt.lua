@@ -47,7 +47,6 @@ function MqttClient:Init()
 
         while true do
             mqttloop:iteration()
-            -- copas.sleep(0.01)
             scheduler.Sleep(0.01)
         end
     end)
@@ -111,14 +110,10 @@ end
 function MqttClient:SubscriptionConfirmed(suback, regex)
     print("MQTT-CLIENT: Subscribed to " .. regex)
 
-    if self.use_event_bus then
-        self.event_bus:PushEvent({
-            event = "mqtt-client.subscribed",
-            argument = {
-                regex=regex,
-            }
-        })
-    end
+    self.event_bus:PushEvent({
+        event = "mqtt-client.subscribed",
+        argument = { regex=regex }
+    })
 
     for _,target in pairs(self.watchers) do
         SafeCall(function() target:OnMqttSubscribed(regex) end)
@@ -132,12 +127,10 @@ function MqttClient:HandleConnect(connack)
     print("MQTT-CLIENT: Connected")
     self.connected = true
 
-    if self.use_event_bus then
-        self.event_bus:PushEvent({
-            event = "mqtt-client.connected",
-            argument = {}
-        })
-    end
+    self.event_bus:PushEvent({
+        event = "mqtt-client.connected",
+        argument = {}
+    })
 
     for _,target in pairs(self.watchers) do
         SafeCall(function() target:OnMqttConnected() end)
@@ -189,12 +182,10 @@ end
 function MqttClient:HandleError(err)
     print("MQTT-CLIENT: client error:", err)
 
-    if self.use_event_bus then
-        self.event_bus:PushEvent({
-            event = "mqtt-client.error",
-            argument = { error = err }
-        })
-    end
+    self.event_bus:PushEvent({
+        event = "mqtt-client.error",
+        argument = { error = err }
+    })
 
     for _,target in pairs(self.watchers) do
         SafeCall(function() target:OnMqttError(err, "?") end)
@@ -205,9 +196,7 @@ function MqttClient:HandleClose()
     print("MQTT-CLIENT: Disconnected")
     self.connected = false
 
-    if self.use_event_bus then
-        self.event_bus:PushEvent({ event = "mqtt-client.disconnected" })
-    end
+    self.event_bus:PushEvent({ event = "mqtt-client.disconnected" })
 
     for _,target in pairs(self.watchers) do
         SafeCall(function() target:OnMqttDisconnected() end)

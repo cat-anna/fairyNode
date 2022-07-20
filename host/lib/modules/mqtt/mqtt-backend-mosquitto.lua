@@ -127,12 +127,10 @@ function MosquittoClient:OnMosquittoSubscribe(mid)
     assert(ctx)
     print("MOSQUITTO: Subscribed to " .. ctx.regex)
 
-    if self.use_event_bus then
-        self.event_bus:PushEvent({
-            event = "mqtt-client.subscribed",
-            argument = {regex = ctx.regex}
-        })
-    end
+    self.event_bus:PushEvent({
+        event = "mqtt-client.subscribed",
+        argument = {regex = ctx.regex}
+    })
 
     for _,target in pairs(self.watchers) do
         SafeCall(function() target:OnMqttSubscribed(ctx.regex) end)
@@ -152,9 +150,7 @@ function MosquittoClient:OnMosquittoConnect()
     print("MOSQUITTO: Connected")
     self.connected = true
 
-    if self.use_event_bus then
-        self.event_bus:PushEvent({ event = "mqtt-client.connected" })
-    end
+    self.event_bus:PushEvent({ event = "mqtt-client.connected" })
 
     for _,target in pairs(self.watchers) do
         SafeCall(function() target:OnMqttConnected() end)
@@ -168,9 +164,7 @@ function MosquittoClient:OnMosquittoDisconnect()
         print("MOSQUITTO: Disconnected")
         self.connected = false
 
-        if self.use_event_bus then
-            self.event_bus:PushEvent({ event = "mqtt-client.disconnected" })
-        end
+        self.event_bus:PushEvent({ event = "mqtt-client.disconnected" })
 
         for _,target in pairs(self.watchers) do
             SafeCall(function() target:OnMqttDisconnected() end)
@@ -204,12 +198,10 @@ function MosquittoClient:CheckMosquittoResult(call_result, context)
 
     print(string.format("MOSQUITTO: Error(%d): %s", code, message))
 
-    if self.use_event_bus then
-        self.event_bus:PushEvent({
-            event = "mqtt-client.error",
-            argument = {code = code, message = message}
-        })
-    end
+    self.event_bus:PushEvent({
+        event = "mqtt-client.error",
+        argument = {code = code, message = message}
+    })
 
     for _,target in pairs(self.watchers) do
         SafeCall(function() target:OnMqttError(code, message) end)

@@ -55,7 +55,6 @@ end
 
 function EventBus:Init()
     self.event_queue = {}
-    self.notify_once = { }
     self.subscriptions = table.weak()
 
     self.logger = require("lib/logger"):New("event-bus", CONFIG_KEY_EVENT_BUS_LOG_ENABLE)
@@ -81,11 +80,7 @@ end
 function EventBus:AllModulesLoaded()
     self:InvalidateHandlerCache()
     self:PushEvent({ event = "module.load_complete", })
-
-    if not self.notify_once.app_start then
-        self:PushEvent({ event = "app.start", })
-        self.notify_once.app_start = true
-    end
+    self:PushEvent({ event = "app.start", })
 end
 
 function EventBus:ModuleReloaded(module_name, module)
@@ -93,14 +88,6 @@ function EventBus:ModuleReloaded(module_name, module)
     self:PushEvent({
         event = "module.reloaded",
         argument = { name = module_name }
-    })
-end
-
-function EventBus:AllModulesInitialized()
-    self:InvalidateHandlerCache()
-    self:PushEvent({
-        event = "module.initialized",
-        argument = {  }
     })
 end
 
