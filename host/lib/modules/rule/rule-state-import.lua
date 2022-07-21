@@ -9,6 +9,7 @@ RuleStateImport.__deps = {
     device_tree = "homie/device-tree",
     datetime_utils = "util/datetime-utils",
     class = "base/loader-class",
+    sensor_handler = "base/sensors",
 }
 RuleStateImport.__config = {
 }
@@ -16,6 +17,7 @@ RuleStateImport.__config = {
 local StateClassMapping = {
     StateOperator = "rule/state-operator",
     StateHomie = "rule/state-homie",
+    StateSensor = "rule/state-sensor",
     StateTime = "rule/state-time",
     StateFunction = "rule/state-function",
     StateMovingAvg = "rule/state-avg-moving",
@@ -469,6 +471,23 @@ function RuleStateImport:ImportHomieState(env_object, property_path, homie_prope
     return env_object.states[global_id]
 end
 
+function RuleStateImport:ImportSensorState(env_object, result)
+    local global_id = result.full_path
+    if not env_object.states[global_id] then
+        local n = #result.full_path_nodes
+        env_object.states[global_id] = self.class:CreateObject(StateClassMapping.StateSensor, {
+            class = StateClassMapping.StateSensor,
+            name = result.path,
+            global_id = global_id,
+            class_id = result.path,
+            sensor = result.full_path_nodes[n-1],
+            sensor_node = result.full_path_nodes[n],
+            group = env_object.group,
+        })
+    end
+    return env_object.states[global_id]
+end
+
 function RuleStateImport:AddState(env_object, definition)
     local class_reg = self.state_class_reg
 
@@ -556,9 +575,8 @@ function RuleStateImport:CreateStateEnv()
     end
 
     state_prototype.State = setmetatable({}, StateMt)
-    state_prototype.Homie = self.device_tree:GetPropertyPath(WrapCall(self,
-                                                                      self.ImportHomieState,
-                                                                      object))
+    state_prototype.Homie = self.device_tree:GetPropertyPath(WrapCall(self, self.ImportHomieState, object))
+    state_prototype.Sensor = self.sensor_handler:GetPathBuilder(WrapCall(self, self.ImportSensorState, object))
 
     state_prototype.AddState = WrapCall(self, self.AddState, object)
     state_prototype.Source = WrapCall(env, AddSource)

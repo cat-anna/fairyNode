@@ -144,7 +144,7 @@ function ServerStorage:CheckCache()
         end
     end
     if self.storage_sensor then
-        self.storage_sensor:SetAll {
+        self.storage_sensor:UpdateAll {
             cache_size = total_size / 1024,
             cache_entries = entry_count,
         }
@@ -234,7 +234,7 @@ end
 function ServerStorage:CheckStorage()
     if self.storage_sensor then
         local r = fs.CountFilesInFolder(self:GetStoragePath())
-        self.storage_sensor:SetAll {
+        self.storage_sensor:UpdateAll {
             storage_size = r.size / 1024,
             storage_entries = r.count,
         }
@@ -267,7 +267,7 @@ end
 function ServerStorage:CheckLogs()
     if self.storage_sensor then
         local r = fs.CountFilesInFolder(self:GetLogPath())
-        self.storage_sensor:SetAll {
+        self.storage_sensor:UpdateAll {
             log_size = r.size / 1024,
             log_entries = r.count,
         }

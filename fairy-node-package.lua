@@ -18,7 +18,6 @@ function Package.GetConfig(base_path)
             "base/event-timers",
             "base/error-reporter",
             "base/server-storage",
-
             "base/sensors",
             "base/health-monitor",
         },
@@ -28,7 +27,7 @@ function Package.GetConfig(base_path)
         ["rest.endpoint.paths"] = { base_path .. "/host/lib/rest/endpoint" },
         ["rest.endpoint.list"] = { },
 
-        ["logger.path"] = cwd .. "/log",
+        ["logger.path"] = cwd .. "/runtime/log",
         ["logger.enable"] = true,
 
         ["module.server-storage.rw.path"] = cwd .. "/runtime/storage",

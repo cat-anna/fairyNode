@@ -184,13 +184,16 @@ function OpenDevicePropertyChart(url, parent_block) {
 
     var times = {
         "1H": 60*60,
+        "2H": 2*60*60,
         "6H": 6*60*60,
         "12H": 12*60*60,
         "1D": 24*60*60,
         "2D": 2*24*60*60,
         "4D": 4*24*60*60,
         "1W": 7*24*60*60,
-        "1Y": 365*24*60*60,
+        "2W":14*24*60*60,
+        "1M": 30*24*60*60,
+        // "1Y": 365*24*60*60,
     }
     var default_time = times["1D"]
 
@@ -441,9 +444,11 @@ function SetDeviceInfoPageStatus(entry, body_id) {
     var sysinfo_props
     if (nodes) {
         sysinfo = nodes.sysinfo
-        if (sysinfo) {
+        if (sysinfo && sysinfo.properties) {
             sysinfo_props = sysinfo.properties
-            blocks.push(["Uptime", FormatSeconds(sysinfo_props.uptime.value),])
+            if (sysinfo_props.uptime.value) {
+              blocks.push(["Uptime", FormatSeconds(sysinfo_props.uptime.value),])
+            }
         }
     }
 
@@ -568,7 +573,7 @@ function SetDeviceInfoPageActiveErrors(entry, body_id) {
     GetOrCreateDiv(node_id, body_id, "DeviceNode")
 
     var error_dict = null
-    if (entry.nodes.sysinfo != null && entry.nodes.sysinfo.properties.errors != null) {
+    if (entry.nodes.sysinfo != null && entry.nodes.sysinfo.properties && entry.nodes.sysinfo.properties.errors) {
         error_dict = entry.nodes.sysinfo.properties.errors.value_parsed
     }
 

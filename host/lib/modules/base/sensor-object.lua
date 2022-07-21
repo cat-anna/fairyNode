@@ -3,6 +3,19 @@ local scheduler = require "lib/scheduler"
 
 -------------------------------------------------------------------------------------
 
+local SensorNodeMt = {}
+SensorNodeMt.__index = SensorNodeMt
+
+function SensorNodeMt:GetValue()
+    return self.value, self.timestamp
+end
+
+function SensorNodeMt:Sensor()
+    return self.sensor.instance
+end
+
+-------------------------------------------------------------------------------------
+
 local SensorObject = {}
 SensorObject.__index = SensorObject
 SensorObject.__type = "class"
@@ -11,20 +24,11 @@ SensorObject.__class_name = "SensorObject"
 -------------------------------------------------------------------------------------
 
 function SensorObject:Init(config)
-    self.source = config.owner
-    self.name = config.name
     self.id = config.id
-    self.nodes = config.nodes
-    self.values = { }
-    for k,_ in pairs(self.nodes) do
-        self.values[k] = {
-            name = k,
-            observers = table.weak()
-        }
-    end
-    -- self.passive = self.source.SensorReadout ~= nil
-
+    self.source = config.owner
     self.observers = table.weak()
+
+    self:Reset(config)
 end
 
 function SensorObject:BeforeReload() end
@@ -33,14 +37,38 @@ function SensorObject:AfterReload() end
 
 -------------------------------------------------------------------------------------
 
-function SensorObject:SetAll(all)
+function SensorObject:Reset(new_def)
+    self.name = new_def.name
+
+    local prev_node = self.node or { }
+    self.node = { }
+
+    for node_name,new_node in pairs(new_def.nodes or {}) do
+        local node = prev_node[node_name] or { }
+        node.observers = node.observers or table.weak()
+        node.sensor = node.sensor or table.weak{ instance = self }
+        node.id = node_name
+
+        for k,v in pairs(new_node) do
+            node[k] = v
+        end
+
+        self.node[node_name] = setmetatable(node, SensorNodeMt)
+    end
+
+    -- self.passive = self.source.SensorReadout ~= nil
+end
+
+-------------------------------------------------------------------------------------
+
+function SensorObject:UpdateAll(all)
     for k,v in pairs(all) do
-        self:Set(k,v)
+        self:Update(k,v)
     end
 end
 
-function SensorObject:Set(name, value)
-    local v = self.values[name]
+function SensorObject:Update(name, value)
+    local v = self.node[name]
     if v.value ~= value then
         v.value = value
         v.timestamp = os.gettime()
@@ -53,14 +81,14 @@ end
 
 function SensorObject:AddObserver(target)
     self.observers[target.uuid] = target
-    for _,v in pairs(self.values) do
+    for _,v in pairs(self.node) do
         self:CallObserver(target, v)
     end
 end
 
 function SensorObject:ObserveNode(target, node)
-    self.values[node].observers[target.uuid] = target
-    self:CallObserver(target, self.values[node])
+    self.node[node].observers[target.uuid] = target
+    self:CallObserver(target, self.node[node])
 end
 
 -------------------------------------------------------------------------------------

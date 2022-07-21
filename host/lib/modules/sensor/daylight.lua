@@ -14,7 +14,6 @@ local CONFIG_KEY_LONGITUDE = "server.location.longitude"
 local Daylight = {}
 Daylight.__index = Daylight
 Daylight.__deps = {
-    event_bus = "base/event-bus",
     sensor_handler = "base/sensors",
 }
 Daylight.__config = {
@@ -30,15 +29,13 @@ end
 
 -------------------------------------------------------------------------------
 
-function Daylight:BeforeReload()
-end
+function Daylight:BeforeReload() end
 
 function Daylight:AfterReload()
     self:InitSensors(self.sensor_handler)
 end
 
-function Daylight:Init()
-end
+function Daylight:Init() end
 
 function Daylight:InitSensors(sensors)
     self.daylight_sensor = sensors:RegisterSensor{
@@ -69,7 +66,7 @@ function Daylight:MoonReadout()
         local latitude = self.config[CONFIG_KEY_LATITUDE]
         local moon = sun_pos.GetMoonPosition(latitude, longitude)
         local moon_phase = sun_pos.GetMoonPhase()
-        self.daylight_sensor:SetAll{
+        self.daylight_sensor:UpdateAll{
             moon_phase = moon_phase.phase,
             moon_phase_fraction = moon_phase.fraction,
             moon_phase_angle = moon_phase.angle,
@@ -84,7 +81,7 @@ function Daylight:SunReadout()
         local longitude = self.config[CONFIG_KEY_LONGITUDE]
         local latitude = self.config[CONFIG_KEY_LATITUDE]
         local sun = sun_pos.GetSunPosition(latitude, longitude)
-        self.daylight_sensor:SetAll{
+        self.daylight_sensor:UpdateAll{
             sun_azimuth = sun.azimuth,
             sun_altitude = sun.altitude,
         }
@@ -97,5 +94,7 @@ Daylight.EventTable = {
     ["timer.sensor.readout.fast"] = Daylight.SunReadout,
     ["timer.sensor.readout.normal"] = Daylight.MoonReadout,
 }
+
+-------------------------------------------------------------------------------
 
 return Daylight

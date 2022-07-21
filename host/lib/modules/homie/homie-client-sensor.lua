@@ -2,6 +2,21 @@ local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------------
 
+local function CopyHomieProperties(source)
+    local nodes = { "name", "datatype", "unit", "value", "timestamp", }
+    local r = { }
+    for name,sensor in pairs(source) do
+        local s = { }
+        r[name] = s
+        for _,v in ipairs(nodes) do
+            s[v] = sensor[v]
+        end
+    end
+    return r
+end
+
+-------------------------------------------------------------------------------------
+
 local HomieClientSensor = {}
 HomieClientSensor.__index = HomieClientSensor
 HomieClientSensor.__deps = {
@@ -32,7 +47,7 @@ function HomieClientSensor:SensorAdded(sensor)
     def.sensor_pointer = table.weak { instance = sensor }
 
     if not def.node then
-        def.props = tablex.copy(sensor.nodes)
+        def.props = CopyHomieProperties(sensor.node)
         def.node = self.homie_client:AddNode(sensor.id, {
             ready = true,
             name = sensor.name,
@@ -48,7 +63,7 @@ end
 function HomieClientSensor:SensorNodeChanged(sensor, sensor_node)
     local s = self.sensors[sensor.id]
     if sensor_node.value ~= nil and s and s.props then
-        s.props[sensor_node.name]:SetValue(sensor_node.value)
+        s.props[sensor_node.id]:SetValue(sensor_node.value)
     end
 end
 

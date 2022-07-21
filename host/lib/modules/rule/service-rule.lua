@@ -23,6 +23,7 @@ function RuleService:Init() end
 local StateClassMapping = {
     StateHomie = "interface",
     StateTime = "abstract",
+    StateSensor = "struct",
 }
 
 local ValueFormatters = {

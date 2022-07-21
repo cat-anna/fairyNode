@@ -213,6 +213,21 @@ function Logger:Init()
             logger:Info(nil, first, ...)
         end
     end
+
+    function warning(first, ...)
+        if type(first) == "table" then
+            logger:Info(ExtractTag(first), PrintFormat({...}))
+        else
+            logger:Info(nil, PrintFormat({first, ...}))
+        end
+    end
+    function warningf(first, ...)
+        if type(first) == "table" then
+            logger:Warn(ExtractTag(first), ...)
+        else
+            logger:Warn(nil, first, ...)
+        end
+    end
 end
 
 function Logger:Start()

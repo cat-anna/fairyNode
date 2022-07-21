@@ -19,13 +19,12 @@ Sensors.__config = {
     [CONFIG_KEY_SENSOR_NORMAL_INTERVAL] = { type = "integer", default = 10*60 },
     [CONFIG_KEY_SENSOR_SLOW_INTERVAL] =   { type = "integer", default = 60*60 },
 }
+
 -------------------------------------------------------------------------------
 
-function Sensors:AfterReload()
-end
+function Sensors:AfterReload() end
 
-function Sensors:BeforeReload()
-end
+function Sensors:BeforeReload() end
 
 function Sensors:Init()
     self.sensors = table.weak()
@@ -56,14 +55,36 @@ end
 
 function Sensors:RegisterSensor(def)
     def.id = def.id or def.owner.__name
-    local s = self.loader_class:CreateObject("base/sensor-object", def)
-    s.sensor_host = self
-    self.sensors[def.id] = s
+    def.nodes = def.nodes or { }
+
+    local s = self.sensors[def.id]
+    if not s then
+        s = self.loader_class:CreateObject("base/sensor-object", def)
+        s.sensor_host = self
+        self.sensors[def.id] = s
+    else
+        s:Reset(def)
+    end
 
     for _,v in pairs(self.sensor_sink) do
         v:SensorAdded(s)
     end
+
     return s
+end
+
+-------------------------------------------------------------------------------
+
+function Sensors:GetPathBuilder(result_callback)
+    return require("lib/path_builder").PathBuilderWrapper({
+        name = "Sensor",
+        host = self,
+        path_getters = {
+            function (t, obj) return obj.sensors[t] end,
+            function (t, obj) return obj.node[t] end,
+        },
+        result_callback = result_callback,
+    })
 end
 
 -------------------------------------------------------------------------------

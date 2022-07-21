@@ -64,7 +64,7 @@ function HomieDevice:LogTag()
 end
 
 function HomieDevice:MqttId()
-    return "Device-" .. self.name
+    return "HomieDevice_" .. self.name
 end
 
 function HomieDevice:BaseTopic()
@@ -140,11 +140,11 @@ function HomieDevice:GetPropertyMT(parent_node)
 end
 
 function HomieDevice:WatchTopic(topic, handler)
-    self.mqtt:WatchTopic(self:MqttId() .. "-topic-" .. topic, function(...) handler(self, ...) end, self:BaseTopic() .. topic)
+    self.mqtt:WatchTopic(self:MqttId() .. "_topic_" .. topic, function(...) handler(self, ...) end, self:BaseTopic() .. topic)
 end
 
 function HomieDevice:WatchRegex(topic, handler)
-    self.mqtt:WatchRegex(self:MqttId() .. "-regex-" .. topic, function(...) handler(self, ...) end, self:BaseTopic() .. topic)
+    self.mqtt:WatchRegex(self:MqttId() .. "_regex_" .. topic, function(...) handler(self, ...) end, self:BaseTopic() .. topic)
 end
 
 function HomieDevice:HandleStateChanged(topic, payload)
@@ -474,6 +474,11 @@ function HomieDevice:HandleNodeValue(topic, payload)
     end
     local node_name, value = topic:match("/([^/]+)/$(.+)$")
     local node = self.nodes[node_name]
+
+    if not node then
+        print(self,string.format("node %s is unknown", node_name))
+        return
+    end
 
     if node[value] == payload then
         return

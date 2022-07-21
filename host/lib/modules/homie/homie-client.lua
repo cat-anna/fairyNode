@@ -96,6 +96,10 @@ local ClientStates = {
     ready = "ready",
 }
 
+local function boolean(v)
+    return v and true or false
+end
+
 -------------------------------------------------------------------------------
 
 function HomieClient:BeforeReload()
@@ -151,7 +155,7 @@ function HomieClient:GetInitMessages()
 
         { "/$implementation", "fairyNode" },
         { "/$fw/name", "fairyNode" },
-        { "/$fw/FairyNode/version", "0.0.4" },
+        { "/$fw/FairyNode/version", "0.0.8" },
         { "/$fw/FairyNode/mode", self:GetClientMode() },
         { "/$fw/FairyNode/os", "linux" },
     }
@@ -207,13 +211,13 @@ function HomieClient:AddNode(node_name, node)
 
         for k,v in pairs(property or {}) do
             local t = type(v)
-            if k[1] ~= "_" and not ignored_entries[k] and t ~= "table" and t ~= "function" then
+            if (not ignored_entries[k]) and (t ~= "table") and (t ~= "function") then
                 self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
             end
         end
 
-        self:PublishNodeProperty(node_name, prop_name, "$retained", property.retained and "true" or "false")
-        self:PublishNodeProperty(node_name, prop_name, "$settable", property.handler ~= nil or property.settable)
+        self:PublishNodeProperty(node_name, prop_name, "$retained", boolean(property.retained or self.retain))
+        self:PublishNodeProperty(node_name, prop_name, "$settable", boolean(property.handler ~= nil or property.settable))
 
         property.controller = self
         property.node = node
