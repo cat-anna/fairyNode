@@ -118,7 +118,6 @@ function table.weak(t)
     return setmetatable(t or {}, WeakMt)
 end
 
-
 function string.format_seconds(t)
     local secs = t%60
     t = floor(t / 60)
@@ -126,9 +125,9 @@ function string.format_seconds(t)
     t = floor(t / 60)
     local hour = t
     local r = {}
-    if hour > 0 then table.insert(r, tostring(hour).."h") end
-    if min > 0 then table.insert(r, tostring(min).."m") end
-    if secs > 0 then table.insert(r, tostring(secs).."s") end
+    if hour > 0 then table.insert(r, tostring(hour) .. "h") end
+    if min > 0 then table.insert(r, tostring(min) .. "m") end
+    if secs > 0 then table.insert(r, string.format("%.1fs", secs)) end
     return table.concat(r, " ")
 end
 
@@ -146,6 +145,32 @@ function os.gettime()
     return sec + (nsec / 1000000000)
 end
 
+os.timestamp = os.gettime
+
+function os.timestamp_to_string(timestamp)
+    timestamp = timestamp or os.gettime()
+
+    local sec = floor(timestamp)
+    local usec = floor((timestamp - sec) * 1000000)
+    local tm = localtime(sec)
+    return format("%04d-%02d-%02d %02d:%02d:%02d.%06d",
+        tm.year, tm.month, tm.day,
+        tm.hour, tm.min, tm.sec,
+        usec
+    )
+end
+
+function os.timestamp_to_string_short(timestamp)
+    timestamp = timestamp or os.gettime()
+
+    local sec = floor(timestamp)
+    local tm = localtime(sec)
+    return format("%04d-%02d-%02d %02d:%02d:%02d",
+        tm.year, tm.month, tm.day,
+        tm.hour, tm.min, tm.sec
+    )
+end
+
 function os.string_timestamp()
     local tv_sec, tv_nsec = clock_gettime(CLOCK_REALTIME)
     local tm = localtime(tv_sec)
@@ -155,3 +180,10 @@ function os.string_timestamp()
         floor(tv_nsec / 1000)
     )
 end
+
+function table.setmt__gc(t, mt)
+    local prox = newproxy(true)
+    getmetatable(prox).__gc = function() mt.__gc(t) end
+    t[prox] = true
+    return setmetatable(t, mt)
+  end

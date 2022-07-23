@@ -24,18 +24,25 @@ end
 
 local function OperatorAnd(calee, values)
     for i = 1, #values do
-        if not values[i].value then return {result = false} end
+        if not values[i].value then
+            return { result = false }
+        end
     end
-    return {result = true}
+    return { result = true }
 end
 
 local function OperatorOr(calee, values)
-    for i = 1, #values do if values[i].value then return {result = true} end end
-    return {result = false}
+    for i = 1, #values do
+        if values[i].value then
+            return { result = true }
+        end
+    end
+    return { result = false }
 end
 
 local function MakeNumericOperator(op)
     return {
+        result_type = "boolean",
         limit = 1,
         name = function(calee)
             return string.format("X %s %s", op, tostring(calee.range.threshold))
@@ -50,6 +57,7 @@ end
 
 local function MakeFunctionOperator(func)
     return {
+        result_type = "float",
         handler = function(calee, values)
             local raw = {calee.range.threshold}
             for _, v in ipairs(values) do table.insert(raw, v.value) end
@@ -72,19 +80,26 @@ function StateOperator:Init(config)
     self.super.Init(self, config)
     self.operator = config.operator
     self.range = config.range
-
-    assert(self.OperatorFunctors[self.operator])
+    self.operator_func = self.OperatorFunctors[config.operator]
+    assert(self.operator_func)
 end
 
 -------------------------------------------------------------------------------------
 
 StateOperator.OperatorFunctors = {
-    ["and"] = {handler = OperatorAnd},
-    ["or"] = {handler = OperatorOr},
+    ["and"] = {
+        result_type = "boolean",
+        handler = OperatorAnd,
+    },
+    ["or"] = {
+        result_type = "boolean",
+        handler = OperatorOr,
+    },
     ["not"] = {
+        result_type = "boolean",
         limit = 1,
         handler = function(calee, values)
-            return {result = not values[1].value}
+            return { result = not values[1].value }
         end
     },
 
@@ -99,6 +114,7 @@ StateOperator.OperatorFunctors = {
     ["sum"] = MakeFunctionOperator(DoSum),
 
     ["range"] = {
+        result_type = "boolean",
         name = function(calee)
             local range = calee.range
             return tostring(range.min) .. " <= X < " .. tostring(range.max)
@@ -118,13 +134,16 @@ StateOperator.OperatorFunctors = {
 }
 
 function StateOperator:LocallyOwned()
-    return true, "boolean"
+    return true, (self.operator_func or {}).result_type
 end
 
 function StateOperator:CalculateValue(dependant_values)
-    local operator_func = self.OperatorFunctors[self.operator]
-    if not operator_func then return end
+    if not self.operator_func then
+        self:RetireValue()
+        return
+    end
 
+    local operator_func = self.operator_func
     if operator_func.limit ~= nil then
         if #dependant_values ~= operator_func.limit then
             self:SetError(
@@ -150,8 +169,10 @@ function StateOperator:GetDescription()
 end
 
 function StateOperator:GetFunctionDescription()
-    local operator_func = self.OperatorFunctors[self.operator]
-    if operator_func.name then return operator_func.name(self) end
+    local operator_func = self.operator_func or { }
+    if operator_func.name then
+        return operator_func.name(self)
+    end
     return self.operator
 end
 
