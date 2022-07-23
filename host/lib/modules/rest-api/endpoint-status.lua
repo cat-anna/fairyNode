@@ -11,6 +11,19 @@ return {
 -------------------------------------------------------------------------------------
         {
             method = "GET",
+            path = "/stats",
+            produces = "application/json",
+            service_method = "GetStatModules",
+        },
+        {
+            method = "GET",
+            path = "/stats/{[./]+}",
+            produces = "application/json",
+            service_method = "GetModuleStats",
+        },
+-------------------------------------------------------------------------------------
+        {
+            method = "GET",
             path = "/modules/graph/text",
             produces = "text/plain",
             service_method = "GetModuleGraphText",

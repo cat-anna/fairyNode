@@ -499,6 +499,35 @@ html {
     padding: 10px;
 }
 
+#PageRedirectorBox {
+    box-sizing: border-box;
+    float: right;
+    display: block;
+    clear: none;
+    text-decoration: none;
+    color: white;
+}
+
+.PageRedirector {
+    float: right;
+    display: block;
+    clear: none;
+    text-decoration: none;
+    color: white;
+    border: 1px gray solid;
+    border-radius: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.PageRedirector:hover {
+    color: silver;
+    border: 1px solid silver;
+    border-radius: 5px;
+}
+
 .PageSelectButton {
     cursor: pointer;
     border-radius: 10px;
@@ -514,6 +543,11 @@ html {
     float: left;
     margin-left: 2px;
     margin-right: 2px;
+}
+
+.PageSelectButton:hover {
+    border-radius: 5px;
+    border: 1px solid white;
 }
 
 .PageSelectButtonActive {
@@ -587,4 +621,23 @@ html {
     margin: 5px;
     border: 1px solid black;
     border-radius: 5px;
+}
+
+.StatTableHolder {
+    padding: 5px;
+    margin: 5px;
+    border: 1px solid black;
+    border-radius: 5px;
+    color:black;
+}
+
+.StatTable {
+    color:black;
+    border: 1px solid gray;
+    clear: both;
+    font-family: monospace;
+}
+
+.EvenTableRow {
+    background-color: black;
 }

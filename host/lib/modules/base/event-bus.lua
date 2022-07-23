@@ -1,5 +1,7 @@
 local copas = require "copas"
 local uuid = require "uuid"
+local scheduler = require "lib/scheduler"
+local logger = require "lib/logger"
 
 -------------------------------------------------------------------------------
 
@@ -18,6 +20,7 @@ local CONFIG_KEY_EVENT_BUS_LOG_ENABLE = "module.event-bus.log.enable"
 
 local EventBus = {}
 EventBus.__index = EventBus
+EventBus.__stats = true
 EventBus.__deps = {
     loader_module = "base/loader-module",
     loader_class = "base/loader-class",
@@ -51,23 +54,25 @@ end
 function EventBus:AfterReload()
     self.loader_module:RegisterWatcher(self:LogTag(), self)
     self.loader_class:RegisterWatcher(self:LogTag(), self)
+
 end
 
 function EventBus:Init()
     self.event_queue = {}
     self.subscriptions = table.weak()
 
-    self.logger = require("lib/logger"):New("event-bus", CONFIG_KEY_EVENT_BUS_LOG_ENABLE)
-    self:InvalidateHandlerCache()
+    if self.config.debug then
+        self.stats = { }
+    end
+    self.process_task = scheduler:CreateTask(
+        self,
+        "event_processing",
+        0.1,
+        function (s, task) s:ProcessAllEvents() end
+    )
 
-    self.process_thread = copas.addthread(function()
-        while true do
-            copas.sleep(0.1)
-            SafeCall(function()
-                self:ProcessAllEvents()
-            end)
-        end
-    end)
+    self.logger = logger:New("event-bus", CONFIG_KEY_EVENT_BUS_LOG_ENABLE)
+    self:InvalidateHandlerCache()
 end
 
 function EventBus:InvalidateHandlerCache()
@@ -119,8 +124,7 @@ function EventBus:ProcessEvent(event_info)
     end
 
     local run_stats = {
-        handlers_called = 0,
-        handlers_expired = 0,
+        active_handlers = 0,
     }
 
     local cache = self.handler_cache[event_info.event]
@@ -131,9 +135,7 @@ function EventBus:ProcessEvent(event_info)
 
             if handler and instance then
                 CallHandler(instance, handler, setmetatable({}, { __index = event_info }))
-                run_stats.handlers_called = run_stats.handlers_called + 1
-            else
-                run_stats.handlers_expired = run_stats.handlers_expired + 1
+                run_stats.active_handlers = run_stats.active_handlers + 1
             end
         end
     else
@@ -157,6 +159,25 @@ function EventBus:ProcessEvent(event_info)
         printf(self, "Processing of event %s(%s) took too long (%f)", event_info.event, event_info.uuid, processing_time)
     end
 
+    if self.stats then
+        local s = self.stats[event_info.event]
+        if not s then
+            s = {
+                occurrences = 0,
+                total_run_time = 0,
+                max_run_time = 0,
+                active_handlers = 0,
+            }
+            self.stats[event_info.event] = s
+        end
+
+        s.occurrences = s.occurrences + 1
+        s.total_run_time = s.total_run_time + processing_time
+        s.max_run_time = math.max(s.max_run_time, processing_time)
+        s.active_handlers = run_stats.active_handlers
+        s.last_run_timestamp = os.gettime()
+    end
+
     if self.logger:Enabled() then
         self.logger:WriteCsv{
             "uuid=" .. event_info.uuid,
@@ -166,13 +187,12 @@ function EventBus:ProcessEvent(event_info)
             "finish=" .. tostring(finish),
             "processing=" .. tostring(processing_time),
             "delay=" .. tostring(start-event_info.timestamp_queued),
-            "handlers_called=" .. tostring(run_stats.handlers_called),
-            "handlers_expired=" .. tostring(run_stats.handlers_expired),
+            "active_handlers=" .. tostring(run_stats.active_handlers),
             "cache_hit=" .. tostring(cache ~= nil),
         }
     end
 
-    return run_stats.handlers_called
+    return run_stats.active_handlers
 end
 
 function EventBus:ApplyEvent(name, instance, event_info, run_stats, cache_entry)
@@ -189,7 +209,7 @@ function EventBus:ApplyEvent(name, instance, event_info, run_stats, cache_entry)
 
             -- print(self, "Apply event " .. event_info.event .. " to " .. name)
 
-            run_stats.handlers_called = run_stats.handlers_called + 1
+            run_stats.active_handlers = run_stats.active_handlers + 1
             table.insert(cache_entry, table.weak {
                 instance = instance,
                 handler = handler,
@@ -203,5 +223,56 @@ function EventBus:ApplyEvent(name, instance, event_info, run_stats, cache_entry)
 end
 
 -------------------------------------------------------------------------------
+
+function EventBus:DumpStats()
+    if not self.stats then
+        return
+    end
+    local l = logger:DebugLogger()
+    l:WriteObject(self:LogTag(), self.stats)
+end
+
+function EventBus:EnableStatistics(enable)
+    if enable then
+        self.stats = self.stats or {}
+    else
+        self.stats = nil
+    end
+end
+
+function EventBus:GetStatistics()
+    if not self.stats then
+        return
+    end
+
+    local header = {
+        "occurrences",
+        "total_run_time",
+        "max_run_time",
+        "active_handlers",
+        "last_run_timestamp",
+    }
+
+    local r = { }
+
+    for k,v in pairs(self.stats) do
+        local line = { k }
+        for _,n in ipairs(header) do
+            table.insert(line, v[n])
+        end
+        table.insert(r, line)
+    end
+
+    table.insert(header, 1, "event_id")
+    table.sort(r, function(a,b) return a[4] > b[4] end)
+
+    return { header = header, data = r }
+end
+
+-------------------------------------------------------------------------------
+
+EventBus.EventTable = {
+    ["timer.debug.stats"] = EventBus.DumpStats,
+}
 
 return EventBus

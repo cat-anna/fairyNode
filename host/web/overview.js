@@ -10,6 +10,10 @@ function FairyNode_InitOverview() {
             <div id="PageSelectBox" class="OverviewTable">
                 <div id="ButtonPageSelectDevices" target="Devices" class="PageSelectButton PageSelectButtonActive">Devices</div>
                 <div id="ButtonPageSelectRules" target="Rules" class="PageSelectButton ">Rules</div>
+
+                <div id="PageRedirectorBox">
+                    <a href="/file/status.html" class="PageRedirector"><div>Status</div></a>
+                </div>
             </div>
 
             <div id="PageRules" class="Page HiddenPage OverviewTable">
@@ -300,6 +304,10 @@ function OpenDevicePropertyChart(url, parent_block) {
     charts[chart_div_id] = myChart
 }
 
+function RemoveEscapeSequences(t) {
+    return t.replace(/(?:\\(.))/g, ' ');
+}
+
 function SetDeviceNodesPage(entry, sub_id, body_id) {
 
     var $root_elem = $("#" + body_id)
@@ -347,7 +355,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             }
 
             GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", {
-                html: prop.name,
+                html: RemoveEscapeSequences(prop.name),
                 hint: entry.name + "." + node.id + "." + prop.id,
             })
 
@@ -355,6 +363,10 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             var timestamp = null
             if (prop.timestamp != null) {
                 timestamp = new Date(prop.timestamp * 1000).toLocaleString()
+            }else{
+                if(prop.receive_timestamp != null) {
+                    timestamp = new Date(prop.receive_timestamp * 1000).toLocaleString()
+                }
             }
             GetOrCreateDiv("TIMESTAMP_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyTimestamp").html(check_value(timestamp))
 

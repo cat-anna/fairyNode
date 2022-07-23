@@ -15,6 +15,7 @@ local function MakeBuilderMetatable(data)
         result_callback = data.result_callback,
         host = data.host,
     }
+
     function builder_mt.__newindex(mock, name, v)
         error("Attempt to add value to path builder")
     end
@@ -26,7 +27,6 @@ local function MakeBuilderMetatable(data)
         table.insert(builder_mt.full_path_text, name)
 
         local getter = builder_mt.path_getters[idx]
-        print(table.concat(builder_mt.full_path_text, "."), idx, getter)
         local next = getter(name, builder_mt.full_path_nodes[#builder_mt.full_path_nodes])
 
         if not next then
@@ -50,6 +50,7 @@ local function MakeBuilderMetatable(data)
             })
         end
     end
+
     return builder_mt
 end
 

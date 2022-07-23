@@ -8,6 +8,7 @@ ServiceStatus.__deps = {
     plantuml = "util/plantuml",
     loader_module = "base/loader-module",
     loader_class = "base/loader-class",
+    -- event_bus = "base/event-bus"
     -- loader_package = "base/loader-package",
 }
 
@@ -75,11 +76,16 @@ function ServiceStatus:GenerateClassesDiagram()
 
         local opts = {
             string.format("Name: %s", class_meta.metatable.__class_name or "?"),
-            string.format("Instances: %d", Count(class_meta.instances)),
-            "",
         }
+
+        if not class_meta.interface then
+            table.insert(opts, string.format("Instances: %d", Count(class_meta.instances)))
+        else
+            table.insert(opts, "Interface")
+        end
+
         local mode = class_meta.interface and "interface" or " class"
-        local state_line = string.format("%s %s as \"%s\" {\n%s}", mode, id, name, table.concat(opts, "\n"))
+        local state_line = string.format("%s %s as \"%s\" {\n%s\n}", mode, id, name, table.concat(opts, "\n"))
         table.insert(lines, state_line)
     end)
 
@@ -127,15 +133,58 @@ end
 
 -------------------------------------------------------------------------------------
 
+function ServiceStatus:GetStatModules()
+    return http.OK, { modules = self.stat_modules }
+end
+
+function ServiceStatus:GetModuleStats(request, module_name)
+    local result
+    local mod_name = self.stat_modules[module_name]
+    if mod_name then
+        local module = self.loader_module:GetModule(mod_name)
+        if module and module.GetStatistics then
+            return http.OK, { table = module:GetStatistics() }
+        end
+    end
+
+    return http.BadRequest
+end
+
+-------------------------------------------------------------------------------------
+
 function ServiceStatus:BeforeReload()
 end
 
 function ServiceStatus:AfterReload()
+    self:OnAppStart()
 end
 
 function ServiceStatus:Init()
 end
 
 -------------------------------------------------------------------------------------
+
+function ServiceStatus:OnAppStart()
+    local stat_modules = { }
+
+    local function to_network_id(n)
+        local r = n:gsub("[%.-/]", "_")
+        return r
+    end
+
+    self.loader_module:EnumerateModules(function (name, instance)
+        if instance.__stats then
+            stat_modules[to_network_id(name)] = name
+        end
+    end)
+
+    self.stat_modules = stat_modules
+end
+
+-------------------------------------------------------------------------------------
+
+ServiceStatus.EventTable = {
+    ["app.start"] = ServiceStatus.OnAppStart
+}
 
 return ServiceStatus
