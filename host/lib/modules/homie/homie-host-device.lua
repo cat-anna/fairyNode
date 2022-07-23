@@ -92,7 +92,7 @@ function HomieDevice:GetPropertyMT(parent_node)
         return parent_node:BaseTopic() .. "/" .. property.id .. "/set"
     end
     function mt.GetValue(property)
-        return property.value
+        return property.value, (property.timestamp or property.receive_timestamp)
     end
     function mt.SetValue(property, value)
         if self.deleting then
@@ -110,7 +110,11 @@ function HomieDevice:GetPropertyMT(parent_node)
     function mt.GetId(property)
         return string.format("%s.%s.%s", self.id, parent_node.id, property.id)
     end
-    function mt.Subscribe(property, id, handler)
+    function mt.IsSettable(property)
+        return property.settable or false
+    end
+    function mt.Subscribe(property, handler)
+        local id = handler.uuid
         if self.deleting then
             print(self, "Failed to add subscription to " .. id .. " deleting device")
             return
@@ -316,13 +320,13 @@ function HomieDevice:HandlePropertyValue(topic, payload)
     local property = node.properties[prop_name]
 
     local changed = true
-    if property.timestamp ~= nil and property.raw_value == payload then
+    if property.receive_timestamp ~= nil and property.raw_value == payload then
         changed = false
     end
 
     local old_value = property.value
 
-    local timestamp = os.time()
+    local receive_timestamp = os.gettime()
     local value = payload
     if property.datatype then
         value = self.homie_common.FromHomieValue(property.datatype, payload)
@@ -340,7 +344,11 @@ function HomieDevice:HandlePropertyValue(topic, payload)
 
     property.value = value
     property.raw_value = payload
-    property.timestamp = timestamp
+    property.receive_timestamp = receive_timestamp
+
+    if math.abs((property.timestamp or 0) - receive_timestamp) > 5 then
+        property.timestamp = receive_timestamp
+    end
 
     if changed then
         property:CallSubscriptions()
@@ -352,7 +360,8 @@ function HomieDevice:HandlePropertyValue(topic, payload)
                 node = node_name,
                 property = prop_name,
                 value = value,
-                timestamp = timestamp,
+                receive_timestamp = receive_timestamp,
+                timestamp = property.timestamp,
                 old_value = old_value,
             }
         })
@@ -365,6 +374,7 @@ function HomieDevice:HandlePropertyValue(topic, payload)
             argument = {
                 device = self.name,
                 event = payload,
+                receive_timestamp = receive_timestamp,
                 timestamp = property.timestamp,
                 value = value,
                 old_value = old_value,
@@ -372,7 +382,7 @@ function HomieDevice:HandlePropertyValue(topic, payload)
         })
     end
 
-    self:PushPropertyHistory(node_name, property, value, timestamp)
+    self:PushPropertyHistory(node_name, property, value, property.timestamp or receive_timestamp)
     self.server_storage:UpdateCache(self:GetPropertyId(node_name, prop_name), property)
 end
 
@@ -392,6 +402,7 @@ function HomieDevice:HandlePropertyConfigValue(topic, payload)
     local formatters = {
         retained = function(v) return v == "true" end,
         settable = function(v) return v == "true" end,
+        timestamp = tonumber,
     }
 
     local fmt = formatters[config_name]
@@ -454,12 +465,13 @@ function HomieDevice:HandleNodeProperties(topic, payload)
         existing_properties[prop_name] = nil
         local base = string.format("/%s/%s", node_name, prop_name)
 
-        self:WatchTopic(base, self.HandlePropertyValue)
         self:WatchTopic(base .. "/$unit", self.HandlePropertyConfigValue)
         self:WatchTopic(base .. "/$name", self.HandlePropertyConfigValue)
         self:WatchTopic(base .. "/$datatype", self.HandlePropertyConfigValue)
         self:WatchTopic(base .. "/$retained", self.HandlePropertyConfigValue)
         self:WatchTopic(base .. "/$settable", self.HandlePropertyConfigValue)
+        self:WatchTopic(base .. "/$timestamp", self.HandlePropertyConfigValue)
+        self:WatchTopic(base, self.HandlePropertyValue)
     end
 
     for k,_ in pairs(existing_properties) do

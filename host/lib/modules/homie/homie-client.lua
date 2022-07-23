@@ -22,22 +22,23 @@ function PropertyMT:IsRetained()
     return (self.retained ~= nil) and self.retained or self.controller.retain
 end
 
-function PropertyMT:SetValue(value, force)
-    self.timestamp = os.time()
+function PropertyMT:SetValue(value, timestamp, force)
+    self.timestamp = timestamp or os.gettime()
     if (not force) and self.value and self:IsRetained() and self.value == value then
         print(string.format("HOMIE: Skipping update %s - retained value not changed", self:GetFullId()))
         return
     end
     self.value = value
     self.controller:Publish(
-        self:GetValuePublishTopic(),
+        self:GetTopic("$timestamp"),
+        self.homie_common.ToHomieValue("float", self.timestamp),
+        self.retained
+    )
+    self.controller:Publish(
+        self:GetTopic(),
         self.homie_common.ToHomieValue(self.datatype, value),
         self.retained
     )
-end
-
-function PropertyMT:GetValuePublishTopic()
-    return self:GetTopic()
 end
 
 function PropertyMT:GetFullId()
@@ -108,8 +109,6 @@ end
 function HomieClient:AfterReload()
     self.state = ClientStates.unknown
     self.mqtt:AddSubscription(self.uuid, self.base_topic .. "/#")
-
-    self:OnAppReset()
 end
 
 function HomieClient:Init()
@@ -123,16 +122,23 @@ function HomieClient:Init()
     self.nodes = table.weak()
 end
 
+function HomieClient:IsReady()
+    return self.current_state == ClientStates.ready
+end
+
 -------------------------------------------------------------------------------
 
 function HomieClient:OnAppStarted()
-    print(self, "Starting")
-    self.app_started = true
-    self:EnterState(ClientStates.goto_init)
+    if not self.app_started then
+        print(self, "Starting")
+        self.app_started = true
+        self:EnterState(ClientStates.goto_init)
+    end
 end
 
-function HomieClient:OnAppReset()
+function HomieClient:OnMqttDisconnected()
     if self.app_started then
+        print(self, "Mqtt disconnected. Resetting.")
         self:EnterState(ClientStates.goto_init)
     end
 end
@@ -171,12 +177,13 @@ end
 -------------------------------------------------------------------------------
 
 function HomieClient:AreNodesReady()
+    local r = { }
     for k,v in pairs(self.nodes) do
         if not v.ready then
-            return false
+            table.insert(r,k)
         end
     end
-    return true
+    return #r == 0, r
 end
 
 function HomieClient:AddNode(node_name, node)
@@ -235,7 +242,7 @@ function HomieClient:AddNode(node_name, node)
         -- end
 
         if property.value ~= nil then
-            property:SetValue(property.value, true)
+            property:SetValue(property.value, nil, true)
         end
     end
 
@@ -243,7 +250,12 @@ function HomieClient:AddNode(node_name, node)
     self:PublishNode(node_name, "$properties", table.concat(prop_names, ","))
 
     node.controller = self
-    self:OnAppReset()
+
+    if self:IsReady() then
+        printf(self, "Client is ready. Resetting after node update")
+        self:EnterState(ClientStates.goto_init)
+    end
+
     return setmetatable(node, NodeObject)
 end
 
@@ -309,15 +321,22 @@ function HomieClient:HandleInitState()
 end
 
 function HomieClient:HandleNodeWaitForReady(state_data)
-    if os.gettime() - state_data.enter_time < 10 then
+    if (os.gettime() - state_data.enter_time < 10) then
         return
     end
 
-    local nodes_ready = self:AreNodesReady()
+    local all_ready, pending  = self:AreNodesReady()
 
-    if nodes_ready then
-        self:EnterState(ClientStates.ready)
+    if not all_ready then
+        printf(self, "Not all nodes are ready: %s", table.concat(pending, ","))
+        if (os.gettime() - state_data.enter_time) > 60 then
+            print(self, "Attempting re-initialization")
+            self:EnterState(ClientStates.goto_init)
+        end
+        return
     end
+
+    self:EnterState(ClientStates.ready)
 end
 
 function HomieClient:OnEnterReady()
@@ -333,10 +352,12 @@ HomieClient.StateMachineHandlers = {
     },
     [ClientStates.init] = {
         enter = HomieClient.OnEnterInit,
-        process = HomieClient.HandleInitState
+        process = HomieClient.HandleInitState,
+        init_node = true,
     },
     [ClientStates.goto_ready] = {
         process = HomieClient.HandleNodeWaitForReady,
+        init_node = true,
     },
     [ClientStates.ready] = {
         enter = HomieClient.OnEnterReady,
@@ -365,6 +386,12 @@ function HomieClient:ProcessStateMachine()
         printf(self, "Current state %s", current_state)
     end
     local current_handler = self.StateMachineHandlers[current_state]
+    if current_handler.init_node then
+        self.event_bus:PushEvent({
+            event = string.format("homie-client.init_node", pending_state),
+            client = self,
+        })
+    end
     if pending_state == current_state then
         call(current_handler.process)
         return
@@ -390,13 +417,12 @@ end
 -------------------------------------------------------------------------------
 
 HomieClient.EventTable = {
-    ["mqtt-client.disconnected"] = HomieClient.OnAppReset,
+    ["mqtt-client.disconnected"] = HomieClient.OnMqttDisconnected,
 
     ["mqtt-client.connected"] = HomieClient.ProcessStateMachine,
     ["timer.basic.10_second"] = HomieClient.ProcessStateMachine,
 
     ["app.start"] = HomieClient.OnAppStarted,
-    ["module.reloaded"]  = HomieClient.OnAppReset,
 }
 
 -------------------------------------------------------------------------------

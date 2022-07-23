@@ -108,9 +108,12 @@ function HomeHost:InitHomieNode(event)
 end
 
 function HomeHost:FindProperty(path)
-    local device = path.device
-    local node = path.node
-    local property = path.property
+    local device, node, property
+    if type(path) == "string" then
+        device, node, property = path:match("([^%.]+).([^%.]+).([^%.]+)")
+    else
+        device, node, property = path.device, path.node, path.property
+    end
 
     if (not device) or (not node) or (not property) then
         error("Invalid argument for HomieHost:FindProperty")

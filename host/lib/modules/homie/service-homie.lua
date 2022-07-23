@@ -88,6 +88,9 @@ end
 
 function DevSrv:GetPropertyHistory(request, device, node_name, property_name)
     local dev = self.device:GetDevice(device)
+    if not dev then
+        return http.BadRequest, {}
+    end
     local node = dev.nodes[node_name]
     local prop = node.properties[property_name]
     return http.OK, {
