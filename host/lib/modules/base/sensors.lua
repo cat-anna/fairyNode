@@ -1,8 +1,14 @@
 
+local scheduler = require "lib/scheduler"
+
+-------------------------------------------------------------------------------
+
+local pairs = pairs
+local ipairs = ipairs
+
 -------------------------------------------------------------------------------
 
 local CONFIG_KEY_SENSOR_FAST_INTERVAL =   "module.sensor.interval.fast"
-local CONFIG_KEY_SENSOR_NORMAL_INTERVAL = "module.sensor.interval.normal"
 local CONFIG_KEY_SENSOR_SLOW_INTERVAL =   "module.sensor.interval.slow"
 
 -------------------------------------------------------------------------------
@@ -16,11 +22,14 @@ Sensors.__deps = {
 Sensors.__name = "Sensors"
 Sensors.__config = {
     [CONFIG_KEY_SENSOR_FAST_INTERVAL] =   { type = "integer", default = 60 },
-    [CONFIG_KEY_SENSOR_NORMAL_INTERVAL] = { type = "integer", default = 10*60 },
-    [CONFIG_KEY_SENSOR_SLOW_INTERVAL] =   { type = "integer", default = 60*60 },
+    [CONFIG_KEY_SENSOR_SLOW_INTERVAL] =   { type = "integer", default = 10*60 },
 }
 
 -------------------------------------------------------------------------------
+
+function Sensors:LogTag()
+    return "Sensors"
+end
 
 function Sensors:AfterReload() end
 
@@ -31,14 +40,19 @@ function Sensors:Init()
     self.sensor_sink = table.weak()
 
     local timer_intervals = {
-        fast = self.config[CONFIG_KEY_SENSOR_FAST_INTERVAL],
-        normal = self.config[CONFIG_KEY_SENSOR_NORMAL_INTERVAL],
-        slow = self.config[CONFIG_KEY_SENSOR_SLOW_INTERVAL],
+        Fast = self.config[CONFIG_KEY_SENSOR_FAST_INTERVAL],
+        Slow = self.config[CONFIG_KEY_SENSOR_SLOW_INTERVAL],
     }
 
-    self.timers = { }
+    self.tasks = { }
     for k,v in pairs(timer_intervals) do
-        self.timers[k] = self.event_timers:RegisterTimer("sensor.readout." .. k, v)
+        local func_name = string.format("HandleSensorReadout%s", k)
+        self.tasks[k] = scheduler:CreateTask(
+            self,
+            string.format("Sensor update %s", k:lower()),
+            v,
+            function (owner, task) owner[func_name](owner, task) end
+        )
     end
 end
 
@@ -53,9 +67,28 @@ end
 
 -------------------------------------------------------------------------------
 
+function Sensors:HandleSensorReadoutSlow(task)
+    for k,v in pairs(self.sensors) do
+        v:ReadoutSlow()
+    end
+end
+
+function Sensors:HandleSensorReadoutFast(task)
+    for k,v in pairs(self.sensors) do
+        v:ReadoutFast()
+    end
+end
+
+-------------------------------------------------------------------------------
+
 function Sensors:RegisterSensor(def)
-    def.id = def.id or def.owner.__name
+    local owner = def.owner
+    assert(owner)
+
+    def.id = def.id or owner.__name
     def.nodes = def.nodes or { }
+
+    owner.registered_sensors = owner.registered_sensors or { }
 
     local s = self.sensors[def.id]
     if not s then
@@ -66,9 +99,13 @@ function Sensors:RegisterSensor(def)
         s:Reset(def)
     end
 
+    owner.registered_sensors[s.id] = s
+
     for _,v in pairs(self.sensor_sink) do
         v:SensorAdded(s)
     end
+
+    s:Readout()
 
     return s
 end
@@ -89,7 +126,6 @@ end
 
 -------------------------------------------------------------------------------
 
-Sensors.EventTable = {
-}
+Sensors.EventTable = { }
 
 return Sensors

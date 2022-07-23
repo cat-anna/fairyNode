@@ -24,6 +24,7 @@ function StateFunction:Init(config)
     self.funcG = config.funcG
     self.object = config.object
     self.info_func = config.info_func
+    self.result_type = config.result_type
 end
 
 -------------------------------------------------------------------------------------

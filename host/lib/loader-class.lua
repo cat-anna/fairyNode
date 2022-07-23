@@ -73,6 +73,7 @@ function ClassLoader:ReloadClass(class)
     end
 
     new_mt.__class = class.name
+    new_mt.__class_metadata = class
     class.interface = new_mt.__type == "interface"
     class.metatable = new_mt
     class.timestamp = att.modification

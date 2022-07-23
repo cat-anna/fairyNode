@@ -16,7 +16,7 @@ end
 
 -------------------------------------------------------------------------------------
 
-local SensorObject = {}
+local SensorObject = { }
 SensorObject.__index = SensorObject
 SensorObject.__type = "class"
 SensorObject.__class_name = "SensorObject"
@@ -25,7 +25,8 @@ SensorObject.__class_name = "SensorObject"
 
 function SensorObject:Init(config)
     self.id = config.id
-    self.source = config.owner
+    self.owner = config.owner
+    self.handler = config.handler
     self.observers = table.weak()
 
     self:Reset(config)
@@ -34,6 +35,33 @@ end
 function SensorObject:BeforeReload() end
 
 function SensorObject:AfterReload() end
+
+-------------------------------------------------------------------------------------
+
+function SensorObject:Readout()
+    self:ReadoutSlow()
+    self:ReadoutFast()
+end
+
+function SensorObject:ReadoutSlow()
+    local handler = self.handler
+    if handler then
+        local f = handler.SensorReadoutSlow
+        if f then
+            f(handler, self, self.owner)
+        end
+    end
+end
+
+function SensorObject:ReadoutFast()
+    local handler = self.handler
+    if handler then
+        local f = handler.SensorReadoutFast
+        if f then
+            f(handler, self, self.owner)
+        end
+    end
+end
 
 -------------------------------------------------------------------------------------
 

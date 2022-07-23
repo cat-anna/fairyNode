@@ -1,8 +1,8 @@
-local copas = require "copas"
 local lfs = require "lfs"
-local file = require "pl.file"
 local json = require "json"
+local file = require "pl.file"
 local path = require "pl.path"
+local pl_dir = require "pl.dir"
 local fs = require "lib/fs"
 
 -------------------------------------------------------------------------------
@@ -37,8 +37,8 @@ end
 function ServerStorage:BeforeReload() end
 
 function ServerStorage:AfterReload()
-    os.execute("mkdir -p " .. self:GetCachePath())
-    os.execute("mkdir -p " .. self:GetStoragePath())
+    pl_dir.makepath(self:GetCachePath())
+    pl_dir.makepath(self:GetStoragePath())
     self:InitSensors(self.sensor_handler)
 end
 
@@ -279,6 +279,7 @@ end
 function ServerStorage:InitSensors(sensors)
     self.storage_sensor = sensors:RegisterSensor{
         owner = self,
+        handler = self,
         name = "Server storage",
         id = "server_storage",
         nodes = {
@@ -292,12 +293,11 @@ function ServerStorage:InitSensors(sensors)
             log_entries = { name = "Log entries", datatype = "integer" },
         }
     }
-    self:CheckAll()
 end
 
 -------------------------------------------------------------------------------
 
-function ServerStorage:CheckAll()
+function ServerStorage:SensorReadoutSlow()
     self:CheckCache()
     self:CheckStorage()
     self:CheckLogs()
@@ -305,9 +305,7 @@ end
 
 -------------------------------------------------------------------------------
 
-ServerStorage.EventTable = {
-    ["timer.sensor.readout.slow"] = ServerStorage.CheckAll
-}
+ServerStorage.EventTable = { }
 
 -------------------------------------------------------------------------------
 

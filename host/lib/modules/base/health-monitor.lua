@@ -1,10 +1,12 @@
-local copas = require "copas"
 local json = require "json"
 local md5 = require "md5"
+local scheduler = require "lib/scheduler"
 
 -------------------------------------------------------------------------------------
 
 local collectgarbage = collectgarbage
+local tonumber = tonumber
+local gettime = os.gettime
 
 -------------------------------------------------------------------------------------
 
@@ -18,7 +20,9 @@ end
 
 -------------------------------------------------------------------------------------
 
-local function LuaMemUsage() return collectgarbage("count") / 1024 end
+local function LuaMemUsage()
+    return collectgarbage("count") / 1024
+end
 
 local function LinuxProcUptime()
     local data = read_first_line("/proc/uptime")
@@ -125,97 +129,34 @@ end
 
 -------------------------------------------------------------------------------------
 
-local HealthMonitor = {}
-HealthMonitor.__index = HealthMonitor
-HealthMonitor.__deps = {
-    -- event_bus = "base/event-bus",
-    sensor_handler = "base/sensors"
-}
-HealthMonitor.__name = "HealthMonitor"
+local SysInfoSensor = { }
+SysInfoSensor.__index = SysInfoSensor
 
--------------------------------------------------------------------------------------
+function SysInfoSensor:SensorReadoutFast(sensor, owner)
+    local system_uptime = LinuxProcUptime()
+    local mem_info = LinuxProcMemInfo()
+    local self_statm = LinuxProcStatm()
+    local load = LinuxProcLoad()
+    local cpu_usage = self:GetCpuUsage()
 
-function HealthMonitor:BeforeReload() end
+    local mem_stat = mem_info.MemAvailable or mem_info.MemFree or
+                            {value = 0}
 
-function HealthMonitor:AfterReload() self:InitSensors(self.sensor_handler) end
+    sensor:UpdateAll{
+        lua_mem_usage = LuaMemUsage(),
 
-function HealthMonitor:Init()
-    self.startup_time = os.time()
+        process_memory = self_statm.size / 1024,
+        process_cpu_usage = cpu_usage,
 
-    self.gc_thread = copas.addthread(function()
-        while true do
-            copas.sleep(0.1)
-            collectgarbage("step")
-        end
-    end)
-end
+        uptime = gettime() - scheduler.AppStartTime,
+        system_uptime = system_uptime.uptime,
 
--------------------------------------------------------------------------------------
-
-function HealthMonitor:InitSensors(sensors)
-    self.sensors = sensors:RegisterSensor{
-        owner = self,
-        name = "System info",
-        id = "sysinfo",
-        nodes = {
-            errors = { name = "Active errors", datatype = "string" },
-
-            system_uptime = {name = "System uptime", datatype = "float", unit = "s"},
-            uptime = {name = "Server uptime", datatype = "float", unit = "s"},
-
-            system_load = { name = "System load", datatype = "float" },
-            system_memory = { name = "Free system memory", datatype = "float", unit = "MiB" },
-
-            lua_mem_usage = { name = "Lua vm memory usage", datatype = "float", unit = "MiB" },
-            process_memory = { name = "Process memory usage", datatype = "float", unit = "MiB" },
-            process_cpu_usage = { name = "Process cpu usage", datatype = "float", unit = "%" },
-        }
+        system_memory = mem_stat.value / 1024,
+        system_load = load[1],
     }
-
-    self:SensorReadout()
 end
 
-function HealthMonitor:SensorReadout()
-    if self.sensors then
-        local system_uptime = LinuxProcUptime()
-        local mem_info = LinuxProcMemInfo()
-        local self_statm = LinuxProcStatm()
-        local load = LinuxProcLoad()
-        local cpu_usage = self:GetCpuUsage()
-
-        local mem_stat = mem_info.MemAvailable or mem_info.MemFree or
-                             {value = 0}
-
-        self.sensors:UpdateAll{
-            lua_mem_usage = LuaMemUsage(),
-
-            process_memory = self_statm.size / 1024,
-            process_cpu_usage = cpu_usage,
-
-            uptime = os.time() - self.startup_time,
-            system_uptime = system_uptime.uptime,
-
-            system_memory = mem_stat.value / 1024,
-            system_load = load[1],
-        }
-    end
-end
-
-function HealthMonitor:UpdateActiveErrors(event)
-    if self.sensors then
-        local error_str = json.encode(event.active_errors)
-        local error_hex = md5.sumhexa(error_str)
-
-        if self.active_errors_hash ~= error_hex then
-            self.sensors:Update("errors", error_str)
-            self.active_errors_hash = error_hex
-        end
-    end
-end
-
--------------------------------------------------------------------------------------
-
-function HealthMonitor:GetCpuUsage()
+function SysInfoSensor:GetCpuUsage()
     local self_stat = LinuxProcSelfStat()
     local proc_stat = LinuxProcStat()
 
@@ -242,8 +183,73 @@ end
 
 -------------------------------------------------------------------------------------
 
+local HealthMonitor = {}
+HealthMonitor.__index = HealthMonitor
+HealthMonitor.__deps = {
+    sensor_handler = "base/sensors"
+}
+HealthMonitor.__name = "HealthMonitor"
+
+-------------------------------------------------------------------------------------
+
+function HealthMonitor:LogTag()
+    return "HealthMonitor"
+end
+
+function HealthMonitor:BeforeReload() end
+
+function HealthMonitor:AfterReload()
+    self:InitSensors(self.sensor_handler)
+end
+
+function HealthMonitor:Init()
+    self.gc_task = scheduler:CreateTask(
+        self,
+        "gc step",
+        0.1,
+        function () collectgarbage("step") end
+    )
+end
+
+-------------------------------------------------------------------------------------
+
+function HealthMonitor:InitSensors(sensors)
+    self.sysinfo_sensor = sensors:RegisterSensor{
+        owner = self,
+        handler = setmetatable({}, SysInfoSensor),
+        name = "System info",
+        id = "sysinfo",
+        nodes = {
+            errors = { name = "Active errors", datatype = "string" },
+
+            system_uptime = { name = "System uptime", datatype = "float", unit = "s" },
+            uptime = { name = "Server uptime", datatype = "float", unit = "s" },
+
+            system_load = { name = "System load", datatype = "float" },
+            system_memory = { name = "Free system memory", datatype = "float", unit = "MiB" },
+
+            lua_mem_usage = { name = "Lua vm memory usage", datatype = "float", unit = "MiB" },
+            process_memory = { name = "Process memory usage", datatype = "float", unit = "MiB" },
+            process_cpu_usage = { name = "Process cpu usage", datatype = "float", unit = "%" },
+        }
+    }
+end
+
+function HealthMonitor:UpdateActiveErrors(event)
+    if self.sysinfo_sensor then
+        local error_str = json.encode(event.active_errors)
+        local error_hex = md5.sumhexa(error_str)
+
+        if self.active_errors_hash ~= error_hex then
+            self.sysinfo_sensor:Update("errors", error_str)
+            self.active_errors_hash = error_hex
+        end
+    end
+end
+
+-------------------------------------------------------------------------------------
+
 HealthMonitor.EventTable = {
-    ["timer.sensor.readout.fast"] = HealthMonitor.SensorReadout,
     ["error-reporter.active_errors"] = HealthMonitor.UpdateActiveErrors,
 }
 

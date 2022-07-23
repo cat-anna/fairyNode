@@ -30,6 +30,9 @@ end
 function StateSensor:GetValue()
     if self.sensor.node then
         local v, t = self.sensor.node:GetValue()
+        if v == nil then
+            return
+        end
         return {
             value = v,
             timestamp = t,

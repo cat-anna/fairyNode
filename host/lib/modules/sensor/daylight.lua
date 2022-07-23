@@ -1,8 +1,29 @@
--- local copas = require "copas"
--- local lfs = require "lfs"
--- local file = require "pl.file"
--- local json = require "json"
 local sun_pos = require "lib/sun_pos"
+
+-------------------------------------------------------------------------------
+
+local DaylightSensor = {}
+DaylightSensor.__index = DaylightSensor
+
+function DaylightSensor:SensorReadoutSlow(sensor)
+    local moon = sun_pos.GetMoonPosition(self.latitude, self.longitude)
+    local moon_phase = sun_pos.GetMoonPhase()
+    sensor:UpdateAll{
+        moon_phase = moon_phase.phase,
+        moon_phase_fraction = moon_phase.fraction,
+        moon_phase_angle = moon_phase.angle,
+        moon_altitude = moon.altitude,
+        moon_azimuth = moon.azimuth,
+    }
+end
+
+function DaylightSensor:SensorReadoutFast(sensor)
+    local sun = sun_pos.GetSunPosition(self.latitude, self.longitude)
+    sensor:UpdateAll{
+        sun_azimuth = sun.azimuth,
+        sun_altitude = sun.altitude,
+    }
+end
 
 -------------------------------------------------------------------------------
 
@@ -37,15 +58,23 @@ end
 
 function Daylight:Init() end
 
+-------------------------------------------------------------------------------
+
 function Daylight:InitSensors(sensors)
-    self.daylight_sensor = sensors:RegisterSensor{
+    sensors:RegisterSensor{
         owner = self,
+        handler = setmetatable({
+            longitude = self.config[CONFIG_KEY_LONGITUDE],
+            latitude = self.config[CONFIG_KEY_LATITUDE],
+        }, DaylightSensor),
         name = "Daylight",
         id = "daylight",
         nodes = {
+            -- fast
             sun_azimuth = { name = "Sun azimuth", datatype = "float" },
             sun_altitude = { name = "Sun altitude", datatype = "float" },
 
+            -- slow
             moon_phase = { name = "Moon phase", datatype = "float" },
             moon_phase_fraction = { name = "Moon phase fraction", datatype = "float" },
             moon_phase_angle = { name = "Moon phase angle", datatype = "float" },
@@ -53,47 +82,7 @@ function Daylight:InitSensors(sensors)
             moon_azimuth = { name = "Moon azimuth", datatype = "float" },
         }
     }
-
-    self:MoonReadout()
-    self:SunReadout()
 end
-
--------------------------------------------------------------------------------
-
-function Daylight:MoonReadout()
-    if self.daylight_sensor then
-        local longitude = self.config[CONFIG_KEY_LONGITUDE]
-        local latitude = self.config[CONFIG_KEY_LATITUDE]
-        local moon = sun_pos.GetMoonPosition(latitude, longitude)
-        local moon_phase = sun_pos.GetMoonPhase()
-        self.daylight_sensor:UpdateAll{
-            moon_phase = moon_phase.phase,
-            moon_phase_fraction = moon_phase.fraction,
-            moon_phase_angle = moon_phase.angle,
-            moon_altitude = moon.altitude,
-            moon_azimuth = moon.azimuth,
-        }
-    end
-end
-
-function Daylight:SunReadout()
-    if self.daylight_sensor then
-        local longitude = self.config[CONFIG_KEY_LONGITUDE]
-        local latitude = self.config[CONFIG_KEY_LATITUDE]
-        local sun = sun_pos.GetSunPosition(latitude, longitude)
-        self.daylight_sensor:UpdateAll{
-            sun_azimuth = sun.azimuth,
-            sun_altitude = sun.altitude,
-        }
-    end
-end
-
--------------------------------------------------------------------------------
-
-Daylight.EventTable = {
-    ["timer.sensor.readout.fast"] = Daylight.SunReadout,
-    ["timer.sensor.readout.normal"] = Daylight.MoonReadout,
-}
 
 -------------------------------------------------------------------------------
 

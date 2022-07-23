@@ -1,4 +1,4 @@
-
+local pretty = require "pl.pretty"
 
 -------------------------------------------------------------------------------------
 
@@ -51,7 +51,7 @@ local function MakeNumericOperator(op)
 return function(calee, values)
     return { result = values[1].value %s calee.range.threshold }
 end
-]], op))()
+]], op), string.format("Operator %s function", op))()
     }
 end
 
