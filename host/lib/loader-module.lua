@@ -304,6 +304,7 @@ end
 
 function ModuleLoader:Init()
     self:RegisterStaticModule("base/loader-module", self)
+    self:RegisterStaticModule("scheduler", require "lib/scheduler")
 
     self.update_thread = copas.addthread(function()
         copas.sleep(1)

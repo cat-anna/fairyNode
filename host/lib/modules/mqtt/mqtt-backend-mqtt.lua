@@ -37,26 +37,31 @@ MqttClient.__config = {
 function MqttClient:Init()
     self.connected = false
     self.use_event_bus = false
-    self.watchers = setmetatable({}, {__mode = "vk"})
+    self.watchers = table.weak()
 
-    copas.addthread(function()
-        copas.sleep(1)
-        print("MQTT-CLIENT: Starting...")
-        self:ResetClient()
-        mqttloop:add(self.mqtt_client)
+    self:ResetClient()
 
-        while true do
-            mqttloop:iteration()
-            scheduler.Sleep(0.01)
+    self.pool_task = scheduler:CreateTask(
+        self,
+        "mqtt_pool",
+        0.01,
+        function(self, task) mqttloop:iteration() end
+    )
+
+    self.ping_task = scheduler:CreateTask(
+        self,
+        "mqtt_ping",
+        10,
+        function(self, task)
+            if self.mqtt_client then
+                self.mqtt_client:send_pingreq()
+            end
         end
-    end)
+    )
+end
 
-    copas.addthread(function()
-        while true do
-            copas.sleep(10)
-            self.mqtt_client:send_pingreq()
-        end
-    end)
+function MqttClient:LogTag()
+    return "MQTT"
 end
 
 -------------------------------------------------------------------------------
@@ -91,6 +96,7 @@ function MqttClient:ResetClient()
         close = function(...) self:HandleClose(...) end,
     }
     self.mqtt_client = mqtt_client
+    mqttloop:add(self.mqtt_client)
 end
 
 function MqttClient:Subscribe(regex)

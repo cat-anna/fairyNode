@@ -63,15 +63,15 @@ end
 
 function SensorObject:UpdateAll(all)
     for k,v in pairs(all) do
-        self:Update(k,v)
+        self:Update(k, v, os.gettime())
     end
 end
 
-function SensorObject:Update(name, value)
+function SensorObject:Update(name, value, timestamp)
     local v = self.node[name]
     if v.value ~= value then
         v.value = value
-        v.timestamp = os.gettime()
+        v.timestamp = timestamp or os.gettime()
         self:CallObserverList(self.observers,  v)
         self:CallObserverList(v.observers,  v)
     end

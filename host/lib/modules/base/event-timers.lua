@@ -13,6 +13,7 @@ EventTimer.__index = EventTimer
 EventTimer.__deps = {
     event_bus = "base/event-bus",
 }
+EventTimer.__config = { }
 
 function EventTimer:LogTag()
     return "EventTimer"
@@ -23,19 +24,14 @@ end
 
 function EventTimer:AfterReload()
     for k,v in pairs({
-        ["basic.second"] = 1,
         ["basic.10_second"] = 10,
-        ["basic.30_second"] = 30,
-        ["basic.minute"] = 60,
-        ["basic.10_minute"] = 10*60,
-        ["basic.5_minute"] = 5*60,
-        ["basic.15_minute"] = 15*60,
-        ["basic.30_minute"] = 30*60,
-        ["basic.hour"] = 60*60,
-        ["basic.24_hour"] = 24*60*60,
     }) do
         local t = self:RegisterTimer(k, v)
         -- t.persistent = true
+    end
+
+    if self.config.debug then
+        self:RegisterTimer("debug.stats", 60)
     end
 end
 

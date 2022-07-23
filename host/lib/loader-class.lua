@@ -44,11 +44,15 @@ end
 function ClassLoader:UpdateBase(class)
     if class.base then
         local base = self:GetClass(class.base)
+
         base.base_for[class.name] = class
+
+        -- base.child_metatable = base.child_metatable or { }
+        -- base.child_metatable.__index = base.metatable
+
         class.metatable.super = base.metatable
-        setmetatable(class.metatable, {
-            __index =  base.metatable,
-        })
+        -- setmetatable(class.metatable, base.child_metatable)
+        setmetatable(class.metatable, base.metatable)
     end
 end
 
@@ -72,7 +76,9 @@ function ClassLoader:ReloadClass(class)
     class.interface = new_mt.__type == "interface"
     class.metatable = new_mt
     class.timestamp = att.modification
-    class.base = new_mt.__base
+    if new_mt.__class_name ~= "Object" then
+        class.base = new_mt.__base or "object"
+    end
 
     self:UpdateBase(class)
 
@@ -81,7 +87,7 @@ function ClassLoader:ReloadClass(class)
     end
 
     for _,v in pairs(class.instances) do
-        printf("CLASS: Update mt %s of %s", class.name, tostring(v))
+        printf("CLASS: Update mt %s name: %s", class.name, tostring(v))
         setmetatable(v, new_mt)
         self:UpdateObjectDeps(class, v)
         if v.AfterReload then
@@ -107,8 +113,8 @@ function ClassLoader:InitClass(class_name)
         file = file,
         timestamp = 0,
         metatable = { },
-        base_for = setmetatable({}, {__mode="kv"}),
-        instances = setmetatable({}, {__mode="kv"}),
+        base_for =  table.weak(),
+        instances = table.weak(),
     }
 
     self:ReloadClass(class)
@@ -157,7 +163,7 @@ function ClassLoader:CreateObject(class_name, object_arg)
         SafeCall(function() target:OnObjectCreated(class_name, obj) end)
     end
 
-    printf("CLASS: Create %s of %s", class.name, tostring(obj))
+    printf("CLASS: Create %s name:%s", class.name, tostring(obj))
 
     return obj
 end
@@ -175,8 +181,8 @@ function ClassLoader:Init()
     loader_module:RegisterStaticModule("base/loader-class", self)
     loader_module:UpdateObjectDeps(self)
 
-    self.loaded_classes = { }
-    self.watchers = { }
+    self.loaded_classes = table.weak()
+    self.watchers = table.weak()
     self.config = config_handler:Query(self.__config)
 
     if self.config.debug then

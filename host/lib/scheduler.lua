@@ -1,5 +1,6 @@
 local copas = require "copas"
 local posix = require "posix"
+local uuid = require "uuid"
 require "lib/ext"
 
 -------------------------------------------------------------------------------
@@ -10,6 +11,9 @@ local gettime = os.gettime
 -------------------------------------------------------------------------------
 
 local Scheduler = {}
+Scheduler.__index = Scheduler
+Scheduler.__stats = true
+
 
 function Scheduler.Push(func)
     copas.addthread(function()
@@ -45,4 +49,145 @@ function Scheduler.Sleep(timeout)
     end
 end
 
-return Scheduler
+-------------------------------------------------------------------------------
+
+local Task = { }
+Task.__index = Task
+
+function Task:Stop()
+    self.can_run = false
+end
+
+function Scheduler:CreateTask(owner, name, interval, func)
+    local t = {
+        uuid = uuid(),
+        owner = owner,
+        name = name,
+        interval = interval,
+
+        can_run = true,
+
+        run_count = 0,
+        total_runtime = 0,
+        total_sleep_time = 0,
+        max_runtime = 0,
+        max_sleep_time = 0,
+    }
+
+    t.thread = copas.addthread(function()
+        t.start_time = gettime()
+
+        local max = math.max
+        local copas_sleep = copas.sleep
+        -- local SafeCall = SafeCall
+
+        while true do
+            local init = gettime()
+            copas_sleep(t.interval)
+            if not t.can_run then
+                break
+            end
+            local before = gettime()
+            SafeCall(func, t.owner, t)
+            local after = gettime()
+            local sleep = (before - init)
+            local dt = (after - before)
+            t.run_count = t.run_count + 1
+            t.total_runtime = t.total_runtime + dt
+            t.total_sleep_time = t.total_sleep_time + sleep
+            t.max_runtime = max(t.max_runtime, dt)
+            t.max_sleep_time = max(t.max_sleep_time, sleep)
+        end
+
+        t.end_time = gettime()
+    end)
+
+    self.tasks[t.uuid] = setmetatable(t, Task)
+
+    local proxy = {
+        task = t,
+    }
+    table.setmt__gc(proxy, {
+        __index = t,
+        __gc = function () t.can_run = false end
+    })
+    return proxy
+end
+
+-------------------------------------------------------------------------------
+
+function Scheduler:EnableStatistics(enable)
+    if enable then
+        self.stats = self.stats or {}
+    else
+        self.stats = nil
+    end
+end
+
+function Scheduler:GetStatistics()
+    if not self.stats then
+        return
+    end
+
+    local max = math.max
+
+    local header = {
+        "uuid",
+        "owner",
+        "name",
+        "interval",
+        "run_count",
+        "total_runtime",
+        "total_sleep_time",
+        "max_runtime",
+        "max_sleep_time",
+        "start_time_timestamp",
+    }
+
+    local r = { }
+
+    local run_count = 0
+    local total_runtime = 0
+    local total_sleep_time = 0
+    local max_runtime = 0
+    local max_sleep_time = 0
+    for k,t in pairs(self.tasks) do
+        local line = {
+            t.uuid, t.owner:LogTag(), t.name, t.interval,
+            t.run_count,
+
+            t.total_runtime, t.total_sleep_time,
+            t.max_runtime, t.max_sleep_time,
+
+            t.start_time,
+         }
+
+        run_count = run_count + t.run_count
+        total_runtime = t.total_runtime + total_runtime
+        total_sleep_time = t.total_sleep_time + total_sleep_time
+        max_runtime = max(t.max_runtime, max_runtime)
+        max_sleep_time = max(t.max_sleep_time, max_sleep_time)
+
+        table.insert(r, line)
+    end
+
+    table.insert(r,  {
+        "00000000-0000-0000-0000-000000000000", "Application", "Application", 0,
+        run_count,
+        total_runtime, total_sleep_time,
+        max_runtime, max_sleep_time,
+        self.AppStartTime,
+    })
+
+    table.sort(r, function(a,b) return a[4] < b[4] end)
+
+    return { header = header, data = r }
+end
+
+-------------------------------------------------------------------------------
+
+return setmetatable({
+    AppStartTime = gettime(),
+    tasks = table.weak(),
+    stats = { }
+}, Scheduler)

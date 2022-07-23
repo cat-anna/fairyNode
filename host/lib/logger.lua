@@ -3,6 +3,7 @@ local posix = require "posix"
 local path = require "pl.path"
 local pl_dir = require "pl.dir"
 local date = require "pl.Date"
+local pretty = require "pl.pretty"
 local uuid = require "uuid"
 local config_handler = require "lib/config-handler"
 require "lib/ext"
@@ -20,6 +21,7 @@ local lua_print = print
 
 local CONFIG_KEY_LOG_PATH = "logger.path"
 local CONFIG_KEY_LOG_ENABLE = "logger.enable"
+local CONFIG_KEY_DEBUG_LOG_ENABLE = "debug"
 
 -------------------------------------------------------------------------------
 
@@ -45,7 +47,13 @@ function LoggerObject:WriteCsv(t)
     if not f then
         return
     end
-    StreamWrite(f, string_timestamp(), ",", concat(t, ","), "\n")
+    StreamWrite(
+        f,
+        string_timestamp(),
+        ",",
+        concat(t, ","),
+        "\n"
+    )
 end
 
 function LoggerObject:Write(...)
@@ -56,7 +64,26 @@ function LoggerObject:Write(...)
     StreamWrite(f, ...)
 end
 
+function LoggerObject:WriteObject(header, object)
+    local f = self.file
+    if not f then
+        return
+    end
+    StreamWrite(
+        f,
+        string_timestamp(),
+        " ",
+        (header or "object"),
+        " ",
+        pretty.write(object, ""),
+        "\n"
+    )
+end
+
 function LoggerObject:Start()
+    if self.started then
+        return
+    end
     self.config = config_handler:Query(self.__config)
     if (not self.config[CONFIG_KEY_LOG_ENABLE]) or
        (self.enable_key and (not self.config[self.enable_key])) then
@@ -74,6 +101,7 @@ function LoggerObject:Start()
 
     self.file_name = file_path
     self.file = io.open(file_path, "w")
+    self.started = true
 end
 
 function LoggerObject:Stop()
@@ -81,6 +109,7 @@ function LoggerObject:Stop()
         self.file:close()
         self.file = nil
     end
+    self.started = nil
 end
 
 function LoggerObject:Enabled()
@@ -166,8 +195,12 @@ end
 
 local Logger = { }
 Logger.__index = Logger
+Logger.active_loggers = table.weak()
 
 function Logger:Create(name, enable_key, default_enable)
+    if self.active_loggers[name] then
+        return self.active_loggers[name]
+    end
     local l = setmetatable({
         uuid = uuid(),
         enable_key = enable_key,
@@ -184,6 +217,8 @@ function Logger:Create(name, enable_key, default_enable)
 
     l.name = name or l.uuid
 
+    self.active_loggers[name] = l
+
     return l
 end
 
@@ -191,6 +226,13 @@ function Logger:New(...)
     local l = self:Create(...)
     l:Start()
     return l
+end
+
+function Logger:DebugLogger()
+    if not self.debug_logger then
+        self.debug_logger = self:New("debug")--, CONFIG_KEY_DEBUG_LOG_ENABLE)
+    end
+    return self.debug_logger
 end
 
 function Logger:Init()
