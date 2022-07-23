@@ -72,7 +72,6 @@ function StateOperator:Init(config)
     self.super.Init(self, config)
     self.operator = config.operator
     self.range = config.range
-    self:RetireValue()
 
     assert(self.OperatorFunctors[self.operator])
 end
@@ -118,42 +117,11 @@ StateOperator.OperatorFunctors = {
     }
 }
 
-function StateOperator:LocallyOwned() return true, "boolean" end
-
-function StateOperator:SetValue(v)
-    error("Setting value of StateOperator instance is not possible")
+function StateOperator:LocallyOwned()
+    return true, "boolean"
 end
 
-function StateOperator:GetValue()
-    if not self.cached_value_valid then self:Update() end
-    return self.cached_value
-end
-
-function StateOperator:RetireValue()
-    self.cached_value = nil
-    self.cached_value_valid = nil
-end
-
-function StateOperator:SourceChanged(source, source_value)
-    -- print(self:LogTag(), "SourceChanged")
-    self:RetireValue()
-    self:Update()
-end
-
-function StateOperator:IsReady()
-    return self.cached_value_valid
-end
-
-function StateOperator:Update()
-    if self.cached_value_valid then
-        return true
-    end
-
-    self:RetireValue()
-
-    local dependant_values = self:GetDependantValues()
-    if not dependant_values then return end
-
+function StateOperator:CalculateValue(dependant_values)
     local operator_func = self.OperatorFunctors[self.operator]
     if not operator_func then return end
 
@@ -162,21 +130,16 @@ function StateOperator:Update()
             self:SetError(
                 "'%s' operator expects exactly %d argument, but %d were provided",
                 operator_func.limit, #dependant_values)
-            return nil
+            return
         end
     end
 
     local result_value = operator_func.handler(self, dependant_values)
-    if not result_value then return nil end
-    result_value = result_value.result
-    if result_value == self.cached_value then return result_value end
+    if not result_value then
+        return
+    end
 
-    print(self:LogTag(), "Changed to value " .. tostring(result_value))
-    self.cached_value = result_value
-    self.cached_value_valid = true
-    self:CallSinkListeners(result_value)
-
-    return result_value
+    return self:WrapCurrentValue(result_value.result)
 end
 
 function StateOperator:GetDescription()
@@ -191,7 +154,6 @@ function StateOperator:GetFunctionDescription()
     if operator_func.name then return operator_func.name(self) end
     return self.operator
 end
-
 
 -------------------------------------------------------------------------------------
 

@@ -22,7 +22,6 @@ local StateClassMapping = {
     StateFunction = "rule/state-function",
     StateMovingAvg = "rule/state-avg-moving",
     StateMapping = "rule/state-mapping",
-    StateMaxChangePeriod = "rule/state-change-period",
     StateChangeGenerator = "rule/state-change-generator",
 }
 
@@ -218,29 +217,6 @@ end
 
 -------------------------------------------------------------------------------------
 
-local function MakeMaxChangePeriod(env)
-    return function(data)
-        if #data ~= 2 then
-            env.error("MaxChangePeriod operator requires two arguments")
-            return
-        end
-        if not IsState(env, data[1]) then
-            env.error("MaxChangePeriod requires state as first argument")
-            return
-        end
-        local delay_as_num = tonumber(data[2])
-        if delay_as_num == nil then
-            env.error("MaxChangePeriod requires number as second argument")
-            return
-        end
-        return MakeStateRule {
-            class = StateClassMapping.StateMaxChangePeriod,
-            source_dependencies = {data[1]},
-            delay = delay_as_num
-        }
-    end
-end
-
 local function MakeBooleanGenerator(env)
     return function(data)
         if #data > 2 then
@@ -365,6 +341,7 @@ local function MakeFunction(env)
             funcG = funcG,
             object = data.init or {},
             dynamic = data.dynamic and true or false,
+            result_type = tostring(data.result_type), --TODO validate
             setup_errors = function(log_tag, errors)
                 SetupErrorFunctions(funcG, log_tag, errors)
             end
@@ -452,8 +429,7 @@ end
 
 -------------------------------------------------------------------------------------
 
-function RuleStateImport:ImportHomieState(env_object, property_path, homie_property,
-                                          homie_device)
+function RuleStateImport:ImportHomieState(env_object, property_path, homie_property, homie_device)
     local homie_id = string.format("%s.%s.%s", property_path.device, property_path.node, property_path.property)
     local global_id = string.format("Homie.%s", homie_id)
     if not env_object.states[global_id] then
@@ -463,7 +439,7 @@ function RuleStateImport:ImportHomieState(env_object, property_path, homie_prope
             global_id = global_id,
             class_id = homie_id,
             property_instance = homie_property,
-            property_path = property_path,
+            property_path = homie_id,
             device = homie_device,
             group = env_object.group,
         })
@@ -607,7 +583,6 @@ function RuleStateImport:CreateStateEnv()
     state_prototype.StringMapping = MakeStringMapping(env)
 
     state_prototype.MovingAvg = MakeMovingAvg(env)
-    state_prototype.MaxChangePeriod = MakeMaxChangePeriod(env)
 
     state_prototype.Function = MakeFunction(env)
 
@@ -627,6 +602,7 @@ function RuleStateImport:CreateStateEnv()
     env.table = table
     env.os = {
         time = os.time,
+        timestamp = os.timestamp,
         date = os.date,
         difftime = os.difftime,
         clock = os.clock

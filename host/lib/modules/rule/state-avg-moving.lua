@@ -1,4 +1,5 @@
 local tablex = require "pl.tablex"
+
 -------------------------------------------------------------------------------------
 
 local StateMovingAvg = {}
@@ -9,32 +10,37 @@ StateMovingAvg.__type = "class"
 StateMovingAvg.__deps = {
     server_storage = "base/server-storage",
 }
+
 -------------------------------------------------------------------------------------
 
 function StateMovingAvg:Init(config)
     self.super.Init(self, config)
 
     self.samples =  {}
-    local cache = self.server_storage:GetFromCache(self.global_id)
+    local cache = self.server_storage:GetFromCache(self:CacheId())
     if cache then
         self.samples = cache.samples or { }
     end
 
     self.period = config.period
-    self:RetireValue()
+end
+
+function StateMovingAvg:CacheId()
+    if not self.cache_id then
+        self.cache_id = string.format("%s-%s", self.__class_name, self.global_id)
+    end
+    return self.cache_id
+end
+
+function StateMovingAvg:IsReady()
+    return true
 end
 
 -------------------------------------------------------------------------------------
 
 function StateMovingAvg:LocallyOwned()
-    return true, self.result_type
+    return true, "float"
 end
-
--- function StateMovingAvg:GetName()
---     local r = self.range
---     return string.format("Time between %d:%02d and %d:%02d", r.from / 100,
---                          r.from % 100, r.to / 100, r.to % 100)
--- end
 
 function StateMovingAvg:GetDescription()
     local r = self.super.GetDescription(self)
@@ -53,68 +59,64 @@ function StateMovingAvg:GetDescription()
     return r
 end
 
-function StateMovingAvg:GetValue()
-    if self.cached_value == nil then
-        self:Update()
+function StateMovingAvg:PushSample(sample)
+    local add = true
+    if #self.samples > 0 then
+        local last = self.samples[#self.samples]
+        if last.timestamp == sample.timestamp then
+            add = false
+        end
     end
-    return self.cached_value
+    if add then
+        table.insert(self.samples, {
+            timestamp = sample.timestamp,
+            value = sample.value,
+        })
+    end
+
+    local any_change = add
+    if self.period ~= nil then
+        local current = os.gettime()
+        while #self.samples > 0 and current - self.samples[1].timestamp > self.period do
+            table.remove(self.samples, 1)
+            any_change = true
+        end
+    end
+
+    return any_change
 end
 
 function StateMovingAvg:SourceChanged(source, source_value)
-    local timestamp = os.time()
-    local add_entry = true
-    if #self.samples > 0 then
-        local last = self.samples[#self.samples]
-        if last.timestamp == timestamp then
-            last.value = source_value
-            add_entry= false
-        end
+    if self:PushSample(source_value) then
+        self:RetireValue()
+        self:SaveCache()
+        self:Update()
     end
-    if add_entry then
-        table.insert(self.samples, {
-            timestamp = timestamp,
-            value = source_value,
-        })
-    end
-    self:RetireValue()
-    self:SaveCache()
-    self:Update()
 end
 
-function StateMovingAvg:RetireValue()
-    self.cached_value = nil
-end
-
-function StateMovingAvg:SaveCache()
-    self.server_storage:UpdateCache(self.global_id, {samples=self.samples})
-end
-
-function StateMovingAvg:Update()
-    if self.period ~= nil then
-        local current = os.time()
-        while #self.samples > 0 and current - self.samples[1].timestamp > self.period do
-            table.remove(self.samples, 1)
-        end
+function StateMovingAvg:CalculateValue(dependant_values)
+    if dependant_values then
+        self:PushSample(dependant_values[1])
     end
 
-    local sum=0
+    local sum = 0
     for _,v in pairs(self.samples) do
         sum = sum + v.value
     end
 
-    local new_value = 0
-    if #self.samples > 0 then
-        new_value= sum / (#self.samples)
+    local count = #self.samples
+    if count == 0 then
+        return 0
     end
-    if new_value ~= self.cached_value then
-        self.cached_value = new_value
-        self:CallSinkListeners(self.cached_value)
-    end
-    return true
+
+    return self:WrapCurrentValue(sum / count, self.samples[count].timestamp)
 end
 
-function StateMovingAvg:IsReady()
-    return true
+function StateMovingAvg:SaveCache()
+    local cache = { samples = self.samples }
+    self.server_storage:UpdateCache(self:CacheId(), cache)
 end
+
+-------------------------------------------------------------------------------------
 
 return StateMovingAvg

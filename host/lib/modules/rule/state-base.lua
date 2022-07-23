@@ -24,6 +24,8 @@ function State:Init(config)
 
     self.sink_dependencies = {}
     self.source_dependencies = {}
+    self.observers = table.weak()
+    self:RetireValue()
 
     for k, v in pairs(config.source_dependencies or {}) do
         self:AddSourceDependency(v, type(k) == "string" and k or nil)
@@ -31,19 +33,30 @@ function State:Init(config)
     for _, v in ipairs(config.sink_dependencies or {}) do
         self:AddSinkDependency(v)
     end
+    for _, v in ipairs(config.observers or {}) do
+        self:AddObserver(v)
+    end
 end
 
-function State:BeforeReload() end
+function State:BeforeReload()
+end
 
-function State:AfterReload() end
+function State:AfterReload()
+end
 
 --------------------------------------------------------------------------
 
-function State:OnTimer() end
+function State:OnTimer()
+    -- self:Update()
+end
 
-function State:LocallyOwned() return false end
+function State:LocallyOwned()
+    return false
+end
 
-function State:Settable() return false end
+function State:Settable()
+    return false
+end
 
 function State:Status()
     return self:IsReady(), self:GetValue()
@@ -55,31 +68,83 @@ end
 
 -------------------------------------------------------------------------------------
 
-function State:GetDescription() return tablex.copy(self.description or {}) end
+function State:GetDescription()
+    return tablex.copy(self.description or {})
+end
 
-function State:SetValue(v) error(self:LogTag() .. "abstract method called") end
+function State:GetName()
+    return self.name
+end
 
-function State:GetValue() error(self:LogTag() .. "abstract method called") end
-
-function State:GetName() return self.name end
-
-function State:IsReady() return false end
+function State:IsReady()
+    return self.current_value ~= nil
+end
 
 function State:LogTag()
     if not self.log_tag then
-        self.log_tag = string.format("%s(%s): ", self.__class, self.global_id)
+        self.log_tag = string.format("%s(%s)", self.__class, self.global_id)
     end
     return self.log_tag
 end
 
-function State:Update() return self:IsReady() end
+function State:Update()
+    local dv = self:GetSourceValues()
+    if not dv then
+        self:RetireValue()
+        return
+    end
+    return self:SetCurrentValue(self:CalculateValue(dv))
+end
 
-function State:RetireValue() end
+function State:SetValue(v)
+    error(self:LogTag() .. "abstract method called")
+end
+
+function State:GetValue()
+    if not self.current_value then
+        self:Update()
+    end
+    return self.current_value
+end
+
+function State:SetCurrentValue(cv)
+    if cv == nil then
+        self:RetireValue()
+        return
+    end
+    if self.current_value and self.current_value.value == cv.value then
+        return self.current_value
+    end
+
+    print(self, "Value changed to " .. tostring(cv.value))
+    self.current_value = cv
+
+    self:CallSinkListeners(cv)
+    self:CallObservers(cv)
+
+    return cv
+end
+
+function State:RetireValue()
+    self.current_value = nil
+end
+
+function State:CalculateValue(dependant_values)
+    error(self:LogTag() .. "abstract method called")
+end
+
+function State:WrapCurrentValue(value, timestamp)
+    return {
+        id = self.global_id,
+        value = value,
+        timestamp = timestamp or os.timestamp(),
+    }
+end
 
 -------------------------------------------------------------------------------------
 
 function State:AddSourceDependency(dependant_state, source_id)
-    print(self:LogTag(), "Added dependency " .. dependant_state.global_id ..
+    print(self, "Added dependency " .. dependant_state.global_id ..
               " to " .. self.global_id)
 
     self.source_dependencies[dependant_state.global_id] = table.weak_values {
@@ -100,23 +165,21 @@ function State:HasSourceDependencies()
     return false
 end
 
-function State:GetDependantValues()
+function State:GetSourceValues()
     local dependant_values = {}
     for id, dep in pairs(self.source_dependencies) do
         if (not dep.target) or (not dep.target:IsReady()) then
-            print(self:LogTag(), "Dependency " .. id .. " is not yet ready")
-            return nil
+            print(self, "Dependency " .. id .. " is not yet ready")
+            return
         end
-        local value
-        SafeCall(function()
-            value = dep.target:GetValue()
-        end)
+        local value = dep.target:GetValue()
         if value == nil then
-            print(self:LogTag(), "Dependency " .. id .. " has no value")
-            return nil
+            print(self, "Dependency " .. id .. " has no value")
+            return
         end
-        table.insert(dependant_values,
-                        {value=value, id = id, source_id = dep.source_id})
+        value = tablex.copy(value)
+        value.source_id = dep.source_id
+        table.insert(dependant_values, value)
     end
     return dependant_values
 end
@@ -124,7 +187,7 @@ end
 -------------------------------------------------------------------------------------
 
 function State:AddSinkDependency(listener, virtual)
-    print(self:LogTag(), "Added listener " .. listener.global_id)
+    print(self, "Added listener " .. listener.global_id)
 
     self.sink_dependencies[listener.global_id] = table.weak_values {
         target = listener,
@@ -136,17 +199,14 @@ function State:AddSinkDependency(listener, virtual)
     end
 end
 
-function State:CallSinkListeners(result_value)
+function State:CallSinkListeners(current_value)
     for id, dep in pairs(self.sink_dependencies) do
-        -- print(self:LogTag(), "Calling listener " .. v.global_id)
         if not dep.target then
-            print(self:LogTag(), "Dependency " .. id .. " is expired")
+            print(self, "Dependency " .. id .. " is expired")
         elseif dep.virtual then
-            print(self:LogTag(), "Dependency " .. id .. " is virtual")
+            print(self, "Dependency " .. id .. " is virtual")
         else
-            SafeCall(function()
-                dep.target:SourceChanged(self, result_value)
-            end)
+            dep.target:SourceChanged(self, current_value)
         end
     end
 end
@@ -161,16 +221,26 @@ function State:HasSinkDependencies()
 end
 
 function State:SourceChanged(source, source_value)
-    if self:IsReady() then
-        self:Update()
+    self:Update()
+end
+
+-------------------------------------------------------------------------------------
+
+function State:AddObserver(target)
+    self.observers[target.uuid] = target
+end
+
+function State:CallObservers(current_value)
+    for _,v in pairs(self.observers) do
+        v:StateRuleValueChanged(self, current_value)
     end
- end
+end
 
 -------------------------------------------------------------------------------------
 
 function State:SetError(...)
-    local message = string.format(...)
-    print(self, message)
+    --TODO
+    printf(self, ...)
 end
 
 function State:GetDependencyList(list)
@@ -180,16 +250,11 @@ function State:GetDependencyList(list)
             id = id,
             virtual = v.virtual,
             expired = v.target == nil,
+            group = v.target and v.target:GetGroup()
         })
     end
     return r
 end
-
--------------------------------------------------------------------------------------
-
-State.EventTable = {
-    ["timer.basic.30_second"] = function (self, ...) return self:OnTimer(...) end,
-}
 
 -------------------------------------------------------------------------------------
 

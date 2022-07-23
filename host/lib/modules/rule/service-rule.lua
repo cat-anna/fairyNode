@@ -89,9 +89,10 @@ function RuleService:GenerateStateDiagramElements()
 
     for _, state in pairs(self.rule_state:GetStates() or {}) do
         local ready, value = state:Status()
+        value = value or {}
 
         local state_style = {
-            SelectColor(value, ready),
+            SelectColor(value.value, ready),
         }
 
         if not state:LocallyOwned() then
@@ -111,18 +112,27 @@ function RuleService:GenerateStateDiagramElements()
         end
 
         local members = table.concat(desc, "\n")
-
-        value = FormatValue(value)
+        local formatted_value = FormatValue(value.value)
         local mode = StateClassMapping[state.__class_name] or "entity"
+        local string_timestamp = ""
+        if value.timestamp then
+            string_timestamp = os.timestamp_to_string_short(value.timestamp)
+        end
 
         local state_line = string.format([[
 %s %s as "%s" %s {
-value: %s %s
+value: %s
+timestamp: %s %s
 ..
 %s
 }
-]], mode,  self.plantuml:NameToId(state.global_id), state:GetName(), state_style_text, value,
-                                         members, state.global_id)
+]], mode,
+    self.plantuml:NameToId(state.global_id),
+    state:GetName(),
+    state_style_text,
+    formatted_value, string_timestamp,
+    members,
+    state.global_id)
 
         local state_info = elements.state[state.global_id]
         state_info.definition = state_line
@@ -135,7 +145,17 @@ value: %s %s
             }
             table.insert(state_info.transitions, table.concat(l, " "))
             elements.states_wanted_by_group[group][dep.id] = true
-
+        end
+        for _, dep in ipairs(state:GetSourceDependencyList() or {}) do
+            if dep.group ~= group then
+                local l = {
+                    self.plantuml:NameToId(dep.id),
+                    dep.virtual and "..>" or "-->",
+                    self.plantuml:NameToId(state.global_id),
+                }
+                table.insert(state_info.transitions, table.concat(l, " "))
+                elements.states_wanted_by_group[group][dep.id] = true
+            end
         end
     end
 
@@ -194,9 +214,10 @@ function RuleService:GenerateStateDiagram()
 
     for id, state in pairs(self.rule_state:GetStates() or {}) do
         local ready, value = state:Status()
+        value = value or {}
 
         local state_style = {
-            SelectColor(value, ready),
+            SelectColor(value.value, ready),
         }
 
         if not state:LocallyOwned() then
@@ -216,18 +237,27 @@ function RuleService:GenerateStateDiagram()
         end
 
         local members = table.concat(desc, "\n")
-
-        value = FormatValue(value)
+        local formatted_value = FormatValue(value.value)
         local mode = StateClassMapping[state.__class_name] or "entity"
+        local string_timestamp = ""
+        if value.timestamp then
+            string_timestamp = os.timestamp_to_string_short(value.timestamp)
+        end
 
         local state_line = string.format([[
 %s %s as "%s" %s {
-value: %s %s
+value: %s
+timestamp: %s %s
 ..
 %s
 }
-]], mode,  self.plantuml:NameToId(state.global_id), state:GetName(), state_style_text, value,
-                                         members, state.global_id)
+]], mode,
+    self.plantuml:NameToId(state.global_id),
+    state:GetName(),
+    state_style_text,
+    formatted_value, string_timestamp,
+    members,
+    state.global_id)
 
         table.insert(lines, state_line)
     end
