@@ -1,5 +1,4 @@
 
-local scheduler = require "lib/scheduler"
 
 -------------------------------------------------------------------------------------
 
@@ -130,12 +129,6 @@ end
 function SensorObject:CallObserver(target, node)
     SafeCall(function () target:SensorNodeChanged(self, node) end)
 end
-
--------------------------------------------------------------------------------------
-
--- SensorObject.EventTable = {
-    -- ["sensor.readout"] = HealthMonitor.SensorReadout,
--- }
 
 -------------------------------------------------------------------------------------
 

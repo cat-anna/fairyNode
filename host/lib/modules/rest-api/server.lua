@@ -6,6 +6,7 @@ local lfs = require "lfs"
 local modules = require "lib/loader-module"
 local path = require "pl.path"
 local restserver = require "lib/rest/restserver"
+local scheduler = require "lib/scheduler"
 
 -------------------------------------------------------------------------------
 
@@ -82,9 +83,9 @@ function RestServer:LoadEndpoints()
     for _,endpoint_name in ipairs(self.config[CONFIG_KEY_REST_ENDPOINT_LIST]) do
         local endpoint_file = self:FindEndpoint(endpoint_name)
         if not endpoint_file then
-            printf("REST: failed to find source for endpoint %s", endpoint_name)
+            print(self, "failed to find source for endpoint %s", endpoint_name)
         else
-            printf("REST: Adding endpoint %s", endpoint_name)
+            print(self, "Adding endpoint %s", endpoint_name)
             self:AddEndpoint(dofile(endpoint_file))
         end
     end
@@ -102,19 +103,25 @@ function RestServer:InitServer()
         ["Access-Control-Allow-Origin"] = "*"
     })
     self:LoadEndpoints()
-    printf("REST: Starting server initialized on port %d", port)
+    print(self, "Starting server initialized on port %d", port)
 end
 
-function RestServer:StartServer()
-    if not self.server_thread  then
-        self.server_thread = copas.addthread(function()
-            copas.sleep(1)
-            self.server:enable("lib.rest.restserver.xavante"):start()
-            print("REST: Server stopped")
-            self.server = nil
-            self.server_thread = nil
-        end)
+function RestServer:StartModule()
+    if not self.server_task then
+        self.server_task = scheduler:CreateTask(
+            self,
+            "Rest server",
+            0,
+            self.ExecuteServer)
     end
+end
+
+function RestServer:ExecuteServer(task)
+    print(self, "Server started")
+    self.server:enable("lib.rest.restserver.xavante"):start()
+    print(self, "Server stopped")
+    self.server = nil
+    self.server_task = nil
 end
 
 -------------------------------------------------------------------------------
@@ -170,11 +177,11 @@ function RestServer:AfterReload()
 end
 
 function RestServer:Init()
-    copas.addthread(function() self:InitServer() end)
+    copas.addthread(function()
+        self:InitServer()
+    end)
 end
 
-RestServer.EventTable = {
-    ["app.start"] = RestServer.StartServer
-}
+-------------------------------------------------------------------------------
 
 return RestServer

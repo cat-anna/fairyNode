@@ -1,6 +1,7 @@
 local copas = require "copas"
 local posix = require "posix"
 local uuid = require "uuid"
+local coxpcall = require "coxpcall"
 require "lib/ext"
 
 -------------------------------------------------------------------------------
@@ -64,6 +65,7 @@ function Scheduler:CreateTask(owner, name, interval, func)
         owner = owner,
         name = name,
         interval = interval,
+        func = func,
 
         can_run = true,
 
@@ -75,10 +77,12 @@ function Scheduler:CreateTask(owner, name, interval, func)
     }
 
     t.thread = copas.addthread(function()
-        t.start_time = gettime()
-
         local max = math.max
         local copas_sleep = copas.sleep
+
+        copas_sleep()
+        t.start_time = gettime()
+
         -- local SafeCall = SafeCall
 
         while true do
@@ -88,7 +92,7 @@ function Scheduler:CreateTask(owner, name, interval, func)
                 break
             end
             local before = gettime()
-            SafeCall(func, t.owner, t)
+            SafeCall(t.func, t.owner, t)
             local after = gettime()
             local sleep = (before - init)
             local dt = (after - before)

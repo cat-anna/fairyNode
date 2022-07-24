@@ -4,7 +4,7 @@ local scheduler = require "lib/scheduler"
 
 -------------------------------------------------------------------------------
 
-local mqttloop = mqtt:get_ioloop()
+local timestamp = os.timestamp
 
 -------------------------------------------------------------------------------
 
@@ -15,17 +15,13 @@ local CONFIG_KEY_MQTT_PASSWORD = "module.mqtt.user.password"
 
 -------------------------------------------------------------------------------
 
-local MqttClient = {}
-MqttClient.__index = MqttClient
-MqttClient.__alias = "mqtt/mqtt-client"
-MqttClient.__deps = {
-    event_bus = "base/event-bus",
+local MqttBackend = {}
+MqttBackend.__index = MqttBackend
+MqttBackend.__type = "class"
+MqttBackend.__deps = {
     last_will = "mqtt/mqtt-client-last-will",
 }
-MqttClient.__opt_deps = {
-    last_will = "mqtt/mqtt-client-last-will",
-}
-MqttClient.__config = {
+MqttBackend.__config = {
     [CONFIG_KEY_MQTT_HOST] = { type = "string", required = true, },
     [CONFIG_KEY_MQTT_KEEP_ALIVE] = { type = "integer", required = false, default = 10 },
     [CONFIG_KEY_MQTT_USER] = { type = "string", required = true },
@@ -34,48 +30,66 @@ MqttClient.__config = {
 
 -------------------------------------------------------------------------------
 
-function MqttClient:Init()
+function MqttBackend:Init(config)
     self.connected = false
-    self.use_event_bus = false
-    self.watchers = table.weak()
+    self.target = config.target
+end
 
+function MqttBackend:Start()
+    print(self, "Starting")
     self:ResetClient()
 
     self.pool_task = scheduler:CreateTask(
         self,
-        "mqtt_pool",
-        0.01,
-        function(self, task) mqttloop:iteration() end
+        "Mqtt reconnect",
+        1,
+        function(owner, task)
+            if owner.mqtt_client then
+                mqtt.run_sync(owner.mqtt_client)
+            end
+        end
     )
 
     self.ping_task = scheduler:CreateTask(
         self,
-        "mqtt_ping",
-        10,
-        function(self, task)
-            if self.mqtt_client then
-                self.mqtt_client:send_pingreq()
+        "Mqtt ping",
+        self.config[CONFIG_KEY_MQTT_KEEP_ALIVE],
+        function(owner, task)
+            if owner.mqtt_client then
+                owner.mqtt_client:send_pingreq()
             end
         end
     )
 end
 
-function MqttClient:LogTag()
-    return "MQTT"
+function MqttBackend:Stop()
+    print(self, "Stopping")
+
+    if self.pool_task then
+        self.pool_task:Stop()
+        self.pool_task = nil
+    end
+    if self.ping_task then
+        self.ping_task:Stop()
+        self.ping_task = nil
+    end
+
+    if self.mqtt_client then
+        self.mqtt_client:disconnect()
+        self.mqtt_client = nil
+    end
+end
+
+function MqttBackend:LogTag()
+    return "MqttBackend"
 end
 
 -------------------------------------------------------------------------------
 
-function MqttClient:Register(name, target)
-    self.watchers[name] = target
-end
-
--------------------------------------------------------------------------------
-
-function MqttClient:ResetClient()
+function MqttBackend:ResetClient()
     if self.mqtt_client then
         --todo
-        print("MQTT-CLIENT: Connecting:", self.mqtt_client:start_connecting())
+        print(self, "Connecting:", self.mqtt_client:start_connecting())
         return
     end
 
@@ -83,11 +97,12 @@ function MqttClient:ResetClient()
         uri = self.config[CONFIG_KEY_MQTT_HOST],
         username = self.config[CONFIG_KEY_MQTT_USER],
         password = self.config[CONFIG_KEY_MQTT_PASSWORD],
-        clean = true,
-        reconnect = 1,
         keep_alive = self.config[CONFIG_KEY_MQTT_KEEP_ALIVE],
+        clean = true,
+        reconnect = true,
         version = mqtt.v311,
-        will = self.last_will
+        will = self.last_will,
+        connector = require("mqtt.luasocket-copas"),
     }
     mqtt_client:on {
         connect = function(...) self:HandleConnect(...) end,
@@ -95,124 +110,73 @@ function MqttClient:ResetClient()
         error = function(...) self:HandleError(...) end,
         close = function(...) self:HandleClose(...) end,
     }
+
     self.mqtt_client = mqtt_client
-    mqttloop:add(self.mqtt_client)
 end
 
-function MqttClient:Subscribe(regex)
+function MqttBackend:Subscribe(regex)
     if not self.connected then
         return
     end
 
-    print("MQTT-CLIENT: Subscribing to " .. regex)
+    print(self, "Subscribing to " .. regex)
     local r = self.mqtt_client:subscribe{
-        topic=regex,
-        qos=0,
+        topic = regex,
+        qos = 0,
         callback = function(suback) self:SubscriptionConfirmed(suback, regex) end,
     }
     assert(r)
 end
 
-function MqttClient:SubscriptionConfirmed(suback, regex)
-    print("MQTT-CLIENT: Subscribed to " .. regex)
-
-    self.event_bus:PushEvent({
-        event = "mqtt-client.subscribed",
-        argument = { regex=regex }
-    })
-
-    for _,target in pairs(self.watchers) do
-        SafeCall(function() target:OnMqttSubscribed(regex) end)
-    end
+function MqttBackend:SubscriptionConfirmed(suback, regex)
+    print(self, "Subscribed to " .. regex)
+    self.target:OnMqttSubscribed(self, regex)
 end
 
-function MqttClient:HandleConnect(connack)
+function MqttBackend:HandleConnect(connack)
     if connack.rc ~= 0 then
         error("MQTT-CLIENT: Connection to broker failed: " .. tostring(connack))
     end
-    print("MQTT-CLIENT: Connected")
+    print(self, "Connected")
     self.connected = true
+    self.target:OnMqttConnected(self)
+end
 
-    self.event_bus:PushEvent({
-        event = "mqtt-client.connected",
-        argument = {}
+function MqttBackend:HandleMessage(msg)
+    self.target:OnMqttMessage(self, {
+        topic = msg.topic,
+        payload = msg.payload,
+        qos = msg.qos,
+        retain = msg.retain,
+        timestamp = timestamp(),
     })
-
-    for _,target in pairs(self.watchers) do
-        SafeCall(function() target:OnMqttConnected() end)
-    end
 end
 
-function MqttClient:HandleMessage(msg)
-    local topic = msg.topic
-    local payload = msg.payload
-
-    if self.use_event_bus then
-        self.event_bus:PushEvent({
-            silent = true,
-            event = "mqtt-client.message",
-            argument = { topic=topic, payload=payload }
-        })
-    end
-
-    for _,target in pairs(self.watchers) do
-        SafeCall(function() target:OnMqttMessage(topic, payload) end)
-    end
+function MqttBackend:PublishMessage(msg)
+    msg.callback = function(...) self:OnPublishConfirmed(msg, ...) end
+    self.mqtt_client:publish(msg)
+    copas.sleep(0)
 end
 
-function MqttClient:PublishMessage(topic, payload, retain)
-    if retain == nil then
-        retain = false
-    end
-
-    self.mqtt_client:publish{
-        topic = topic,
-        payload = payload,
-        qos = 0,
-        retain = retain,
-    }
-
-    if self.use_event_bus then
-        self.event_bus:PushEvent({
-            silent = true,
-            event = "mqtt-client.publish",
-            argument = { topic=topic, payload=payload }
-        })
-    end
-
-    for _,target in pairs(self.watchers) do
-        SafeCall(function() target:OnMqttPublished(topic, payload) end)
-    end
+function MqttBackend:OnPublishConfirmed(msg)
+    self.target:OnMqttPublished(self, msg)
 end
 
-function MqttClient:HandleError(err)
-    print("MQTT-CLIENT: client error:", err)
-
-    self.event_bus:PushEvent({
-        event = "mqtt-client.error",
-        argument = { error = err }
-    })
-
-    for _,target in pairs(self.watchers) do
-        SafeCall(function() target:OnMqttError(err, "?") end)
-    end
+function MqttBackend:HandleError(err)
+    print(self, "Client error:", err)
+    self.target:OnMqttError(self, err, "?")
 end
 
-function MqttClient:HandleClose()
-    print("MQTT-CLIENT: Disconnected")
+function MqttBackend:HandleClose()
+    print(self, "Disconnected")
     self.connected = false
-
-    self.event_bus:PushEvent({ event = "mqtt-client.disconnected" })
-
-    for _,target in pairs(self.watchers) do
-        SafeCall(function() target:OnMqttDisconnected() end)
-    end
+    self.target:OnMqttDisconnected(self)
 end
 
-function MqttClient:IsConnected()
+function MqttBackend:IsConnected()
     return self.connected
 end
 
 -------------------------------------------------------------------------------
 
-return MqttClient
+return MqttBackend

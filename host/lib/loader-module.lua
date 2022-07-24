@@ -21,6 +21,10 @@ ModuleLoader.__config = {
 
 -------------------------------------------------------------------------------
 
+function ModuleLoader:LogTag()
+    return "ModuleLoader"
+end
+
 function ModuleLoader:ReloadModuleMetatable(module)
     if module.static then
         return false
@@ -29,14 +33,14 @@ function ModuleLoader:ReloadModuleMetatable(module)
     if not module.file then
         module.file = self:FindModuleFile(module.name)
         if not module.file then
-            printf("MODULES: Failed to find file for module %s", module.name)
+            printf(self, "Failed to find file for module %s", module.name)
             return false
         end
     end
 
     local file_attrib = lfs.attributes(module.file)
     if not file_attrib then
-        printf("MODULES: Failed to get attributes of file for module %s", module.name)
+        printf(self, "Failed to get attributes of file for module %s", module.name)
         return false
     end
 
@@ -46,8 +50,8 @@ function ModuleLoader:ReloadModuleMetatable(module)
 
     local success, new_metatable = pcall(dofile, module.file)
     if not success or not new_metatable then
-        printf("MODULES: Cannot reload: %s", module.name)
-        printf("MODULES: Message: %s", new_metatable)
+        printf(self, "Cannot reload: %s", module.name)
+        printf(self, "Message: %s", new_metatable)
         return false
     end
     new_metatable.__type = new_metatable.__type or "module"
@@ -76,7 +80,7 @@ function ModuleLoader:UpdateModuleAlias(module)
 
         module.alias = alias
         self.loaded_modules[alias] = module
-        printf("MODULES: module %s aliased to %s", module.name, alias)
+        printf(self, "Module %s aliased to %s", module.name, alias)
     end
 
     return true
@@ -94,13 +98,13 @@ function ModuleLoader:UpdateModuleDeps(module)
     for member, dep_name in pairs(metatable.__deps) do
         local dep = self.loaded_modules[dep_name]
         if not dep then
-            printf("MODULES: Module %s dependency %s is unknown. Marking to load", module.name, dep_name)
+            printf(self, "Module %s dependency %s is unknown. Marking to load", module.name, dep_name)
             self:LoadDependency(dep_name)
             return false
         end
 
         if (not dep.instance) or (not dep.initialized) then
-            printf("MODULES: Module %s dependency %s is not yet satisfied", module.name, dep_name)
+            printf(self, "Module %s dependency %s is not yet satisfied", module.name, dep_name)
             return false
         else
             module.instance[member] = dep.instance
@@ -121,13 +125,13 @@ function ModuleLoader:UpdateObjectDeps(object, deps)
     for member, dep_name in pairs(deps or {}) do
         local dep = self.loaded_modules[dep_name]
         if not dep then
-            printf("MODULES: Object %s dependency %s is unknown. Marking to load", tostring(object), dep_name)
+            printf(self, "Object %s dependency %s is unknown. Marking to load", tostring(object), dep_name)
             self:LoadDependency(dep_name)
             return false
         end
 
         if (not dep.instance) or (not dep.initialized) then
-            printf("MODULES: Object %s dependency %s is not yet satisfied", tostring(object), dep_name)
+            printf(self, "Object %s dependency %s is not yet satisfied", tostring(object), dep_name)
             return false
         else
             object[member] = dep.instance
@@ -151,7 +155,7 @@ function ModuleLoader:UpdateModule(module)
     end
 
     module.needs_reload = true
-    printf("MODULES: Reloading module: %s", module.name)
+    printf(self, "Reloading module: %s", module.name)
 
     self:UpdateModuleAlias(module)
 
@@ -173,8 +177,8 @@ function ModuleLoader:UpdateModule(module)
 
             if not success then
                 module.instance = nil
-                print("MODULES: Failed to initialize module:", module.name)
-                print("MODULES: Error:", err_msg)
+                print(self, "Failed to initialize module:", module.name)
+                print(self, "Error:", err_msg)
                 return
             end
         end
@@ -188,10 +192,11 @@ function ModuleLoader:UpdateModule(module)
     module.needs_reload = false
     module.loading_as_dependency = nil
 
-    printf("MODULES: Reloaded module: %s", module.name)
-
-    for _,target in pairs(self.watchers) do
-        SafeCall(function() target:ModuleReloaded(module.name, module.instance) end)
+    if self.app_started then
+        printf(self, "Reloaded module: %s", module.name)
+        for _,target in pairs(self.watchers) do
+            SafeCall(function() target:ModuleReloaded(module.name, module.instance) end)
+        end
     end
 
     return true
@@ -199,29 +204,62 @@ end
 
 function ModuleLoader:Update()
     local pending = { }
+
     for module_name,module in pairs(self.loaded_modules) do
         if not self:UpdateModule(module) then
             table.insert(pending, module_name)
         end
     end
 
-    if  #pending > 0 then
+    if #pending > 0 then
         self.all_loaded = false
-        printf("MODULES: Pending modules: (%d) %s", #pending, table.concat(pending, ","))
+        printf(self, "Pending modules: (%d) %s", #pending, table.concat(pending, ","))
         return true
-    else
-        if self.config.verbose or not self.config.debug then
-            print("MODULES: All modules are loaded")
-        end
+    end
 
-        if not self.all_loaded then
-            for _,target in pairs(self.watchers) do
-                SafeCall(function() target:AllModulesLoaded() end)
-            end
-        end
-        self.all_loaded = true
+    if self.app_started then
         return false
     end
+
+    local function MakeCall(f_name)
+        return function ()
+            print(self, "Calling " .. f_name)
+            for _,module in pairs(self.loaded_modules) do
+                local inst = module.instance
+                local f = inst[f_name]
+                if f then
+                    SafeCall(function() f(inst) end)
+                end
+            end
+        end
+    end
+
+    local start_up_seq = {
+        function ()
+            print(self, "All modules are loaded")
+        end,
+        MakeCall("PostInit"),
+        MakeCall("StartModule"),
+        function ()
+            for _,target in pairs(self.watchers) do
+                SafeCall(function() target:AllModulesLoaded() end)
+           end
+        end,
+        function ()
+            self.app_started = true
+            self.init_sequence = nil
+            print(self, "Initialization is completed")
+        end,
+    }
+
+    local seq = self.init_sequence or 0
+    seq = seq + 1
+    self.init_sequence = seq
+
+    local h = start_up_seq[seq]
+    assert(h)
+    h()
+    return true
 end
 
 -------------------------------------------------------------------------------
@@ -234,11 +272,11 @@ function ModuleLoader:FindModuleFile(name)
             return full
         end
     end
-    printf("MODULES: Failed to find source for module %s", name)
+    printf(self, "Failed to find source for module %s", name)
 end
 
 function ModuleLoader:LoadModule(name)
-    printf("MODULES: Loading module %s", name)
+    printf(self, "Loading module %s", name)
     local m = self:InitModule(name)
     if m.needs_reload then
         self:UpdateModule(m)
@@ -302,28 +340,41 @@ end
 
 -------------------------------------------------------------------------------
 
+function ModuleLoader:UpdateTaskDebug(task)
+    if not self:Update() then
+        task.interval = 10
+    end
+end
+
+function ModuleLoader:UpdateTask(task)
+    if not self:Update() then
+        task:Stop()
+        self.update_task = nil
+    end
+end
+
 function ModuleLoader:Init()
     self:RegisterStaticModule("base/loader-module", self)
-    self:RegisterStaticModule("scheduler", require "lib/scheduler")
 
-    self.update_thread = copas.addthread(function()
-        copas.sleep(1)
+    local scheduler = require "lib/scheduler"
+    self:RegisterStaticModule("scheduler", scheduler)
 
-        print("MODULES: Loading thread started")
-        self.config = config_handler:Query(self.__config)
-        for _,v in pairs(self.config[CONFIG_KEY_LIST]) do
-            self:InitModule(v)
-         end
+    self.config = config_handler:Query(self.__config)
 
-        local loading = true
-        while loading or self.config.debug do
-            loading = self:Update()
-            copas.sleep(loading and 1 or 5)
-        end
+    for _,v in pairs(self.config[CONFIG_KEY_LIST]) do
+        self:InitModule(v)
+    end
 
-        print("MODULES: Loading thread finished")
-        self.update_thread = nil
-    end)
+    local func
+    if self.config.debug then
+        func = function (owner, task) owner:UpdateTaskDebug(task) end
+    else
+        func = function (owner, task) owner:UpdateTask(task) end
+    end
+
+    self.update_task = scheduler:CreateTask(
+        self, "module loader", 1, func
+    )
 end
 
 -------------------------------------------------------------------------------

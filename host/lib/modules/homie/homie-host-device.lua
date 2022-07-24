@@ -11,7 +11,7 @@ HomieDevice.__config = { }
 HomieDevice.__deps = {
     host = "homie/homie-host",
     homie_common = "homie/homie-common",
-    mqtt = "mqtt/mqtt-provider",
+    mqtt = "mqtt/mqtt-client",
     event_bus = "base/event-bus",
     server_storage = "base/server-storage",
 }
@@ -54,7 +54,7 @@ function HomieDevice:AfterReload()
 end
 
 function HomieDevice:Finalize()
-    self.mqtt:StopWatching(self:MqttId())
+    self.mqtt:StopWatching(self)
 end
 
 ------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ function HomieDevice:GetPropertyMT(parent_node)
         end
         value = self.homie_common.ToHomieValue(property.datatype, value)
         local topic = property:GetValueSetTopic()
-        self.mqtt:PublishMessage(topic, value, property.retained)
+        self.mqtt:Publish(topic, value, property.retained)
         print(self,string.format("Set value %s.%s = %s", parent_node.id, property.id, value ))
     end
     function mt.GetId(property)
@@ -144,11 +144,11 @@ function HomieDevice:GetPropertyMT(parent_node)
 end
 
 function HomieDevice:WatchTopic(topic, handler)
-    self.mqtt:WatchTopic(self:MqttId() .. "_topic_" .. topic, function(...) handler(self, ...) end, self:BaseTopic() .. topic)
+    self.mqtt:WatchTopic(self, handler, self:BaseTopic() .. topic)
 end
 
 function HomieDevice:WatchRegex(topic, handler)
-    self.mqtt:WatchRegex(self:MqttId() .. "_regex_" .. topic, function(...) handler(self, ...) end, self:BaseTopic() .. topic)
+    self.mqtt:WatchRegex(self, handler, self:BaseTopic() .. topic)
 end
 
 function HomieDevice:HandleStateChanged(topic, payload)
@@ -573,17 +573,17 @@ function HomieDevice:SendCommand(cmd, callback)
 
     self.command_pending = callback or function () end
     print(self,"Sending command: " .. cmd)
-    self.mqtt:PublishMessage(self:BaseTopic() .. "/$cmd", cmd, false)
+    self.mqtt:PublishM(self:BaseTopic() .. "/$cmd", cmd, false)
 end
 
 function HomieDevice:SendEvent(event)
     print(self,"Sending event: " .. event)
-    self.mqtt:PublishMessage(self:BaseTopic() .. "/$event", event, false)
+    self.mqtt:Publish(self:BaseTopic() .. "/$event", event, false)
 end
 
 function HomieDevice:Publish(topic, payload, retain)
     print(self,"Publishing: " .. topic .. "=" .. payload)
-    self.mqtt:PublishMessage(self:BaseTopic() .. topic, payload, retain or false)
+    self.mqtt:Publish(self:BaseTopic() .. topic, payload, retain or false)
 end
 
 HomieDevice.AdditionalHistoryHandlers = {
@@ -690,7 +690,7 @@ function HomieDevice:HandleTopicClear(topic, payload)
     payload = payload or ""
     if payload ~= "" then
         print(self,"Clearing: " .. topic .. "=" .. payload)
-        self.mqtt:PublishMessage(topic, "", true)
+        self.mqtt:Publish(topic, "", true)
     end
 end
 

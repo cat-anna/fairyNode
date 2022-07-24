@@ -102,20 +102,29 @@ function table.shallow_copy(t)
     return r
 end
 
+function table.append(src, v)
+    for _,v in ipairs(v or {}) do
+      src[#src+1] = v
+    end
+    return src
+end
+
 function table.sorted(t, comp)
     local r = table.shallow_copy(t)
     table.sort(r, comp)
     return r
 end
 
-local WeakValuesMt = { __mode="v" }
 function table.weak_values(t)
-    return setmetatable(t or {}, WeakValuesMt)
+    return setmetatable(t or {}, { __mode="v" })
 end
 
-local WeakMt = { __mode="vk" }
+function table.weak_keys(t)
+    return setmetatable(t or {}, { __mode="k" })
+end
+
 function table.weak(t)
-    return setmetatable(t or {}, WeakMt)
+    return setmetatable(t or {}, { __mode="vk" })
 end
 
 function string.format_seconds(t)

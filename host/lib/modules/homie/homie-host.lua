@@ -7,22 +7,22 @@ HomeHost.__index = HomeHost
 HomeHost.__deps = {
     event_bus = "base/event-bus",
     class = "base/loader-class",
-    mqtt = "mqtt/mqtt-provider",
+    mqtt = "mqtt/mqtt-client",
     homie_common = "homie/homie-common",
 }
 
 ------------------------------------------------------------------------------
 
 function HomeHost:LogTag()
-    return "HOMIE-HOST"
+    return "HomeHost"
 end
 
 function HomeHost:BeforeReload()
-    self.mqtt:StopWatching("HomeHost")
+    self.mqtt:StopWatching(self)
 end
 
 function HomeHost:AfterReload()
-    self.mqtt:AddSubscription("HomeHost", "homie/#")
+    self.mqtt:AddSubscription(self, "homie/#")
 end
 
 function HomeHost:Init()
@@ -35,7 +35,7 @@ end
 
 function HomeHost:OnAppStarted()
     print(self, "Starting")
-    self.mqtt:WatchRegex("HomeHost", function(...) self:AddDevice(...) end, "homie/+/$homie")
+    self.mqtt:WatchRegex(self, self.AddDevice, "homie/+/$homie")
 end
 
 ------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ function HomeHost:FindProperty(path)
     end
 
     local n = dev.nodes[node]
-    if not n then
+    if (not n) or (not n.properties) then
         return
     end
 
