@@ -87,6 +87,7 @@ end
 function PropertyMT:GetAllMessages(q)
     local passthrough_entries = {
         "datatype",
+        "name",
     }
 
     for _,id in ipairs(passthrough_entries) do
@@ -155,12 +156,16 @@ local ClientStates = {
 
 -------------------------------------------------------------------------------
 
+function HomieClient:LogTag()
+    return "HomieClient"
+end
+
 function HomieClient:BeforeReload()
 end
 
 function HomieClient:AfterReload()
-    self.state = ClientStates.unknown
-    -- self.mqtt:AddSubscription(self, self:Topic("#"))
+    self.mqtt:AddSubscription(self, self:Topic("#"))
+    self:ResetState()
 end
 
 function HomieClient:Init()
@@ -174,6 +179,13 @@ function HomieClient:Init()
     self.app_started = false
 
     self.nodes = table.weak()
+
+    self.mqtt:SetLastWill{
+        topic = self:Topic("$state"),
+        payload = "lost",
+        retain = self.retained,
+        qos = self.qos,
+    }
 end
 
 function HomieClient:IsReady()
@@ -190,17 +202,20 @@ end
 
 -------------------------------------------------------------------------------
 
-function HomieClient:OnAppStarted()
-    if not self.app_started then
-        print(self, "Starting")
-        self.app_started = true
-        self:EnterState(ClientStates.goto_init)
-    end
+function HomieClient:StartModule()
+    print(self, "Starting")
+    self.app_started = true
+    self:ResetState()
 end
 
 function HomieClient:OnMqttDisconnected()
+    print(self, "Mqtt disconnected")
+    self:ResetState()
+end
+
+function HomieClient:ResetState()
     if self.app_started then
-        print(self, "Mqtt disconnected. Resetting.")
+        print(self, "Resetting protocol state")
         self:EnterState(ClientStates.goto_init)
     end
 end
@@ -258,7 +273,7 @@ end
 function HomieClient:AddNode(node_name, node)
     if self:IsReady() then
         printf(self, "Client is ready. Resetting for node update")
-        self:EnterState(ClientStates.goto_init)
+        self:ResetState()
     end
 
     self.nodes[node_name] = node
@@ -304,7 +319,6 @@ function HomieClient:AddNode(node_name, node)
         if property.handler then
             if not has_owner then
                 error("Node has no owner, but has settable property")
-                return
             end
 
             -- property.settable = true
@@ -341,6 +355,17 @@ end
 
 -------------------------------------------------------------------------------
 
+function HomieClient:CreateSmTask()
+    if not self.sm_task then
+        self.sm_task = scheduler:CreateTask(
+            self,
+            "Startup",
+            10,
+            function (owner, task) owner:ProcessStateMachine() end
+        )
+    end
+end
+
 function HomieClient:PrepareForInit()
     local mqtt_connected = self.mqtt:IsConnected()
 
@@ -355,6 +380,13 @@ function HomieClient:OnEnterInit()
 end
 
 function HomieClient:HandleInitState()
+    self.loader_module:EnumerateModules(
+        function(name, module)
+            if module.InitHomieNode then
+                module:InitHomieNode(self)
+            end
+        end)
+
     self:EnterState(ClientStates.goto_ready)
 end
 
@@ -368,8 +400,7 @@ function HomieClient:HandleNodeWaitForReady(state_data)
     if not all_ready then
         printf(self, "Not all nodes are ready: %s", table.concat(pending, ","))
         if (os.gettime() - state_data.enter_time) > 60 then
-            print(self, "Attempting re-initialization")
-            self:EnterState(ClientStates.goto_init)
+            self:ResetState()
         end
         return
     end
@@ -380,6 +411,10 @@ end
 function HomieClient:OnEnterReady()
     self:BatchPublish(self:GetNodeMessages())
     self:BatchPublish(self:GetReadyMessages())
+    if self.sm_task then
+        self.sm_task:Stop()
+        self.sm_task = nil
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -387,6 +422,7 @@ end
 HomieClient.StateMachineHandlers = {
     [ClientStates.unknown] = { },
     [ClientStates.goto_init] = {
+        enter = HomieClient.CreateSmTask,
         process = HomieClient.PrepareForInit,
     },
     [ClientStates.init] = {
@@ -425,12 +461,12 @@ function HomieClient:ProcessStateMachine()
         printf(self, "Current state %s", current_state)
     end
     local current_handler = self.StateMachineHandlers[current_state]
-    if current_handler.init_node then
-        self.event_bus:PushEvent({
-            event = string.format("homie-client.init_node", pending_state),
-            client = self,
-        })
-    end
+    -- if current_handler.init_node then
+        -- self.event_bus:PushEvent({
+        --     event = string.format("homie-client.init_node", pending_state),
+        --     client = self,
+        -- })
+    -- end
     if pending_state == current_state then
         call(current_handler.process)
         return
@@ -457,11 +493,7 @@ end
 
 HomieClient.EventTable = {
     ["mqtt-client.disconnected"] = HomieClient.OnMqttDisconnected,
-
     ["mqtt-client.connected"] = HomieClient.ProcessStateMachine,
-    ["timer.basic.10_second"] = HomieClient.ProcessStateMachine,
-
-    ["app.start"] = HomieClient.OnAppStarted,
 }
 
 -------------------------------------------------------------------------------

@@ -6,6 +6,7 @@ local date = require "pl.Date"
 local pretty = require "pl.pretty"
 local uuid = require "uuid"
 local config_handler = require "lib/config-handler"
+local socket = require "socket"
 require "lib/ext"
 
 -------------------------------------------------------------------------------
@@ -96,7 +97,13 @@ function LoggerObject:Start()
     if self.config.debug then
         timestamp = DateFormat:tostring(0)
     end
-    local file_path = path.abspath(format("%s/%s_%s.log", self.config[CONFIG_KEY_LOG_PATH], timestamp, self.name))
+    local file_path = path.abspath(format("%s/%s_%s_%s.log",
+        self.config[CONFIG_KEY_LOG_PATH],
+        socket.dns.gethostname(),
+        timestamp,
+        self.name
+    ))
+
     printf("LOGGER(%s): Logging to '%s'", self.name, file_path)
 
     self.file_name = file_path

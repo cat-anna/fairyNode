@@ -3,6 +3,7 @@ local json = require "json"
 local tablex = require "pl.tablex"
 local md5 = require "md5"
 local scheduler = require "lib/scheduler"
+local uuid = require "uuid"
 
 -------------------------------------------------------------------------------------
 
@@ -34,25 +35,28 @@ end
 function RuleState:Init()
     self.pending_states = {}
     self.states_by_id = {}
-
-    self.rule_tick_task = scheduler:CreateTask(
-        self,
-        "rule tick",
-        30,
-        function (owner, task) owner:HandleRuleTick() end
-    )
-    self.update_task = scheduler:CreateTask(
-        self,
-        "update",
-        10,
-        function (owner, task) owner:CheckUpdateQueue() end
-    )
 end
 
 function RuleState:BeforeReload()
 end
 
 function RuleState:AfterReload()
+    if self.engine_started then
+        self:ReloadRule()
+    end
+end
+
+function RuleState:StartModule()
+    print(self, "Starting state rule engine")
+    self.engine_started = true
+
+    -- self.rule_tick_task = scheduler:CreateTask(
+    --     self,
+    --     "rule tick",
+    --     30,
+    --     function (owner, task) owner:HandleRuleTick() end
+    -- )
+
     self:ReloadRule()
 end
 
@@ -60,6 +64,7 @@ function RuleState:IsReady()
     return
         self.engine_started
         and (self.rule ~= nil)
+        and (#self.pending_states == 0)
 end
 
 -------------------------------------------------------------------------------------
@@ -69,10 +74,6 @@ function RuleState:CheckUpdateQueue()
     --     local f = dofile("test.lua")
     --     f.Test(self)
     -- end)
-
-    if not self:IsReady() then
-        self:ReloadRule()
-    end
 
     if #self.pending_states > 0 then
         local t = {}
@@ -86,6 +87,15 @@ function RuleState:CheckUpdateQueue()
             end
         end
         self.pending_states = t
+        if #t == 0 then
+            print(self, "All states became ready")
+            self:InitHomieNode()
+        end
+    else
+        if self.update_task then
+            self.update_task:Stop()
+            self.update_task = nil
+        end
     end
 end
 
@@ -108,10 +118,11 @@ function RuleState:RuleError(rule, error_key, message)
 end
 
 function RuleState:ReloadRule()
+    print(self, "Reloading state rules")
     self.rule = nil
 
     if self.homie_node then
-        self.homie_node.state_hash = "?"
+        self.homie_node.state_hash = uuid()
     end
 
     if not self.engine_started then
@@ -144,10 +155,8 @@ function RuleState:LoadScript(rule)
     end
 
     self.states_by_id = { }
-    collectgarbage()
     local env_object = self.rule_import:CreateStateEnv()
     setfenv(script, env_object.env)
-    collectgarbage()
 
     local success, mt = pcall(script)
     self.errors = env_object.errors
@@ -165,21 +174,27 @@ function RuleState:LoadScript(rule)
 
     self.pending_states = {}
     for k,v in pairs(self.states_by_id) do
-        v:Update()
-        if not v:IsReady() then
-            table.insert(self.pending_states, v)
-        end
+        table.insert(self.pending_states, v)
     end
     env_object:Cleanup()
 
+    if not self.update_task then
+        self.update_task = scheduler:CreateTask(
+            self,
+            "update",
+            10,
+            function (owner, task)
+                owner:CheckUpdateQueue()
+             end
+        )
+    end
     self.rule = rule
-    self:CheckUpdateQueue()
     self:InitHomieNode()
 end
 
 function RuleState:SetRuleText(rule_text)
     self:SaveRule(rule_text)
-    self:ReloadRule()
+    -- self:ReloadRule()
 end
 
 function RuleState:GetRuleText()
@@ -224,43 +239,47 @@ end
 
 -------------------------------------------------------------------------------------
 
-function RuleState:InitHomieNode(event)
-    if event and event.client then
-        self.homie_client = event.client
+function RuleState:InitHomieNode(client)
+    if client then
+        self.homie_client = client
     end
 
     if not self.homie_client then
         return
     end
 
-    local state_hash = self:GetStateNodeHash()
     local ready = self:IsReady()
+    local state_hash = ""
+    if ready then
+        state_hash = self:GetStateNodeHash()
+    end
+
     if self.homie_node then
         if self.homie_node.ready and (self.homie_node.hash == state_hash) then
             return
         end
-        if not ready then
-            state_hash = ""
-        end
     end
 
     local function to_homie_id(n)
-        local r = n:gsub("[%.-/]", "_")
-        return r
+        return n:gsub("[%.-/]", "_")
     end
 
     self.homie_props = {}
-    for id,state in pairs(self.states_by_id or {}) do
-        local locally_owned, datatype = state:LocallyOwned()
-        if locally_owned then
-            state.homie_property_id = to_homie_id(id)
-            local prop = {
-                name = state:GetName(),
-                datatype = datatype,
-                -- value = state:GetValue(),
-            }
-            self.homie_props[state.homie_property_id] = prop
-            state:AddObserver(self)
+    if ready then
+        for id,state in pairs(self.states_by_id or {}) do
+            local locally_owned, datatype = state:LocallyOwned()
+            if locally_owned then
+                state.homie_property_id = to_homie_id(id)
+                local cv = state:GetValue() or { }
+                local prop = {
+                    name = state:GetName(),
+                    datatype = datatype,
+                    value = cv.value,
+                    timestamp = cv.timestamp,
+                }
+                self.homie_props[state.homie_property_id] = prop
+                state:AddObserver(self)
+            end
         end
     end
 
@@ -274,14 +293,6 @@ end
 
 -------------------------------------------------------------------------------------
 
-function RuleState:StartRuleEngine()
-    print(self, "Starting state rule engine")
-    self.engine_started = true
-    self:ReloadRule()
-end
-
--------------------------------------------------------------------------------------
-
 function RuleState:HandleRuleTick()
     for k,v in pairs(self.states_by_id) do
         v:OnTimer()
@@ -290,10 +301,7 @@ end
 
 -------------------------------------------------------------------------------------
 
-RuleState.EventTable = {
-    ["homie-client.init_node"] = RuleState.InitHomieNode,
-    ["app.start"] = RuleState.StartRuleEngine,
-}
+RuleState.EventTable = { }
 
 -------------------------------------------------------------------------------------
 

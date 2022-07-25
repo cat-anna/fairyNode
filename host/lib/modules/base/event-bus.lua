@@ -64,10 +64,11 @@ function EventBus:Init()
     if self.config.debug then
         self.stats = { }
     end
+
     self.process_task = scheduler:CreateTask(
         self,
-        "event_processing",
-        0.1,
+        "event processing",
+        1,
         function (s, task) s:ProcessAllEvents() end
     )
 

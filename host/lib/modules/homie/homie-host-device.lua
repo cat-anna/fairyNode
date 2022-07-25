@@ -44,6 +44,7 @@ function HomieDevice:AfterReload()
     end
 
     self:WatchTopic(self.homie_common.TopicState, self.HandleStateChanged)
+    self:WatchTopic("/$homie", self.HandleHomieNode)
     self:WatchTopic("/$nodes", self.HandleNodes)
     self:WatchRegex("/$hw/#", self.HandleDeviceInfo)
     self:WatchRegex("/$fw/#", self.HandleDeviceInfo)
@@ -151,11 +152,23 @@ function HomieDevice:WatchRegex(topic, handler)
     self.mqtt:WatchRegex(self, handler, self:BaseTopic() .. topic)
 end
 
+function HomieDevice:HandleHomieNode(topic, payload)
+    if not payload then
+        if not self.deleting then
+            print(self, "Got empty homie version. Deleting device.")
+            scheduler.CallLater(function()
+                self:Delete(true)
+            end)
+        end
+        return
+    end
+
+    -- assert(payload = "3.0.0")
+    self.homie_version = payload
+end
+
 function HomieDevice:HandleStateChanged(topic, payload)
     if not payload then
-        scheduler.CallLater(function()
-            self:Delete()
-        end)
         return
     end
 
@@ -617,7 +630,7 @@ function HomieDevice:GetFirmwareStatus()
 
     local function get(what)
         return {
-            hash =      self.variables[string.format("fw/FairyNode/%s/hash", what)],
+            hash =       self.variables[string.format("fw/FairyNode/%s/hash", what)],
             timestamp =  tonumber(self.variables[string.format("fw/FairyNode/%s/timestamp", what)]),
         }
     end
@@ -650,40 +663,59 @@ function HomieDevice:GetNodeMcuCommitId()
     return self.variables["fw/NodeMcu/git_commit_id"]
 end
 
-function HomieDevice:Delete()
+function HomieDevice:Delete(external)
     if self.deleting then
         return
     end
-    self.deleting = true
-    print(self,"Deleting device " .. self.name)
+    printf(self,"Deleting device %s", self.name)
 
-    self.event_bus:PushEvent({
-        event = "device.delete.start",
-        device = self.name,
-    })
+    local sequence = {
+        function ()
+            self.event_bus:PushEvent({
+                event = "device.delete.start",
+                device = self.name,
+            })
+        end,
+        function ()
+            if not external then
+                self:Publish("/$state", "lost", true)
+            end
+        end,
+        function () self.mqtt:StopWatching(self) end,
+        function ()
+            if not external then
+                self:Publish("/$homie", "", true)
+            end
+        end,
+        function ()
+            for _,n in pairs(self.nodes) do
+                for _,p in pairs(n.properties or {}) do
+                   p.value = nil
+                   p:CallSubscriptions()
+                end
+            end
+        end,
+        function ()
+            if not external then
+                print(self,"Starting topic clear")
+                self:WatchRegex("/#", self.HandleTopicClear)
+            end
+        end,
+        function () end,
+        function ()
+            self.event_bus:PushEvent({
+                event = "device.delete.finished",
+                device = self.name,
+            })
+        end,
+        function ()
+            self.deleting = true
+            self:Finalize()
+            self.host:FinishDeviceRemoval(self.name)
+        end,
+    }
 
-    self:Finalize()
-    self:Publish(self.homie_common.TopicState, self.homie_common.States.lost, true)
-
-    for _,n in pairs(self.nodes) do
-        for _,p in pairs(n.properties or {}) do
-           p.value = nil
-           p:CallSubscriptions()
-        end
-    end
-
-    scheduler.Delay(1, function()
-        print(self,"Starting topic clear")
-        self:WatchRegex("/#", self.HandleTopicClear)
-    end)
-    scheduler.Delay(5, function()
-        self.event_bus:PushEvent({
-            event = "device.delete.finished",
-            device = self.name,
-        })
-        self:Finalize()
-        self.host:FinishDeviceRemoval(self.name)
-    end)
+    self.deleting = scheduler:CreateTaskSequence(self, "deleting device", 1, sequence)
 end
 
 function HomieDevice:HandleTopicClear(topic, payload)

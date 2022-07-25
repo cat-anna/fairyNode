@@ -29,7 +29,7 @@ function Scheduler.CallLater(func)
     end)
 end
 
-function Scheduler.Delay(timeout,func)
+function Scheduler.Delay(timeout, func)
     copas.addthread(function()
         copas.sleep(timeout)
         SafeCall(func)
@@ -55,6 +55,10 @@ end
 local Task = { }
 Task.__index = Task
 
+function Task:__tostring()
+    return string.format("Task{%s:%s:%s}", self.owner:LogTag(), self.name, self.uuid)
+end
+
 function Task:Stop()
     self.can_run = false
 end
@@ -77,26 +81,24 @@ function Scheduler:CreateTask(owner, name, interval, func)
     }
 
     t.thread = copas.addthread(function()
+        copas.sleep(0.1)
         local max = math.max
-        local copas_sleep = copas.sleep
-
-        copas_sleep()
         t.start_time = gettime()
+        while t.can_run do
+            t.run_count = t.run_count + 1
 
-        -- local SafeCall = SafeCall
-
-        while true do
             local init = gettime()
-            copas_sleep(t.interval)
+            SafeCall(t.func, t.owner, t)
             if not t.can_run then
                 break
             end
             local before = gettime()
-            SafeCall(t.func, t.owner, t)
+            copas.sleep(t.interval)
             local after = gettime()
-            local sleep = (before - init)
-            local dt = (after - before)
-            t.run_count = t.run_count + 1
+
+            local dt = (before - init)
+            local sleep = (after - before)
+
             t.total_runtime = t.total_runtime + dt
             t.total_sleep_time = t.total_sleep_time + sleep
             t.max_runtime = max(t.max_runtime, dt)
@@ -113,9 +115,34 @@ function Scheduler:CreateTask(owner, name, interval, func)
     }
     table.setmt__gc(proxy, {
         __index = t,
-        __gc = function () t.can_run = false end
+        __gc = function ()
+            t.can_run = false
+        end
     })
     return proxy
+end
+
+function Scheduler:CreateTaskSequence(owner, name, interval, sequence)
+    local state = {
+        owner = owner,
+        name = name,
+        sequence = sequence,
+        index = 0,
+    }
+
+    local function handler(owner, task)
+        state.index = state.index + 1
+        local next = state.sequence[state.index]
+        if next then
+            next()
+            printf(state.owner, "Completed step %d/%d in sequence %s", state.index, #state.sequence, state.name)
+        else
+            printf(state.owner, "Task sequence %s is completed", state.index, #state.sequence, state.name)
+            task:Stop()
+        end
+    end
+
+    return self:CreateTask(owner, name, interval, handler)
 end
 
 -------------------------------------------------------------------------------
@@ -157,7 +184,9 @@ function Scheduler:GetStatistics()
     local max_sleep_time = 0
     for k,t in pairs(self.tasks) do
         local line = {
-            t.uuid, t.owner:LogTag(), t.name, t.interval,
+            t.uuid,
+            t.owner:LogTag(), t.name,
+            t.interval,
             t.run_count,
 
             t.total_runtime, t.total_sleep_time,
@@ -176,7 +205,9 @@ function Scheduler:GetStatistics()
     end
 
     table.insert(r,  {
-        "00000000-0000-0000-0000-000000000000", "Application", "Application", 0,
+        "00000000-0000-0000-0000-000000000000",
+        "Application", "Application",
+        0,
         run_count,
         total_runtime, total_sleep_time,
         max_runtime, max_sleep_time,
@@ -184,8 +215,13 @@ function Scheduler:GetStatistics()
     })
 
     table.sort(r, function(a,b) return a[4] < b[4] end)
-
     return { header = header, data = r }
+end
+
+-------------------------------------------------------------------------------
+
+function Scheduler:LogTag()
+    return "Scheduler"
 end
 
 -------------------------------------------------------------------------------

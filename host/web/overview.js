@@ -355,7 +355,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             }
 
             GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", {
-                html: RemoveEscapeSequences(prop.name),
+                html: RemoveEscapeSequences(check_value(prop.name)),
                 hint: entry.name + "." + node.id + "." + prop.id,
             })
 

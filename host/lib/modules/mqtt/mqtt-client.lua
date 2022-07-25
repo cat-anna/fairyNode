@@ -61,6 +61,13 @@ end
 
 -------------------------------------------------------------------------------
 
+function MqttClient:SetLastWill(message)
+    self.last_will = message
+    if self.mqtt_backend then
+        warningf(self, "Setting last will after backend is started won't have any effect")
+    end
+end
+
 function MqttClient:SelectMqttBackend()
     self.mqtt_backend_class = "mqtt/mqtt-backend-mqtt"
     printf(self, "Selected mqtt backend: %s", self.mqtt_backend_class)
@@ -72,6 +79,7 @@ function MqttClient:CreateMqttBackend()
 
     local data = {
         target = self,
+        last_will = self.last_will,
     }
 
     if self.mqtt_backend then

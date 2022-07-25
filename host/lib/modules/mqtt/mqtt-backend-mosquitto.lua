@@ -323,7 +323,7 @@ MosquittoClient.EventTable = {
     -- ["module.initialized"] = RuleState.OnAppInitialized,
     -- ["homie-client.init-nodes"] = RuleState.InitHomieNode,
     -- ["homie-client.enter-ready"] = RuleState.InitHomieNode,
-    ["timer.basic.10_second"] = MosquittoClient.CheckConnectionStatus
+    ["timer.basic.10 second"] = MosquittoClient.CheckConnectionStatus
 }
 -------------------------------------------------------------------------------
 

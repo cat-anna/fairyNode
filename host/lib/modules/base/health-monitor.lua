@@ -206,9 +206,12 @@ function HealthMonitor:Init()
     self.gc_task = scheduler:CreateTask(
         self,
         "gc step",
-        0.1,
+        1,
         function () collectgarbage("step") end
     )
+end
+
+function HealthMonitor:StartModule()
 end
 
 -------------------------------------------------------------------------------------

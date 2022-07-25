@@ -83,9 +83,9 @@ function RestServer:LoadEndpoints()
     for _,endpoint_name in ipairs(self.config[CONFIG_KEY_REST_ENDPOINT_LIST]) do
         local endpoint_file = self:FindEndpoint(endpoint_name)
         if not endpoint_file then
-            print(self, "failed to find source for endpoint %s", endpoint_name)
+            printf(self, "failed to find source for endpoint %s", endpoint_name)
         else
-            print(self, "Adding endpoint %s", endpoint_name)
+            printf(self, "Adding endpoint %s", endpoint_name)
             self:AddEndpoint(dofile(endpoint_file))
         end
     end
@@ -94,7 +94,7 @@ end
 -------------------------------------------------------------------------------
 
 function RestServer:InitServer()
-    copas.sleep(1)
+    copas.sleep(0.1)
     local port = self.config[CONFIG_KEY_REST_PORT]
     local server = restserver:new()
     self.server = server
@@ -103,25 +103,20 @@ function RestServer:InitServer()
         ["Access-Control-Allow-Origin"] = "*"
     })
     self:LoadEndpoints()
-    print(self, "Starting server initialized on port %d", port)
+    printf(self, "Starting server initialized on port %d", port)
 end
 
-function RestServer:StartModule()
-    if not self.server_task then
-        self.server_task = scheduler:CreateTask(
-            self,
-            "Rest server",
-            0,
-            self.ExecuteServer)
-    end
-end
 
 function RestServer:ExecuteServer(task)
-    print(self, "Server started")
-    self.server:enable("lib.rest.restserver.xavante"):start()
-    print(self, "Server stopped")
-    self.server = nil
-    self.server_task = nil
+    copas.sleep(1)
+    if self.server then
+        print(self, "Server started")
+        self.server:enable("lib.rest.restserver.xavante"):start()
+        print(self, "Server stopped")
+        self.server = nil
+        self.server_task = nil
+    end
+    task:Stop()
 end
 
 -------------------------------------------------------------------------------
@@ -178,8 +173,22 @@ end
 
 function RestServer:Init()
     copas.addthread(function()
+        copas.sleep(0.1)
         self:InitServer()
     end)
+end
+
+function RestServer:PostInit()
+end
+
+function RestServer:StartModule()
+    if not self.server_task then
+        self.server_task = scheduler:CreateTask(
+            self,
+            "Rest server",
+            1,
+            self.ExecuteServer)
+    end
 end
 
 -------------------------------------------------------------------------------

@@ -23,13 +23,6 @@ function EventTimer:BeforeReload()
 end
 
 function EventTimer:AfterReload()
-    for k,v in pairs({
-        ["basic.10_second"] = 10,
-    }) do
-        local t = self:RegisterTimer(k, v)
-        -- t.persistent = true
-    end
-
     if self.config.debug then
         self:RegisterTimer("debug.stats", 60)
     end

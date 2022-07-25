@@ -14,7 +14,7 @@ HomeHost.__deps = {
 ------------------------------------------------------------------------------
 
 function HomeHost:LogTag()
-    return "HomeHost"
+    return "HomieHost"
 end
 
 function HomeHost:BeforeReload()
@@ -33,7 +33,7 @@ function HomeHost:Init()
     }
 end
 
-function HomeHost:OnAppStarted()
+function HomeHost:StartModule()
     print(self, "Starting")
     self.mqtt:WatchRegex(self, self.AddDevice, "homie/+/$homie")
 end
@@ -52,6 +52,8 @@ function HomeHost:AddDevice(topic, payload)
         self.history[device_name] = { }
     end
 
+    printf(self, "Adding device '%s'", device_name)
+
     local instance = {
         name = device_name,
         id = device_name,
@@ -60,8 +62,6 @@ function HomeHost:AddDevice(topic, payload)
         configuration = self.configuration,
     }
     self.devices[device_name] = self.class:CreateObject("homie/homie-host-device", instance)
-
-    printf("HOMIE-HOST: Added %s", device_name)
 end
 
 function HomeHost:GetDeviceList()
@@ -94,17 +94,6 @@ end
 function HomeHost:SetNodeValue(topic, payload, node_name, prop_name, value)
     printf("HOMIE-HOST: config changed: %s->%s", self.configuration[prop_name], value)
     self.configuration[prop_name] = value
-end
-
-function HomeHost:InitHomieNode(event)
-    self.homie_node = event.client:AddNode("device_server_control", {
-        ready = true,
-        name = "Device server control",
-        properties = {
-            max_history_entries = { name = "Size of property value history", datatype = "integer", handler = self },
-        }
-    })
-    self.homie_node:SetValue("max_history_entries", tostring(self.configuration.max_history_entries))
 end
 
 function HomeHost:FindProperty(path)
@@ -154,7 +143,6 @@ end
 ------------------------------------------------------------------------------
 
 HomeHost.EventTable = {
-    ["app.start"] = HomeHost.OnAppStarted,
 }
 
 ------------------------------------------------------------------------------
