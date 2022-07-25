@@ -17,7 +17,7 @@ function StateFunction:Init(config)
 
     self.errors = {}
     if config.setup_errors then
-        config.setup_errors(function() return self:LogTag() end, self.errors)
+        config.setup_errors(function() return self:Tag() end, self.errors)
     end
 
     self.func = config.func

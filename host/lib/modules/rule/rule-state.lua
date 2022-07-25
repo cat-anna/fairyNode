@@ -28,7 +28,7 @@ RuleState.__deps = {
 
 -------------------------------------------------------------------------------------
 
-function RuleState:LogTag()
+function RuleState:Tag()
     return "RuleState"
 end
 

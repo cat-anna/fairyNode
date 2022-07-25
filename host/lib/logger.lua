@@ -184,7 +184,7 @@ local function ExtractTag(object)
     if tag then
         return tag
     end
-    local g = object.LogTag
+    local g = object.Tag
     if g then
         tag = g(object)
     else

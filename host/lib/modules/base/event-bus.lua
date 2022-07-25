@@ -44,7 +44,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function EventBus:LogTag()
+function EventBus:Tag()
     return "EventBus"
 end
 
@@ -52,8 +52,8 @@ function EventBus:BeforeReload()
 end
 
 function EventBus:AfterReload()
-    self.loader_module:RegisterWatcher(self:LogTag(), self)
-    self.loader_class:RegisterWatcher(self:LogTag(), self)
+    self.loader_module:RegisterWatcher(self:Tag(), self)
+    self.loader_class:RegisterWatcher(self:Tag(), self)
 
 end
 
@@ -230,7 +230,7 @@ function EventBus:DumpStats()
         return
     end
     local l = logger:DebugLogger()
-    l:WriteObject(self:LogTag(), self.stats)
+    l:WriteObject(self:Tag(), self.stats)
 end
 
 function EventBus:EnableStatistics(enable)

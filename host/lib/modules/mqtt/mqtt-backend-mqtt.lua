@@ -80,7 +80,7 @@ function MqttBackend:Stop()
     end
 end
 
-function MqttBackend:LogTag()
+function MqttBackend:Tag()
     return "MqttBackend"
 end
 

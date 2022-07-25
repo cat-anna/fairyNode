@@ -161,7 +161,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function RestServer:LogTag()
+function RestServer:Tag()
     return "RestServer"
 end
 

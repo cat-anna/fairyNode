@@ -21,7 +21,7 @@ ModuleLoader.__config = {
 
 -------------------------------------------------------------------------------
 
-function ModuleLoader:LogTag()
+function ModuleLoader:Tag()
     return "ModuleLoader"
 end
 
@@ -228,7 +228,7 @@ function ModuleLoader:Update()
                 local inst = module.instance
                 local f = inst[f_name]
                 if f then
-                    printf(self, "Calling %s of %s", f_name, inst:LogTag())
+                    printf(self, "Calling %s of %s", f_name, inst:Tag())
                     SafeCall(function() f(inst) end)
                 end
             end

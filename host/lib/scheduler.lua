@@ -56,7 +56,7 @@ local Task = { }
 Task.__index = Task
 
 function Task:__tostring()
-    return string.format("Task{%s:%s:%s}", self.owner:LogTag(), self.name, self.uuid)
+    return string.format("Task{%s:%s:%s}", self.owner:Tag(), self.name, self.uuid)
 end
 
 function Task:Stop()
@@ -185,7 +185,7 @@ function Scheduler:GetStatistics()
     for k,t in pairs(self.tasks) do
         local line = {
             t.uuid,
-            t.owner:LogTag(), t.name,
+            t.owner:Tag(), t.name,
             t.interval,
             t.run_count,
 
@@ -220,7 +220,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function Scheduler:LogTag()
+function Scheduler:Tag()
     return "Scheduler"
 end
 

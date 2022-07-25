@@ -32,7 +32,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function ServiceFile:LogTag()
+function ServiceFile:Tag()
     return "ServiceFile"
 end
 

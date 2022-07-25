@@ -11,7 +11,7 @@ ServiceOta.__deps = {
     ota = "fairy-node-ota"
 }
 
-function ServiceOta:LogTag() return "ServiceOta" end
+function ServiceOta:Tag() return "ServiceOta" end
 
 --[[
 function ServiceOta:ListDevices(request)
@@ -33,15 +33,15 @@ end
 
 -- function ServiceOta:OtaStatus(request, id)
 -- if not self.project:ProjectExists(id) then
---     print(self:LogTag() .. ": Unknown chip: " .. id)
+--     print(self:Tag() .. ": Unknown chip: " .. id)
 --     return http.NotFound
 -- end
 
 -- local project = self.project:LoadProject(id)
--- print(self:LogTag() .. ": " .. id .. " is " .. project.name)
+-- print(self:Tag() .. ": " .. id .. " is " .. project.name)
 
 -- local ts = project:CalcTimestamps()
--- print(self:LogTag() .. ": Timestamps = " .. pretty.write(ts))
+-- print(self:Tag() .. ": Timestamps = " .. pretty.write(ts))
 
 -- ts.enabled = not project.ota.disabled
 -- return http.OK, ts
@@ -49,7 +49,7 @@ end
 
 -- function ServiceOta:OtaPostStatus(request, id)
 -- if not self.project:ProjectExists(id) then
---     print(self:LogTag() .. ": Unknown chip: " .. id)
+--     print(self:Tag() .. ": Unknown chip: " .. id)
 --     return http.NotFound
 -- end
 
@@ -60,14 +60,14 @@ end
 
 -- if request.failsafe then
 --     needsFullUpdate = true
---     print(self:LogTag() .. ": " .. id .. " is " .. project.name ..
+--     print(self:Tag() .. ": " .. id .. " is " .. project.name ..
 --               " in FAILSAFE")
 -- else
---     print(self:LogTag() .. ": " .. id .. " is " .. project.name)
+--     print(self:Tag() .. ": " .. id .. " is " .. project.name)
 -- end
 
 -- local ts = project:CalcTimestamps()
--- print(self:LogTag() .. ": Timestamps = " .. pretty.write(ts))
+-- print(self:Tag() .. ": Timestamps = " .. pretty.write(ts))
 
 -- local test_update = function(what)
 --     local remote, latest = request.fairyNode[what], ts[what]
@@ -76,22 +76,22 @@ end
 --     if remote then
 --         if remote.hash then
 --             r = remote.hash:upper() ~= latest.hash:upper()
---             print(self:LogTag() .. ": " .. id .. " : " ..
+--             print(self:Tag() .. ": " .. id .. " : " ..
 --                       remote.hash:upper() .. " vs " .. latest.hash:upper())
 --         else
 --             r = not remote.timestamp or remote.timestamp ~= latest.timestamp
---             print(self:LogTag() .. ": " .. id .. " : " ..
+--             print(self:Tag() .. ": " .. id .. " : " ..
 --                       tostring(remote.timestamp) .. " vs " ..
 --                       tostring(latest.timestamp))
 --         end
 --     else
---         print(self:LogTag() .. ": " .. id ..
+--         print(self:Tag() .. ": " .. id ..
 --                   " : TARGET DOES NOT HAVE FIRMWARE")
 --         r = true
 --     end
 
 --     if r then
---         print(self:LogTag() .. ": " .. id .. " needs " .. what .. " update")
+--         print(self:Tag() .. ": " .. id .. " needs " .. what .. " update")
 --     end
 --     return r
 -- end

@@ -34,7 +34,7 @@ MqttClient.__config = {
 
 -------------------------------------------------------------------------------
 
-function MqttClient:LogTag()
+function MqttClient:Tag()
     return "MqttClient"
 end
 

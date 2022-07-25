@@ -13,7 +13,7 @@ ServiceCommand.__deps = {
 
 -------------------------------------------------------------------------------------
 
-function ServiceCommand:LogTag()
+function ServiceCommand:Tag()
     return "ServiceCommand"
 end
 
@@ -104,9 +104,9 @@ function ServiceCommand:ExitCommand()
             event = "exit.pending",
             client = self,
         })
-        print(self:LogTag() .. string.format(" Exiting in 10 seconds"))
+        print(self:Tag() .. string.format(" Exiting in 10 seconds"))
         copas.sleep(10)
-        print(self:LogTag() .. string.format(" Exiting"))
+        print(self:Tag() .. string.format(" Exiting"))
         self.event_bus:PushEvent({
             event = "exit.trigger",
             client = self,

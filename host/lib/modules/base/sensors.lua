@@ -27,7 +27,7 @@ Sensors.__config = {
 
 -------------------------------------------------------------------------------
 
-function Sensors:LogTag()
+function Sensors:Tag()
     return "Sensors"
 end
 

@@ -192,7 +192,7 @@ HealthMonitor.__name = "HealthMonitor"
 
 -------------------------------------------------------------------------------------
 
-function HealthMonitor:LogTag()
+function HealthMonitor:Tag()
     return "HealthMonitor"
 end
 

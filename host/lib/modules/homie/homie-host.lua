@@ -13,7 +13,7 @@ HomeHost.__deps = {
 
 ------------------------------------------------------------------------------
 
-function HomeHost:LogTag()
+function HomeHost:Tag()
     return "HomieHost"
 end
 

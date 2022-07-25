@@ -25,7 +25,7 @@ end
 
 function StateMapping:CalculateValue(dependant_values)
     if #dependant_values ~= 1 then
-        print(self:LogTag(),
+        print(self:Tag(),
               "Mapping requires exactly single dependency, but got " ..
                   tostring(#dependant_values))
         return
@@ -33,7 +33,7 @@ function StateMapping:CalculateValue(dependant_values)
 
     local foreign_value = dependant_values[1]
     if foreign_value == nil then
-        print(self:LogTag(), "Mapping does not have value")
+        print(self:Tag(), "Mapping does not have value")
         return
     end
 

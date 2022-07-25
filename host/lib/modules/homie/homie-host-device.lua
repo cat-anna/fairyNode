@@ -60,7 +60,7 @@ end
 
 ------------------------------------------------------------------------------
 
-function HomieDevice:LogTag()
+function HomieDevice:Tag()
     return string.format("DEVICE(%s)", self.name)
 end
 
@@ -488,7 +488,7 @@ function HomieDevice:HandleNodeProperties(topic, payload)
     end
 
     for k,_ in pairs(existing_properties) do
-        print(self:LogTag(), "Removing property " .. k)
+        print(self:Tag(), "Removing property " .. k)
         properties[k] = nil
     end
 end
@@ -541,7 +541,7 @@ function HomieDevice:HandleNodes(topic, payload)
     end
 
     for k,_ in pairs(existing_nodes) do
-        print(self:LogTag(), "Removing node " .. k)
+        print(self:Tag(), "Removing node " .. k)
         self.nodes[k] = nil
     end
 end

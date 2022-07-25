@@ -42,7 +42,7 @@ ErrorHandler.__deps = {
 }
 ErrorHandler.__config = { }
 
-function ErrorHandler:LogTag()
+function ErrorHandler:Tag()
     return "ErrorHandler"
 end
 

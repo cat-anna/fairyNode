@@ -8,7 +8,7 @@ LoggerModule.__index = LoggerModule
 LoggerModule.__deps = {
 }
 
-function LoggerModule:LogTag()
+function LoggerModule:Tag()
     return "LoggerModule"
 end
 

@@ -156,7 +156,7 @@ local ClientStates = {
 
 -------------------------------------------------------------------------------
 
-function HomieClient:LogTag()
+function HomieClient:Tag()
     return "HomieClient"
 end
 

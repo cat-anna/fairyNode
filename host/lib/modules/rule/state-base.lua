@@ -80,7 +80,7 @@ function State:IsReady()
     return self.current_value ~= nil
 end
 
-function State:LogTag()
+function State:Tag()
     if not self.log_tag then
         self.log_tag = string.format("%s(%s)", self.__class, self.global_id)
     end
@@ -97,7 +97,7 @@ function State:Update()
 end
 
 function State:SetValue(v)
-    error(self:LogTag() .. "abstract method called")
+    error(self:Tag() .. "abstract method called")
 end
 
 function State:GetValue()
@@ -130,7 +130,7 @@ function State:RetireValue()
 end
 
 function State:CalculateValue(dependant_values)
-    error(self:LogTag() .. "abstract method called")
+    error(self:Tag() .. "abstract method called")
 end
 
 function State:WrapCurrentValue(value, timestamp)

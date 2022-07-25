@@ -15,7 +15,7 @@ EventTimer.__deps = {
 }
 EventTimer.__config = { }
 
-function EventTimer:LogTag()
+function EventTimer:Tag()
     return "EventTimer"
 end
 

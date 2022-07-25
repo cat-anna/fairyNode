@@ -44,7 +44,7 @@ Daylight.__config = {
 
 -------------------------------------------------------------------------------
 
-function Daylight:LogTag()
+function Daylight:Tag()
     return "Daylight"
 end
 

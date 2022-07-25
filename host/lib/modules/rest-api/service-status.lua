@@ -14,7 +14,7 @@ ServiceStatus.__deps = {
 
 -------------------------------------------------------------------------------------
 
-function ServiceStatus:LogTag()
+function ServiceStatus:Tag()
     return "ServiceStatus"
 end
 

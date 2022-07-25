@@ -30,7 +30,7 @@ ServerStorage.__config = {
 
 -------------------------------------------------------------------------------
 
-function ServerStorage:LogTag()
+function ServerStorage:Tag()
     return "ServerStorage"
 end
 
