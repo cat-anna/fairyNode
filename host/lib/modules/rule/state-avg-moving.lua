@@ -46,15 +46,15 @@ function StateMovingAvg:GetDescription()
     local r = self.super.GetDescription(self)
     table.insert(r, "Samples: " .. tostring(#self.samples))
     if self.period then
-        table.insert(r, "Avg period: " .. string.format_seconds(self.period))
         if #self.samples > 0 then
             local first = self.samples[1]
             local last = self.samples[#self.samples]
             local time_diff = last.timestamp - first.timestamp
             if time_diff ~= self.period then
-                table.insert(r, "Current period: " .. string.format_seconds(time_diff))
+                table.insert(r, "Period: " .. string.format_seconds(time_diff))
             end
         end
+        table.insert(r, "Target period: " .. string.format_seconds(self.period))
     end
     return r
 end

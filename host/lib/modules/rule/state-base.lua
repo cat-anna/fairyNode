@@ -81,10 +81,7 @@ function State:IsReady()
 end
 
 function State:Tag()
-    if not self.log_tag then
-        self.log_tag = string.format("%s(%s)", self.__class, self.global_id)
-    end
-    return self.log_tag
+    return string.format("%s(%s)", self.__class, self.global_id)
 end
 
 function State:Update()

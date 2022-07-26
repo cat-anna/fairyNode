@@ -54,7 +54,7 @@ function StateHomie:SetValue(v)
         return
     end
 
-    self.expected_value = v
+    self.wanted_value = v
 
     if self.device.property then
         self.device.property:SetValue(v.value, v.timestamp)
@@ -83,11 +83,13 @@ function StateHomie:PropertyStateChanged(property, value, timestamp)
 
     self.settable = property:IsSettable()
 
-    if self.settable and self.expected_value then
-        local cv = self.expected_value
-        if cv.value ~= value then
-            self.device.property:SetValue(cv.value, cv.timestamp)
+    if self.wanted_value then
+         if self.settable then
+            local wv = self.wanted_value
+            self.device.property:SetValue(wv.value, wv.timestamp)
         end
+    else
+        self:SetCurrentValue(self:WrapCurrentValue(value, timestamp))
     end
 end
 

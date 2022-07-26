@@ -29,7 +29,7 @@ function HomeHost:Init()
     self.devices = { }
     self.history =  { }
     self.configuration = {
-        max_history_entries = 1000,
+        max_history_entries = 100000,
     }
 end
 

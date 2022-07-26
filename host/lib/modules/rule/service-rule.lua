@@ -51,6 +51,14 @@ local color_false = "C0C0CE" -- "B2B2CE" -- "#9696ce"
 local color_none = "FEFECE"
 local color_not_ready = "880000"
 
+local function FormatDependency(plantuml, src, dst, virtual)
+    return string.format([[%s-%s->%s]],
+        plantuml:NameToId(src),
+        virtual and "[#blue]" or "",
+        plantuml:NameToId(dst)
+    )
+end
+
 local function SelectColor(value, ready)
     if ready then
         if type(value) == "boolean" then
@@ -138,22 +146,14 @@ timestamp: %s %s
         state_info.definition = state_line
 
         for _, dep in ipairs(state:GetSinkDependencyList() or {}) do
-            local l = {
-                self.plantuml:NameToId(state.global_id),
-                dep.virtual and "..>" or "-->",
-                self.plantuml:NameToId(dep.id),
-            }
-            table.insert(state_info.transitions, table.concat(l, " "))
+            local l = FormatDependency(self.plantuml, state.global_id, dep.id, dep.virtual)
+            table.insert(state_info.transitions, l)
             elements.states_wanted_by_group[group][dep.id] = true
         end
         for _, dep in ipairs(state:GetSourceDependencyList() or {}) do
             if dep.group ~= group then
-                local l = {
-                    self.plantuml:NameToId(dep.id),
-                    dep.virtual and "..>" or "-->",
-                    self.plantuml:NameToId(state.global_id),
-                }
-                table.insert(state_info.transitions, table.concat(l, " "))
+                local l = FormatDependency(self.plantuml, dep.id, state.global_id, dep.virtual)
+                table.insert(state_info.transitions, l)
                 elements.states_wanted_by_group[group][dep.id] = true
             end
         end
