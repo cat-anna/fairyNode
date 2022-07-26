@@ -2,36 +2,6 @@
 local copas = require "copas"
 local coxpcall = require "coxpcall"
 
-local current_error_handler = nil
-
-local is_debug_mode = false
-
-function SafeCall(f, ...)
-    if not f then
-        return false
-    end
-
-    local args = { ... }
-    local function call()
-        return f(table.unpack(args))
-    end
-    local function errh(msg)
-        print("Call failed: ", msg)
-        if current_error_handler and not is_debug_mode then
-            copas.addthread(function()
-                local id = msg:match("([%w%d:%./]+):")
-                current_error_handler:OnError{
-                    id = id or "lua_error",
-                    message = msg,
-                    trace = debug.traceback()
-                }
-            end)
-        end
-    end
-
-    return coxpcall.xpcall(call, errh)
-end
-
 ----------------------------------------
 
 local ErrorHandler = {}
@@ -49,8 +19,7 @@ function ErrorHandler:BeforeReload()
 end
 
 function ErrorHandler:AfterReload()
-    is_debug_mode = self.config.debug
-    current_error_handler = self
+    SetErrorReporter(self)
 
     self.active_errors = self.active_errors or { }
 

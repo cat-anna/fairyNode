@@ -37,20 +37,35 @@ function string:trim()
     return self:match("^%s*(.-)%s*$")
 end
 
+local error_reporter = nil
+local xpcall = coxpcall.xpcall
+
+function SetErrorReporter(err)
+    error_reporter = err
+end
+
 function SafeCall(f, ...)
     if not f then
         return false
     end
 
     local args = { ... }
-    local function call()
-        return f(unpack(args))
-    end
+    local function call() return f(unpack(args)) end
     local function errh(msg)
         print("Call failed: ", msg)
+        if error_reporter then
+            copas.addthread(function()
+                local id = msg:match("([%w%d:%./%-_]+):")
+                error_reporter:OnError{
+                    id = id or "lua_error",
+                    message = msg,
+                    trace = debug.traceback()
+                }
+            end)
+        end
     end
 
-    return coxpcall.xpcall(call, errh)
+    return xpcall(call, errh)
 end
 
 function table.merge(t1, t2)
