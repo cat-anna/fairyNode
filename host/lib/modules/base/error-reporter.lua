@@ -37,7 +37,6 @@ end
 local ErrorHandler = {}
 ErrorHandler.__index = ErrorHandler
 ErrorHandler.__deps = {
-    timers = "base/event-timers",
     event_bus = "base/event-bus",
 }
 ErrorHandler.__config = { }
