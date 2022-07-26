@@ -54,7 +54,7 @@ function State:LocallyOwned()
     return false
 end
 
-function State:Settable()
+function State:IsSettable()
     return false
 end
 

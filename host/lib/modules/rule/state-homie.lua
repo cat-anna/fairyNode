@@ -30,7 +30,7 @@ function StateHomie:GetName()
     return self.global_id
 end
 
-function StateHomie:Settable()
+function StateHomie:IsSettable()
     return self.settable
 end
 
@@ -49,18 +49,15 @@ function StateHomie:GetValue()
 end
 
 function StateHomie:SetValue(v)
-    if not self:Settable() then
+    if not self:IsSettable() then
         self:SetError(self, "Homie node '%s' is not settable", self.property_path)
         return
     end
 
-    self.expected_value = {
-        value = v,
-        timestamp = os.timestamp(),
-    }
+    self.expected_value = v
 
     if self.device.property then
-        self.device.property:SetValue(v)
+        self.device.property:SetValue(v.value, v.timestamp)
     end
 end
 
@@ -86,14 +83,17 @@ function StateHomie:PropertyStateChanged(property, value, timestamp)
 
     self.settable = property:IsSettable()
 
-    if self.expected_value then
-        self.device.property:SetValue(self.expected_value.value)
+    if self.settable and self.expected_value then
+        local cv = self.expected_value
+        if cv.value ~= value then
+            self.device.property:SetValue(cv.value, cv.timestamp)
+        end
     end
 end
 
 function StateHomie:SourceChanged(source, source_value)
     self:SetValue(source_value)
-    return self.super.SetValue(self, source, source_value)
+    return self.super.SourceChanged(self, source, source_value)
 end
 
 function StateHomie:IsReady()

@@ -49,12 +49,12 @@ function RuleState:StartModule()
     print(self, "Starting state rule engine")
     self.engine_started = true
 
-    -- self.rule_tick_task = scheduler:CreateTask(
-    --     self,
-    --     "rule tick",
-    --     30,
-    --     function (owner, task) owner:HandleRuleTick() end
-    -- )
+    self.rule_tick_task = scheduler:CreateTask(
+        self,
+        "rule tick",
+        10,
+        function (owner, task) owner:HandleRuleTick() end
+    )
 
     self:ReloadRule()
 end
@@ -289,8 +289,10 @@ end
 -------------------------------------------------------------------------------------
 
 function RuleState:HandleRuleTick()
-    for k,v in pairs(self.states_by_id) do
-        v:OnTimer()
+    if self:IsReady() then
+        for k,v in pairs(self.states_by_id) do
+            v:OnTimer()
+        end
     end
 end
 

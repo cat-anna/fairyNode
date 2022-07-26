@@ -29,7 +29,9 @@ end
 
 function StateChangeGenerator:GetDescription()
     local r = self.super.GetDescription(self)
+    local remain =  (self.last_update_timestamp + self.interval) - os.timestamp()
     table.insert(r, "interval: " .. tostring(self.interval) .. "s")
+    table.insert(r, "remain: " .. tostring(remain) .. "s")
     return r
 end
 
@@ -38,8 +40,8 @@ end
 
 function StateChangeGenerator:CalculateValue()
     local current = os.timestamp()
-    if current - self.last_update_timestamp < self.interval then
-        return
+    if self.current_value and (self.last_update_timestamp + self.interval > current) then
+        return self.current_value
     end
 
     while self.last_update_timestamp < current do
