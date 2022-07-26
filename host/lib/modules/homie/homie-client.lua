@@ -86,9 +86,10 @@ end
 
 function PropertyMT:GetAllMessages(q)
     local passthrough_entries = {
-        "datatype",
-        "name",
+        "datatype", "name", "unit",
     }
+
+    --TODO check/transform datatype
 
     for _,id in ipairs(passthrough_entries) do
         local value = self[id] or ""
@@ -96,7 +97,7 @@ function PropertyMT:GetAllMessages(q)
     end
 
     self:PushMessage(q, "$retained", tostring(self.retained))
-    self:PushMessage(q, "$settable", tostring(boolean(self.handler)))
+    self:PushMessage(q, "$settable", "false") --tostring(boolean(self.handler)))
     self:AddValueMessage(q)
     return q
 end
