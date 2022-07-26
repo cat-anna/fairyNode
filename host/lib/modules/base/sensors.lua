@@ -17,6 +17,7 @@ local Sensors = {}
 Sensors.__index = Sensors
 Sensors.__deps = {
     loader_class = "base/loader-class",
+    loader_module = "base/loader-module"
 }
 Sensors.__name = "Sensors"
 Sensors.__config = {
@@ -37,7 +38,18 @@ function Sensors:BeforeReload() end
 function Sensors:Init()
     self.sensors = table.weak()
     self.sensor_sink = table.weak()
+end
 
+function Sensors:PostInit()
+    self.loader_module:EnumerateModules(
+        function(name, module)
+            if module.InitSensors then
+                module:InitSensors(self)
+            end
+        end)
+end
+
+function Sensors:StartModule()
     local intervals = {
         Fast = self.config[CONFIG_KEY_SENSOR_FAST_INTERVAL],
         Slow = self.config[CONFIG_KEY_SENSOR_SLOW_INTERVAL],
@@ -53,6 +65,11 @@ function Sensors:Init()
             function (owner, task) owner[func_name](owner, task) end
         )
     end
+
+    for k,v in pairs(self.sensors) do
+        v:Readout()
+    end
+    self.module_started = true
 end
 
 -------------------------------------------------------------------------------
@@ -104,7 +121,9 @@ function Sensors:RegisterSensor(def)
         v:SensorAdded(s)
     end
 
-    s:Readout()
+    if self.module_started then
+        s:Readout()
+    end
 
     return s
 end
@@ -124,7 +143,5 @@ function Sensors:GetPathBuilder(result_callback)
 end
 
 -------------------------------------------------------------------------------
-
-Sensors.EventTable = { }
 
 return Sensors

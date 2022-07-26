@@ -43,6 +43,10 @@ end
 
 -------------------------------------------------------------------------------
 
+function LoggerObject:Tag()
+    return string.format("LOGGER(%s)", self.name)
+end
+
 function LoggerObject:WriteCsv(t)
     local f = self.file
     if not f then
@@ -85,6 +89,7 @@ function LoggerObject:Start()
     if self.started then
         return
     end
+
     self.config = config_handler:Query(self.__config)
     if (not self.config[CONFIG_KEY_LOG_ENABLE]) or
        (self.enable_key and (not self.config[self.enable_key])) then
@@ -104,7 +109,7 @@ function LoggerObject:Start()
         self.name
     ))
 
-    printf("LOGGER(%s): Logging to '%s'", self.name, file_path)
+    printf(self, "Logging to '%s'", self.name, file_path)
 
     self.file_name = file_path
     self.file = io.open(file_path, "w")
@@ -204,13 +209,14 @@ local Logger = { }
 Logger.__index = Logger
 Logger.active_loggers = table.weak()
 
-function Logger:Create(name, enable_key, default_enable)
+function Logger:Create(name, enable_key)
     if self.active_loggers[name] then
         return self.active_loggers[name]
     end
     local l = setmetatable({
         uuid = uuid(),
         enable_key = enable_key,
+        started = false,
         config = { },
         __config = {
             [CONFIG_KEY_LOG_ENABLE] = { type = "boolean", default = true },
@@ -219,7 +225,7 @@ function Logger:Create(name, enable_key, default_enable)
     }, LoggerObject)
 
     if enable_key then
-        l.__config[enable_key] = { type = "boolean", default = default_enable and true or false }
+        l.__config[enable_key] = { type = "boolean", default = false }
     end
 
     l.name = name or l.uuid

@@ -185,9 +185,7 @@ end
 
 local HealthMonitor = {}
 HealthMonitor.__index = HealthMonitor
-HealthMonitor.__deps = {
-    sensor_handler = "base/sensors"
-}
+HealthMonitor.__deps = { }
 HealthMonitor.__name = "HealthMonitor"
 
 -------------------------------------------------------------------------------------
@@ -199,7 +197,6 @@ end
 function HealthMonitor:BeforeReload() end
 
 function HealthMonitor:AfterReload()
-    self:InitSensors(self.sensor_handler)
 end
 
 function HealthMonitor:Init()

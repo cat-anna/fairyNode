@@ -33,18 +33,26 @@ end
 function PackageLoader:Load(input_path)
     local package_file
     local base_path
+    local supplement_name
 
     if path.isfile(input_path) then
         package_file = input_path
         base_path = path.dirname(input_path)
+        supplement_name = path.basename(input_path)
     elseif path.isdir(input_path) then
         base_path = input_path
         package_file = input_path .. "/" .. DefaultPackageFile
+        supplement_name = path.basename(input_path)
     else
         assert(false)
     end
 
     local p = dofile(package_file)
+    if not p.Name then
+        p.Name = supplement_name
+    end
+
+    assert(type(p.Name) == "string")
     printf(self, "Loading %s from %s", p.Name, base_path)
 
     if p.GetConfig then

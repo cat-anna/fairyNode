@@ -17,9 +17,7 @@ local CONFIG_KEY_LOG_PATH = "logger.path"
 
 local ServerStorage = {}
 ServerStorage.__index = ServerStorage
-ServerStorage.__deps = {
-    sensor_handler = "base/sensors",
-}
+ServerStorage.__deps = { }
 ServerStorage.__config = {
     [CONFIG_KEY_SERVER_STORAGE_CACHE_TTL] =   { type = "number", default = 86400 },
     [CONFIG_KEY_SERVER_STORAGE_CACHE_PATH] =  { type = "string", required = true },
@@ -39,7 +37,6 @@ function ServerStorage:BeforeReload() end
 function ServerStorage:AfterReload()
     pl_dir.makepath(self:GetCachePath())
     pl_dir.makepath(self:GetStoragePath())
-    self:InitSensors(self.sensor_handler)
 end
 
 function ServerStorage:Init() end
@@ -230,7 +227,6 @@ function ServerStorage:WriteStorage(id, data)
     end)
 end
 
-
 function ServerStorage:CheckStorage()
     if self.storage_sensor then
         local r = fs.CountFilesInFolder(self:GetStoragePath())
@@ -286,10 +282,10 @@ function ServerStorage:InitSensors(sensors)
             cache_size = { name = "Cache size", datatype = "float", unit = "KiB" },
             cache_entries = { name = "Cache entries", datatype = "integer" },
 
-            storage_size = { name = "Storage size", datatype = "float", unit="KiB" },
+            storage_size = { name = "Storage size", datatype = "float", unit = "KiB" },
             storage_entries = { name = "Storage entries", datatype = "integer" },
 
-            log_size = { name = "Log size", datatype = "float", unit="KiB" },
+            log_size = { name = "Log size", datatype = "float", unit = "KiB" },
             log_entries = { name = "Log entries", datatype = "integer" },
         }
     }

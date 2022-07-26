@@ -50,16 +50,6 @@ end
 
 -------------------------------------------------------------------------------
 
-function Daylight:BeforeReload() end
-
-function Daylight:AfterReload()
-    self:InitSensors(self.sensor_handler)
-end
-
-function Daylight:Init() end
-
--------------------------------------------------------------------------------
-
 function Daylight:InitSensors(sensors)
     sensors:RegisterSensor{
         owner = self,
