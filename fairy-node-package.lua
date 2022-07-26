@@ -23,6 +23,8 @@ function Package.GetConfig(base_path)
         },
 
         ["loader.class.paths"] = { base_path .. "/host/lib/classes" },
+        ["loader.config.paths"] = { base_path .. "/host/configset/" },
+
 
         ["rest.endpoint.paths"] = { base_path .. "/host/lib/rest/endpoint" },
         ["rest.endpoint.list"] = { },

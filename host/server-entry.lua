@@ -51,14 +51,14 @@ config_handler:SetBaseConfig{
     debug = false,
     verbose = false,
     ["path.fairy_node"] = fairy_node_base,
-    ["startup.packages"] = { fairy_node_base },
-    ["path.config_set"] = { fairy_node_base .. "/host/configset/" },
+    ["loader.package.list"] = { fairy_node_base .. "/fairy-node-package.lua" },
 }
+
 config_handler:SetCommandLineArgs{
     debug = args.debug,
     verbose = args.verbose,
-    ["startup.config_sets"] = args.config:split(","),
-    ["startup.packages"] = args.packages,
+    ["loader.config.list"] = args.config:split(","),
+    ["loader.package.list"] = args.packages,
 }
 
 require("lib/loader-package"):Init()
