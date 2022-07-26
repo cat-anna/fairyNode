@@ -117,16 +117,12 @@ function RuleState:RuleError(rule, error_key, message)
 end
 
 function RuleState:ReloadRule()
-    print(self, "Reloading state rules")
-    self.rule = nil
-
-    if self.homie_node then
-        self.homie_node.state_hash = uuid()
-    end
-
     if not self.engine_started then
         return
     end
+
+    print(self, "Reloading state rules")
+    self.rule = nil
 
     local rule_load_script_content = self.server_storage:GetFromStorage(self:GetRuleScriptId())
     if not rule_load_script_content then
@@ -193,7 +189,7 @@ end
 
 function RuleState:SetRuleText(rule_text)
     self:SaveRule(rule_text)
-    -- self:ReloadRule()
+    self:ReloadRule()
 end
 
 function RuleState:GetRuleText()
