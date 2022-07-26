@@ -17,7 +17,6 @@ local Sensors = {}
 Sensors.__index = Sensors
 Sensors.__deps = {
     loader_class = "base/loader-class",
-    event_timers = "base/event-timers",
 }
 Sensors.__name = "Sensors"
 Sensors.__config = {
@@ -39,13 +38,13 @@ function Sensors:Init()
     self.sensors = table.weak()
     self.sensor_sink = table.weak()
 
-    local timer_intervals = {
+    local intervals = {
         Fast = self.config[CONFIG_KEY_SENSOR_FAST_INTERVAL],
         Slow = self.config[CONFIG_KEY_SENSOR_SLOW_INTERVAL],
     }
 
     self.tasks = { }
-    for k,v in pairs(timer_intervals) do
+    for k,v in pairs(intervals) do
         local func_name = string.format("HandleSensorReadout%s", k)
         self.tasks[k] = scheduler:CreateTask(
             self,

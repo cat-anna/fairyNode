@@ -21,7 +21,6 @@ local RuleState = {}
 RuleState.__index = RuleState
 RuleState.__deps = {
     event_bus = "base/event-bus",
-    timers = "base/event-timers",
     server_storage = "base/server-storage",
     rule_import = "rule/rule-state-import",
 }

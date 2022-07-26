@@ -136,7 +136,6 @@ HomieClient.__name = "HomieClient"
 HomieClient.__deps = {
     mqtt = "mqtt/mqtt-client",
     event_bus = "base/event-bus",
-    timers = "base/event-timers",
     homie_common = "homie/homie-common",
     loader_module = "base/loader-module"
 }

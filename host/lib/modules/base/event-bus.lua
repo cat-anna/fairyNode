@@ -225,14 +225,6 @@ end
 
 -------------------------------------------------------------------------------
 
-function EventBus:DumpStats()
-    if not self.stats then
-        return
-    end
-    local l = logger:DebugLogger()
-    l:WriteObject(self:Tag(), self.stats)
-end
-
 function EventBus:EnableStatistics(enable)
     if enable then
         self.stats = self.stats or {}
@@ -273,7 +265,6 @@ end
 -------------------------------------------------------------------------------
 
 EventBus.EventTable = {
-    ["timer.debug.stats"] = EventBus.DumpStats,
 }
 
 return EventBus

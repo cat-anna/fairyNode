@@ -386,9 +386,9 @@ RuleScript.TriggerBuilders = {
 }
 
 RuleScript.EventTable = {
-    ["module.reloaded"] = RuleScript.ModuleReloaded,
-    ["timer.basic.minute"] = RuleScript.RunMinuteTimers,
-    ["device.property.change"] = RuleScript.HandlePropertyChangeEvent,
+    -- ["module.reloaded"] = RuleScript.ModuleReloaded,
+    -- ["timer.basic.minute"] = RuleScript.RunMinuteTimers,
+    -- ["device.property.change"] = RuleScript.HandlePropertyChangeEvent,
 }
 
 return RuleScript

@@ -15,7 +15,7 @@ function Package.GetConfig(base_path)
         ["loader.module.list"] = {
             "base/logger",
             "base/event-bus",
-            "base/event-timers",
+            "base/debugging",
             "base/error-reporter",
             "base/server-storage",
             "base/sensors",
