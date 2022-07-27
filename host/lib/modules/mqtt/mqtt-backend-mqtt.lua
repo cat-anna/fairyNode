@@ -39,17 +39,6 @@ end
 function MqttBackend:Start()
     print(self, "Starting")
     self:ResetClient()
-
-    self.ping_task = scheduler:CreateTask(
-        self,
-        "Mqtt ping",
-        self.config[CONFIG_KEY_MQTT_KEEP_ALIVE],
-        function(owner, task)
-            if owner.mqtt_client then
-                owner.mqtt_client:send_pingreq()
-            end
-        end
-    )
     self.pool_task = scheduler:CreateTask(
         self,
         "Mqtt reconnect",
@@ -116,6 +105,25 @@ function MqttBackend:ResetClient()
     self.mqtt_client = mqtt_client
 end
 
+function MqttBackend:RestartPingTask()
+    if self.ping_task then
+        self.ping_task:Stop()
+        self.ping_task = nil
+    end
+    self.ping_task = scheduler:CreateTask(
+        self,
+        "Mqtt ping",
+        self.config[CONFIG_KEY_MQTT_KEEP_ALIVE],
+        function(owner, task)
+            if owner.mqtt_client then
+                owner.mqtt_client:send_pingreq()
+            end
+        end
+    )
+end
+
+-------------------------------------------------------------------------------
+
 function MqttBackend:Subscribe(regex)
     if not self.connected then
         return
@@ -141,6 +149,7 @@ function MqttBackend:HandleConnect(connack)
     end
     print(self, "Connected")
     self.connected = true
+    self:RestartPingTask()
     self.target:OnMqttConnected(self)
 end
 

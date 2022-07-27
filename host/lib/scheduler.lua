@@ -55,12 +55,19 @@ end
 local Task = { }
 Task.__index = Task
 
+function Task:__gc()
+    local task = self.target
+    task.can_run = false
+end
+
 function Task:__tostring()
-    return string.format("Task{%s:%s:%s}", self.owner:Tag(), self.name, self.uuid)
+    local task = self.target
+    return string.format("Task{%s:%s:%s}", task.owner:Tag(), task.name, task.uuid)
 end
 
 function Task:Stop()
-    self.can_run = false
+    local task = self.target
+    task.can_run = false
 end
 
 function Scheduler:CreateTask(owner, name, interval, func)
@@ -78,6 +85,9 @@ function Scheduler:CreateTask(owner, name, interval, func)
         total_sleep_time = 0,
         max_runtime = 0,
         max_sleep_time = 0,
+
+        start_time = 0,
+        last_runtime = 0,
     }
 
     t.thread = copas.addthread(function()
@@ -88,6 +98,7 @@ function Scheduler:CreateTask(owner, name, interval, func)
             t.run_count = t.run_count + 1
 
             local init = gettime()
+            t.last_runtime = init
             SafeCall(t.func, t.owner, t)
             if not t.can_run then
                 break
@@ -108,18 +119,10 @@ function Scheduler:CreateTask(owner, name, interval, func)
         t.end_time = gettime()
     end)
 
-    self.tasks[t.uuid] = setmetatable(t, Task)
+    local proxy = { target = t }
+    self.tasks[t.uuid] = t
 
-    local proxy = {
-        task = t,
-    }
-    table.setmt__gc(proxy, {
-        __index = t,
-        __gc = function ()
-            t.can_run = false
-        end
-    })
-    return proxy
+    return table.setmt__gc(proxy, Task)
 end
 
 function Scheduler:CreateTaskSequence(owner, name, interval, sequence)
@@ -163,16 +166,18 @@ function Scheduler:GetStatistics()
     local max = math.max
 
     local header = {
-        "uuid",
+        -- "uuid",
         "owner",
         "name",
+        "status",
         "interval",
         "run_count",
         "total_runtime",
-        "total_sleep_time",
+        -- "total_sleep_time",
         "max_runtime",
         "max_sleep_time",
         "start_time_timestamp",
+        "last_run_timestamp",
     }
 
     local r = { }
@@ -184,20 +189,22 @@ function Scheduler:GetStatistics()
     local max_sleep_time = 0
     for k,t in pairs(self.tasks) do
         local line = {
-            t.uuid,
-            t.owner:Tag(), t.name,
+            -- t.uuid,
+            t.owner:Tag(), t.name, coroutine.status(t.thread),
             t.interval,
             t.run_count,
 
-            t.total_runtime, t.total_sleep_time,
+            t.total_runtime,
+            -- t.total_sleep_time,
             t.max_runtime, t.max_sleep_time,
 
             t.start_time,
+            t.last_runtime,
          }
 
         run_count = run_count + t.run_count
         total_runtime = t.total_runtime + total_runtime
-        total_sleep_time = t.total_sleep_time + total_sleep_time
+        -- total_sleep_time = t.total_sleep_time + total_sleep_time
         max_runtime = max(t.max_runtime, max_runtime)
         max_sleep_time = max(t.max_sleep_time, max_sleep_time)
 
@@ -205,13 +212,16 @@ function Scheduler:GetStatistics()
     end
 
     table.insert(r,  {
-        "00000000-0000-0000-0000-000000000000",
+        -- "00000000-0000-0000-0000-000000000000",
         "Application", "Application",
+        "running",
         0,
         run_count,
-        total_runtime, total_sleep_time,
+        total_runtime,
+        -- otal_sleep_time,
         max_runtime, max_sleep_time,
         self.AppStartTime,
+        gettime(),
     })
 
     table.sort(r, function(a,b) return a[4] < b[4] end)
@@ -228,6 +238,6 @@ end
 
 return setmetatable({
     AppStartTime = gettime(),
-    tasks = table.weak(),
+    tasks = table.weak_values(),
     stats = { }
 }, Scheduler)

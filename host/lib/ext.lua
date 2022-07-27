@@ -210,4 +210,4 @@ function table.setmt__gc(t, mt)
     getmetatable(prox).__gc = function() mt.__gc(t) end
     t[prox] = true
     return setmetatable(t, mt)
-  end
+end
