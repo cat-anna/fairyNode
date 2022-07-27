@@ -99,7 +99,7 @@ function Scheduler:CreateTask(owner, name, interval, func)
 
             local init = gettime()
             t.last_runtime = init
-            SafeCall(t.func, t.owner, t)
+            SafeCall(t.func, t.owner, setmetatable({ target = t }, Task))--TODO
             if not t.can_run then
                 break
             end
