@@ -109,7 +109,7 @@ function LoggerObject:Start()
         self.name
     ))
 
-    printf(self, "Logging to '%s'", self.name, file_path)
+    printf(self, "Logging to '%s'", file_path)
 
     self.file_name = file_path
     self.file = io.open(file_path, "w")

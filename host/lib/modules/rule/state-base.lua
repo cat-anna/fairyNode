@@ -2,6 +2,10 @@ local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------------
 
+local debug_mode = false
+
+-------------------------------------------------------------------------------------
+
 local State = {}
 State.__index = State
 State.__type = "interface"
@@ -11,6 +15,8 @@ State.__is_state_class = true
 -------------------------------------------------------------------------------------
 
 function State:Init(config)
+    debug_mode = self.config.debug
+
     self.global_id = config.global_id
     self.class_id = config.class_id
     self.name = config.name
@@ -113,7 +119,9 @@ function State:SetCurrentValue(cv)
         return self.current_value
     end
 
-    print(self, "Value changed to " .. tostring(cv.value))
+    if debug_mode then
+        print(self, "Value changed to " .. tostring(cv.value))
+    end
     self.current_value = cv
 
     self:CallSinkListeners(cv)
@@ -158,7 +166,9 @@ function State:GetSourceDependencyList()
 end
 
 function State:HasSourceDependencies()
-    for _, v in pairs(self.source_dependencies) do return true end
+    for _, v in pairs(self.source_dependencies) do
+        return true
+    end
     return false
 end
 

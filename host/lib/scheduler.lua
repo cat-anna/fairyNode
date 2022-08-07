@@ -90,6 +90,8 @@ function Scheduler:CreateTask(owner, name, interval, func)
         last_runtime = 0,
     }
 
+    local task_ptr = setmetatable({ target = t }, Task)
+
     t.thread = copas.addthread(function()
         copas.sleep(0.1)
         local max = math.max
@@ -99,7 +101,7 @@ function Scheduler:CreateTask(owner, name, interval, func)
 
             local init = gettime()
             t.last_runtime = init
-            SafeCall(t.func, t.owner, setmetatable({ target = t }, Task))--TODO
+            SafeCall(t.func, t.owner, task_ptr)
             if not t.can_run then
                 break
             end
@@ -119,10 +121,9 @@ function Scheduler:CreateTask(owner, name, interval, func)
         t.end_time = gettime()
     end)
 
-    local proxy = { target = t }
     self.tasks[t.uuid] = t
 
-    return table.setmt__gc(proxy, Task)
+    return table.setmt__gc({ target = t }, Task)
 end
 
 function Scheduler:CreateTaskSequence(owner, name, interval, sequence)
@@ -184,7 +185,7 @@ function Scheduler:GetStatistics()
 
     local run_count = 0
     local total_runtime = 0
-    local total_sleep_time = 0
+    -- local total_sleep_time = 0
     local max_runtime = 0
     local max_sleep_time = 0
     for k,t in pairs(self.tasks) do
@@ -218,7 +219,7 @@ function Scheduler:GetStatistics()
         0,
         run_count,
         total_runtime,
-        -- otal_sleep_time,
+        -- total_sleep_time,
         max_runtime, max_sleep_time,
         self.AppStartTime,
         gettime(),

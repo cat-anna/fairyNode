@@ -31,9 +31,11 @@ function SensorObject:Init(config)
     self:Reset(config)
 end
 
-function SensorObject:BeforeReload() end
+function SensorObject:BeforeReload()
+end
 
-function SensorObject:AfterReload() end
+function SensorObject:AfterReload()
+end
 
 -------------------------------------------------------------------------------------
 
