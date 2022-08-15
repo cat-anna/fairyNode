@@ -1,4 +1,5 @@
 local copas = require "copas"
+local copas_timer = require "copas.timer"
 local posix = require "posix"
 local uuid = require "uuid"
 local coxpcall = require "coxpcall"
@@ -8,6 +9,7 @@ require "lib/ext"
 
 local collectgarbage = collectgarbage
 local gettime = os.gettime
+local max = math.max
 
 -------------------------------------------------------------------------------
 
@@ -56,75 +58,81 @@ local Task = { }
 Task.__index = Task
 
 function Task:__gc()
-    local task = self.target
-    task.can_run = false
+    if self.timer then
+        print(self, "Task expired, stopping.")
+        self:Stop()
+    end
 end
 
 function Task:__tostring()
-    local task = self.target
-    return string.format("Task{%s:%s:%s}", task.owner:Tag(), task.name, task.uuid)
+    return string.format("Task{%s:%s:%s}", self.owner:Tag(), self.name, self.uuid)
+end
+
+function Task:Tag()
+    return tostring(self)
 end
 
 function Task:Stop()
-    local task = self.target
-    task.can_run = false
+    self.scheduler:CancelTask(self)
+end
+
+function Task.Tick(timer_obj, task)
+    task.run_count = task.run_count + 1
+    task.last_runtime = gettime()
+
+    local before = gettime()
+    SafeCall(task.callback, task.owner, task)
+    local after = gettime()
+
+    local dt = (after - before)
+    task.total_runtime = task.total_runtime + dt
+    task.max_runtime = max(task.max_runtime, dt)
 end
 
 function Scheduler:CreateTask(owner, name, interval, func)
     local t = {
         uuid = uuid(),
         owner = owner,
-        name = name,
-        interval = interval,
-        func = func,
-
-        can_run = true,
-
         run_count = 0,
         total_runtime = 0,
-        total_sleep_time = 0,
         max_runtime = 0,
-        max_sleep_time = 0,
-
-        start_time = 0,
         last_runtime = 0,
+        start_time = gettime(),
+        callback = func,
+        scheduler = self,
+        interval = interval,
+        name = name,
     }
 
-    local task_ptr = setmetatable({ target = t }, Task)
+    local opts = {
+        name = name,
+        recurring = true,
+        delay = interval,
+        initial_delay = interval,
+        params = t,
+        callback = Task.Tick,
+    }
 
-    t.thread = copas.addthread(function()
-        copas.sleep(0.1)
-        local max = math.max
-        t.start_time = gettime()
-        while t.can_run do
-            t.run_count = t.run_count + 1
-
-            local init = gettime()
-            t.last_runtime = init
-            SafeCall(t.func, t.owner, task_ptr)
-            if not t.can_run then
-                break
-            end
-            local before = gettime()
-            copas.sleep(t.interval)
-            local after = gettime()
-
-            local dt = (before - init)
-            local sleep = (after - before)
-
-            t.total_runtime = t.total_runtime + dt
-            t.total_sleep_time = t.total_sleep_time + sleep
-            t.max_runtime = max(t.max_runtime, dt)
-            t.max_sleep_time = max(t.max_sleep_time, sleep)
-        end
-
-        t.end_time = gettime()
-    end)
-
+    local timer = copas_timer.new(opts)
+    t.timer = timer
     self.tasks[t.uuid] = t
+    setmetatable(t, Task)
 
-    return table.setmt__gc({ target = t }, Task)
+    return table.setmt__gc({ target = t }, {
+        __index = t,
+        __tostring = function () return tostring(t) end,
+        __gc = function () return t:__gc() end,
+    })
 end
+
+function Scheduler:CancelTask(t)
+    self.tasks[t.uuid] = nil
+    if t.timer then
+        t.timer:cancel()
+        t.timer = nil
+    end
+end
+
 
 function Scheduler:CreateTaskSequence(owner, name, interval, sequence)
     local state = {
@@ -174,9 +182,7 @@ function Scheduler:GetStatistics()
         "interval",
         "run_count",
         "total_runtime",
-        -- "total_sleep_time",
         "max_runtime",
-        "max_sleep_time",
         "start_time_timestamp",
         "last_run_timestamp",
     }
@@ -185,19 +191,16 @@ function Scheduler:GetStatistics()
 
     local run_count = 0
     local total_runtime = 0
-    -- local total_sleep_time = 0
     local max_runtime = 0
-    local max_sleep_time = 0
     for k,t in pairs(self.tasks) do
         local line = {
             -- t.uuid,
-            t.owner:Tag(), t.name, coroutine.status(t.thread),
+            t.owner:Tag(), t.name, coroutine.status(t.timer.co),
             t.interval,
             t.run_count,
 
             t.total_runtime,
-            -- t.total_sleep_time,
-            t.max_runtime, t.max_sleep_time,
+            t.max_runtime,
 
             t.start_time,
             t.last_runtime,
@@ -205,9 +208,7 @@ function Scheduler:GetStatistics()
 
         run_count = run_count + t.run_count
         total_runtime = t.total_runtime + total_runtime
-        -- total_sleep_time = t.total_sleep_time + total_sleep_time
         max_runtime = max(t.max_runtime, max_runtime)
-        max_sleep_time = max(t.max_sleep_time, max_sleep_time)
 
         table.insert(r, line)
     end
@@ -219,8 +220,7 @@ function Scheduler:GetStatistics()
         0,
         run_count,
         total_runtime,
-        -- total_sleep_time,
-        max_runtime, max_sleep_time,
+        max_runtime,
         self.AppStartTime,
         gettime(),
     })
