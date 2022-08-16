@@ -38,6 +38,7 @@ function Sensors:BeforeReload() end
 function Sensors:Init()
     self.sensors = table.weak()
     self.sensor_sink = table.weak()
+    self.tasks = { }
 end
 
 function Sensors:PostInit()
@@ -55,12 +56,11 @@ function Sensors:StartModule()
         Slow = self.config[CONFIG_KEY_SENSOR_SLOW_INTERVAL],
     }
 
-    self.tasks = { }
     for k,v in pairs(intervals) do
         local func_name = string.format("HandleSensorReadout%s", k)
         self.tasks[k] = scheduler:CreateTask(
             self,
-            string.format("Sensor update %s", k:lower()),
+            string.format("Update %s", k:lower()),
             v,
             function (owner, task) owner[func_name](owner, task) end
         )

@@ -118,11 +118,7 @@ function Scheduler:CreateTask(owner, name, interval, func)
     self.tasks[t.uuid] = t
     setmetatable(t, Task)
 
-    return table.setmt__gc({ target = t }, {
-        __index = t,
-        __tostring = function () return tostring(t) end,
-        __gc = function () return t:__gc() end,
-    })
+    return t
 end
 
 function Scheduler:CancelTask(t)

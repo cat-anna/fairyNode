@@ -39,9 +39,9 @@ end
 function MqttBackend:Start()
     print(self, "Starting")
     self:ResetClient()
-    self.pool_task = scheduler:CreateTask(
+    self.reconnect_task = scheduler:CreateTask(
         self,
-        "Mqtt reconnect",
+        "Mqtt run",
         1,
         function(owner, task)
             if owner.mqtt_client then
@@ -54,9 +54,9 @@ end
 function MqttBackend:Stop()
     print(self, "Stopping")
 
-    if self.pool_task then
-        self.pool_task:Stop()
-        self.pool_task = nil
+    if self.reconnect_task then
+        self.reconnect_task:Stop()
+        self.reconnect_task = nil
     end
     if self.ping_task then
         self.ping_task:Stop()
