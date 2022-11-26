@@ -4,13 +4,13 @@ local path = require "pl.path"
 -------------------------------------------------------------------------------
 
 local Package = { }
-Package.Name = "FairyNodeBase"
+Package.Name = "FairyNodeHost"
 
 function Package.GetConfig(base_path)
     local cwd = path.currentdir()
     return {
         ["loader.module.paths"] = {
-            base_path .. "/host/lib/modules",
+            path.normpath(base_path .. "/../lib/modules"),
         },
         ["loader.module.list"] = {
             "base/logger",
@@ -20,13 +20,15 @@ function Package.GetConfig(base_path)
             "base/server-storage",
             "base/sensors",
             "base/health-monitor",
+
+            "base/properties",
         },
 
-        ["loader.class.paths"] = { base_path .. "/host/lib/classes" },
-        ["loader.config.paths"] = { base_path .. "/host/configset/" },
+        ["loader.class.paths"] = { path.normpath(base_path .. "/../lib/classes") },
+        ["loader.config.paths"] = { path.normpath(base_path .. "/../configset/") },
 
 
-        ["rest.endpoint.paths"] = { base_path .. "/host/lib/rest/endpoint" },
+        ["rest.endpoint.paths"] = { path.normpath(base_path .. "/../lib/rest/endpoint") },
         ["rest.endpoint.list"] = { },
 
         ["logger.path"] = cwd .. "/runtime/log",
@@ -34,7 +36,7 @@ function Package.GetConfig(base_path)
 
         ["module.server-storage.rw.path"] = cwd .. "/runtime/storage",
         ["module.server-storage.cache.path"] = cwd .. "/runtime/cache",
-        ["module.server-storage.ro.paths"] = { base_path .. "/host/data", },
+        ["module.server-storage.ro.paths"] = { path.normpath(base_path .. "/../data"), },
     }
 end
 
