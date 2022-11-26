@@ -11,6 +11,7 @@ local DefaultPackageFile = "fairy-node-package.lua"
 -------------------------------------------------------------------------------
 
 local CONFIG_KEY_CONFIG_SET_PATHS = "loader.config.paths"
+local CONFIG_KEY_LIB_PATHS = "loader.lib.paths"
 local CONFIG_KEY_PACKAGES_LIST = "loader.package.list"
 local CONFIG_KEY_CONFIG_SET_LIST = "loader.config.list"
 
@@ -82,12 +83,27 @@ end
 
 -------------------------------------------------------------------------------
 
+function PackageLoader:ApplyLuaPackagePaths()
+    local lst = config_handler:QueryConfigItem(CONFIG_KEY_LIB_PATHS, { mode = "merge", type = "string-table", default = { } })
+
+    local t = {}
+    for _,v in ipairs(lst) do
+        table.insert(t, string.format("%s/?.lua", v))
+        table.insert(t, string.format("%s/?/init.lua", v))
+    end
+
+    package.path = package.path .. ";" .. table.concat(t, ";")
+end
+
+-------------------------------------------------------------------------------
+
 function PackageLoader:Init()
     local loader_module = require "lib/loader-module"
     loader_module:RegisterStaticModule("base/loader-package", self)
 
     self:LoadPackages()
     self:LoadConfigs()
+    self:ApplyLuaPackagePaths()
 end
 
 -------------------------------------------------------------------------------
