@@ -27,8 +27,7 @@ function m.OnError(err, msg)
     if Event then Event("ntp.error") end
 end
 
-function m.Sync(t)
-    t:unregister()
+function m.Sync()
     if not sntp then return end
     local ntpcfg = require("sys-config").JSON("ntp.cfg")
     if not ntpcfg then

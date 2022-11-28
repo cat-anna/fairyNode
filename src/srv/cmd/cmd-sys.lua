@@ -1,6 +1,5 @@
 
 return {
-
     Execute = function(args, out, cmdLine, outputMode)
         local subcmd = table.remove(args, 1)
         if not subcmd then
@@ -41,6 +40,7 @@ return {
                 if what and SetError then
                     SetError(what, nil)
                 end
+                return
             end
         end
         if subcmd == "help" then
