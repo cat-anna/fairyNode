@@ -586,7 +586,7 @@ function HomieDevice:SendCommand(cmd, callback)
 
     self.command_pending = callback or function () end
     print(self,"Sending command: " .. cmd)
-    self.mqtt:PublishM(self:BaseTopic() .. "/$cmd", cmd, false)
+    self.mqtt:Publish(self:BaseTopic() .. "/$cmd", cmd, false)
 end
 
 function HomieDevice:SendEvent(event)
@@ -661,6 +661,10 @@ function HomieDevice:GetNodeMcuCommitId()
         return
     end
     return self.variables["fw/NodeMcu/git_commit_id"]
+end
+
+function HomieDevice:GetInfoValue(key)
+    return self.variables[key]
 end
 
 function HomieDevice:Delete(external)

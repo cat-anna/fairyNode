@@ -83,7 +83,6 @@ end
 
 function HomeHost:FindDeviceById(id)
     for _,v in pairs(self.devices) do
-        print(id, v.variables["hw/chip_id"], v.name)
         if (not v.deleting) and v.variables["hw/chip_id"] == id then
             return v
         end

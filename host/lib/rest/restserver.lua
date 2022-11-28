@@ -100,6 +100,8 @@ end
 
 local function wsapi_handler_with_self(self, wsapi_env)
    local wreq = request.new(wsapi_env)
+   print("REST-API:", wreq.method, wsapi_env.PATH_INFO)
+
    local methods = self.config.paths["^" .. wsapi_env.PATH_INFO .. "$"] or match_path(self, wsapi_env.PATH_INFO)
    local entry = methods and methods[wreq.method]
    if not entry then
