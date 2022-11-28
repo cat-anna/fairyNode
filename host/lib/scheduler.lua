@@ -106,7 +106,7 @@ function Scheduler:CreateTask(owner, name, interval, func)
 
     local opts = {
         name = name,
-        recurring = true,
+        recurring = interval > 0,
         delay = interval,
         initial_delay = interval,
         params = t,
@@ -142,10 +142,11 @@ function Scheduler:CreateTaskSequence(owner, name, interval, sequence)
         state.index = state.index + 1
         local next = state.sequence[state.index]
         if next then
+            printf(state.owner, "Starting step %d/%d in sequence %s", state.index, #state.sequence, state.name)
             next()
             printf(state.owner, "Completed step %d/%d in sequence %s", state.index, #state.sequence, state.name)
         else
-            printf(state.owner, "Task sequence %s is completed", state.index, #state.sequence, state.name)
+            printf(state.owner, "Task sequence %s is completed", state.name)
             task:Stop()
         end
     end
