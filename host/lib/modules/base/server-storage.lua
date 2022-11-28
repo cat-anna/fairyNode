@@ -69,7 +69,7 @@ function ServerStorage:AddCache(id, source_file)
     SafeCall(function()
         print(self, "Add cache:", id)
         file.copy(source_file, self:CacheFilePath(id))
-        self:CheckCache()
+        -- self:CheckCache()
     end)
 end
 
@@ -106,7 +106,7 @@ function ServerStorage:GetFromCache(id)
         if os.time() > attr.modification + self:GetCacheTTL() then
             print(self, "Cache entry expired:", id)
             os.remove(file_name)
-            self:CheckCache()
+            -- self:CheckCache()
             return
         end
 
@@ -162,7 +162,7 @@ function ServerStorage:AddFileToStorage(id, source_file)
     SafeCall(function()
         print(self, "Add file to storage:", id)
         file.copy(source_file, self:StorageFile(id))
-        self:CheckStorage()
+        -- self:CheckStorage()
     end)
 end
 
@@ -176,6 +176,13 @@ function ServerStorage:GetStoredFilePath(id)
     end
 
     return file_name
+end
+
+function ServerStorage:GetObjectFromStorage(id)
+    local r = self:GetFromStorage(id)
+    if r then
+        return json.decode(r)
+    end
 end
 
 function ServerStorage:GetFromStorage(id)
@@ -223,8 +230,12 @@ function ServerStorage:WriteStorage(id, data)
     SafeCall(function()
         print(self, "Write storage:", id)
         file.write(self:StorageFile(id), tostring(data))
-        self:CheckStorage()
+        -- self:CheckStorage()
     end)
+end
+
+function ServerStorage:WriteObjectToStorage(id, data)
+    return self:WriteStorage(id, json.encode(data))
 end
 
 function ServerStorage:CheckStorage()
