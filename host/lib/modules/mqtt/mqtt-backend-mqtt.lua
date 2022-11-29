@@ -126,7 +126,7 @@ end
 
 function MqttBackend:Subscribe(regex)
     if not self.connected then
-        return
+        return --
     end
 
     print(self, "Subscribing to " .. regex)

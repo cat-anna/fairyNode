@@ -69,6 +69,7 @@ function MqttClient:SetLastWill(message)
 end
 
 function MqttClient:SelectMqttBackend()
+    -- self.mqtt_backend_class = "mqtt/mqtt-backend-mosquitto"
     self.mqtt_backend_class = "mqtt/mqtt-backend-mqtt"
     printf(self, "Selected mqtt backend: %s", self.mqtt_backend_class)
 end
