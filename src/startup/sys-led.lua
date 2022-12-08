@@ -13,6 +13,6 @@ return {
                 value = value and gpio.HIGH or gpio.LOW
             end
             gpio.write(l.pin, value)
-        end         
+        end
     end
 }

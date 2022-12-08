@@ -48,6 +48,8 @@ local function InitService()
 
     if Event then Event("app.start") end
 
+    require("sys-led").Set("boot", false)
+
     coroutine.yield():unregister()
 end
 

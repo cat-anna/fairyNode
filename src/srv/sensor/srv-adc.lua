@@ -22,7 +22,9 @@ function Sensor:ControllerInit(event, ctl)
 end
 
 function Sensor:PublishValue(v)
-    if not self.node then return end
+    if not self.node then
+        return
+    end
     self.node:SetValue("value", string.format("%.3f", v))
 end
 
