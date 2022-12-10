@@ -50,7 +50,8 @@ config_handler:SetCommandLineArgs{
         nodemcu_firmware_path = args.nodemcu_firmware_path,
         host = args.host,
         rebuild = args.rebuild,
-    }
+    },
+    ["project.source.path"] = fairy_node_base .. "/../DeviceConfig/projects/",
 }
 
 require("lib/loader-package"):Init()

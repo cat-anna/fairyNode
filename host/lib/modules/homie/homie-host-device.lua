@@ -43,7 +43,7 @@ function HomieDevice:AfterReload()
         end
     end
 
-    self:WatchTopic(self.homie_common.TopicState, self.HandleStateChanged)
+    self:WatchTopic("/$state", self.HandleStateChanged)
     self:WatchTopic("/$homie", self.HandleHomieNode)
     self:WatchTopic("/$nodes", self.HandleNodes)
     self:WatchRegex("/$hw/#", self.HandleDeviceInfo)
@@ -172,6 +172,11 @@ function HomieDevice:HandleStateChanged(topic, payload)
         return
     end
 
+    if self.state == "ota" and payload == "lost" then
+        print(self,self.name .. " 'ota -> lost' state transition ignored")
+        return
+    end
+
     self.event_bus:PushEvent({
         event = "device.event.state-change",
         argument = {
@@ -180,13 +185,8 @@ function HomieDevice:HandleStateChanged(topic, payload)
         }
     })
 
-    if self.state == "ota" and payload == "lost" then
-        print(self,self.name .. " 'ota -> lost' state transition ignored")
-        return
-    end
-
     self.state = payload
-    print(self,self.name .. " entered state " .. (payload or "<?>"))
+    print(self, self.name .. " entered state " .. payload)
 end
 
 local function FilterPropertyValues(values)

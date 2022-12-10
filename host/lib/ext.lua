@@ -68,20 +68,16 @@ function SafeCall(f, ...)
     return xpcall(call, errh)
 end
 
-function table.merge(t1, t2)
+function table.merge(...)
     local r = { }
-    for k, v in pairs(t1) do
-        if type(k) == "number" then
-            r[#r + 1] = v
-        else
-            r[k] = v
-        end
-    end
-    for k, v in pairs(t2) do
-        if type(k) == "number" then
-            r[#r + 1] = v
-        else
-            r[k] = v
+    for i=1,#arg do
+        local t = arg[i]
+        for k, v in pairs(t or {}) do
+            if type(k) == "number" then
+                r[#r + 1] = v
+            else
+                r[k] = v
+            end
         end
     end
     return r
@@ -98,6 +94,7 @@ function table.filter(t, functor)
             r[k] = v
         end
     end
+
     return r
 end
 

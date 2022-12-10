@@ -65,8 +65,6 @@ HomieCommon.States = {
     ota = "ota",
 }
 
-HomieCommon.TopicState = "/$state"
-
 ------------------------------------------------------------------------------
 
 return HomieCommon

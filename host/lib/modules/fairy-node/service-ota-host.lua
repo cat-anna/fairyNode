@@ -198,6 +198,15 @@ function ServiceOta:CheckUpdate(request, device_id)
     return http.OK, result
 end
 
+function ServiceOta:CommitFwSet(request, device_id)
+    local r = self.ota_host:AddFirmwareSet(device_id, request)
+    if r then
+        return http.OK, r
+    end
+
+    return http.BadRequest, {}
+end
+
 function ServiceOta:GetFirmwareStatus(request, device_id)
     device_id = device_id:upper()
     local firmware = self.ota_host:GetDeviceStatus(device_id)

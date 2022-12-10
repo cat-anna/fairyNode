@@ -8,7 +8,9 @@ local sha2 = require "lib/sha2"
 local FirmwareBuilder = {}
 FirmwareBuilder.__index = FirmwareBuilder
 FirmwareBuilder.__type = "class"
-FirmwareBuilder.__deps = {}
+FirmwareBuilder.__deps = {
+    project_loader = "fairy-node-firmware/project-config-loader"
+}
 FirmwareBuilder.__config = {}
 
 -------------------------------------------------------------------------------------
@@ -41,20 +43,22 @@ function FirmwareBuilder:Work()
         self.dev_info.firmware = {}
     end
 
-    local project_lib = require "lib/modules/fairy-node-firmware/project"
-    local project = project_lib:LoadProjectForChip(dev_id)
+    local project = self.project_loader:LoadProjectForChip(dev_id)
     local ts = project:Timestamps()
+
+    local fw_set = {}
 
     local test_update = function(what)
         local remote, latest = self.dev_info.firmware[what], ts[what]
+        fw_set[what] = latest.hash
 
         local r = false
         if remote then
             if remote.hash then
                 r = remote.hash:upper() ~= latest.hash:upper()
                 print(
-                    self:Tag() .. ": " .. dev_id .. " : " .. remote.hash:upper() ..
-                        " vs " .. latest.hash:upper() .. " -> update of " .. what .. " = " .. tostring(r))
+                    self:Tag() .. ": " .. dev_id .. " : " .. remote.hash ..
+                        " vs " .. latest.hash .. " -> update of " .. what .. " = " .. tostring(r))
             else
                 r = true
             end
@@ -116,7 +120,7 @@ function FirmwareBuilder:Work()
         print(self, "Building LFS image")
         local compiler_path = self.owner:PrepareCompiler(self, self.dev_info, dev_id)
         local image = project:BuildLFS(compiler_path)
-        print(self, "Created lfs image, size=".. tostring(#image))
+        print(self, "Created lfs image, size=" .. tostring(#image))
 
         local image_meta = {
             image = "lfs",
@@ -125,6 +129,8 @@ function FirmwareBuilder:Work()
         }
         self:SubmitImage(image_meta)
     end
+
+    self:CommitFwSet(fw_set)
 end
 
 -------------------------------------------------------------------------------------
@@ -139,6 +145,11 @@ function FirmwareBuilder:SubmitImage(image_meta)
     }
 
     self.owner:UploadImage(image_meta)
+end
+
+function FirmwareBuilder:CommitFwSet(fw_set)
+    print(self, "Committing Fw set")
+    self.owner:CommitFwSet(self.dev_id, fw_set)
 end
 
 -------------------------------------------------------------------------------------

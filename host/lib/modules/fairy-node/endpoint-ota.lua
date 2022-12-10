@@ -18,6 +18,13 @@ return {
             service_method = "UploadImage",
         },
         {
+            method = "POST",
+            path = "/{[A-Z0-9]+}/update/commit",
+            consumes = "application/json",
+            produces = "application/json",
+            service_method = "CommitFwSet",
+        },
+        {
             method = "GET",
             path = "{[A-Z0-9]+}/status",
             produces = "application/json",

@@ -14,25 +14,15 @@ function Package.GetConfig(base_path)
             "base/logger",
             "base/debugging",
             "fairy-node-firmware/firmware-builder-app",
-
-        --     "base/event-bus",
-        --     "base/error-reporter",
-        --     "base/server-storage",
-        --     "base/properties",
         },
 
         ["loader.class.paths"] = { path.normpath(base_path .. "/../lib/classes") },
         ["loader.config.paths"] = { path.normpath(base_path .. "/../configset/") },
 
-        -- ["rest.endpoint.paths"] = { base_path .. "/host/lib/rest/endpoint" },
-        -- ["rest.endpoint.list"] = { },
-
         ["logger.path"] = cwd .. "/runtime/log",
         ["logger.enable"] = true,
 
-        -- ["module.server-storage.rw.path"] = cwd .. "/runtime/storage",
-        -- ["module.server-storage.cache.path"] = cwd .. "/runtime/cache",
-        -- ["module.server-storage.ro.paths"] = { base_path .. "/host/data", },
+        ["firmware.source.path"] = path.normpath(base_path .. "/../../src"),
     }
 end
 

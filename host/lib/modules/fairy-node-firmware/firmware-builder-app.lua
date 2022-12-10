@@ -1,9 +1,9 @@
 
-local json = require "json"
+-- local json = require "json"
 -- local tablex = require "pl.tablex"
 -- local file = require "pl.file"
 -- local shell = require "lib/shell"
-local scheduler = require "lib/scheduler"
+-- local scheduler = require "lib/scheduler"
 local loader_class = require "lib/loader-class"
 local copas = require "copas"
 
@@ -14,7 +14,9 @@ local CONFIG_KEY_CONFIG = "fw-builder.config"
 local FirmwareBuilderApp = {}
 FirmwareBuilderApp.__index = FirmwareBuilderApp
 FirmwareBuilderApp.__type = "module"
-FirmwareBuilderApp.__deps = {}
+FirmwareBuilderApp.__deps = {
+    project_loader = "fairy-node-firmware/project-config-loader"
+}
 FirmwareBuilderApp.__config = {
     [CONFIG_KEY_CONFIG] = { type = "table", },
 }
@@ -68,7 +70,7 @@ function FirmwareBuilderApp:QueryDeviceStatus(device_id)
 end
 
 function FirmwareBuilderApp:GetOtaDevices()
-    return self.host_client:GetJson("ota/list")
+    return self.host_client:GetJson("ota/list") or { }
 end
 
 function FirmwareBuilderApp:UploadImage(request)
@@ -84,6 +86,15 @@ function FirmwareBuilderApp:UploadImage(request)
         url = url_base .. "/update/upload/" .. req.key,
         body = request.payload,
         mime_type = "text/plain",
+    })
+end
+
+function FirmwareBuilderApp:CommitFwSet(dev_id, fw_set)
+    local url_base = string.format("ota/%s", dev_id:upper())
+    local req = self.host_client:PostJson(url_base .. "/update/commit", {
+        device_id = dev_id,
+        set = fw_set,
+        timestamp = os.timestamp(),
     })
 end
 

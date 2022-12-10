@@ -1,8 +1,9 @@
 
 local fs = require "lib/fs"
-local uuid = require "uuid"
+-- local uuid = require "uuid"
 local path = require "pl.path"
 local config_handler = require "lib/config-handler"
+-- local json = require "json"
 
 -------------------------------------------------------------------------------
 
@@ -62,6 +63,7 @@ function PackageLoader:Load(input_path)
 end
 
 function PackageLoader:LoadConfigs()
+    print("Loading configs")
     local config = config_handler:Query(self.__config)
     for _,v in ipairs(config[CONFIG_KEY_CONFIG_SET_LIST]) do
         local fn = fs.FindScriptByPathList(v, config[CONFIG_KEY_CONFIG_SET_PATHS])
@@ -69,15 +71,19 @@ function PackageLoader:LoadConfigs()
             printf(self, "Failed to find config %s", v)
             error("Failed to load config " .. v)
         else
+            print("Loading config", fn)
             self:Load(fn)
         end
     end
 end
 
 function PackageLoader:LoadPackages()
+    print("Loading packages")
     local config = config_handler:Query(self.__config)
     for _,v in ipairs(config[CONFIG_KEY_PACKAGES_LIST]) do
-        self:Load(path.normpath(v))
+        local full_path = path.normpath(v)
+        print("Loading package", full_path)
+        self:Load(full_path)
     end
 end
 

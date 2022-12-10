@@ -30,7 +30,9 @@ config_handler:SetBaseConfig{
     debug = false,
     verbose = false,
     ["path.fairy_node"] = fairy_node_base,
-    ["loader.package.list"] = { fairy_node_base .. "/host/apps/fairy-node-host.lua" },
+    ["loader.package.list"] = {
+        fairy_node_base .. "/host/apps/fairy-node-host.lua",
+    },
 }
 
 config_handler:SetCommandLineArgs{

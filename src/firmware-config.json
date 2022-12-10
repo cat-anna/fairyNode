@@ -1,0 +1,130 @@
+{
+    "base": {
+        "root": [
+            "startup/init-bootstrap.lua",
+            "startup/init-hw.lua",
+            "startup/init-network.lua",
+            "startup/init.lua",
+            "startup/ota-check.lua",
+            "startup/ota-core.lua",
+            "startup/ota-http.lua",
+            "startup/ota-installer.lua",
+            "startup/sys-config.lua",
+            "startup/sys-led.lua"
+        ],
+        "lfs": [
+            "lfs/event-error.lua",
+            "lfs/fairy-node-info.lua",
+            "lfs/init-error.lua",
+            "lfs/init-lfs.lua",
+            "lfs/init-service.lua",
+            "lfs/lfs-string.lua",
+            "lfs/sys-error.lua",
+            "lfs/sys-event.lua",
+            "srv/cmd/cmd-gpio.lua",
+            "srv/cmd/cmd-help.lua",
+            "srv/cmd/cmd-sys.lua",
+            "srv/cmd/srv-command.lua",
+            "srv/sensor/cmd-sensor.lua",
+            "srv/sensor/srv-sensor.lua",
+            "srv/sensor/srv-sysinfo.lua",
+            "srv/srv-homie.lua",
+            "srv/srv-mqtt.lua",
+            "srv/srv-ntp.lua",
+            "startup/init-bootstrap.lua",
+            "startup/init-hw.lua",
+            "startup/init-network.lua",
+            "startup/ota-check.lua",
+            "startup/ota-core.lua",
+            "startup/ota-http.lua",
+            "startup/ota-installer.lua",
+            "startup/sys-config.lua",
+            "startup/sys-led.lua"
+        ],
+        "config": []
+    },
+    "modules": {
+        "uart": [],
+        "led": [],
+        "adc": {
+            "lfs": [
+                "srv/sensor/srv-adc.lua"
+            ]
+        },
+        "ow": {
+            "lfs": [
+                "srv/cmd/cmd-ow.lua"
+            ]
+        },
+        "i2c": {
+            "lfs": [
+                "srv/cmd/cmd-i2c.lua"
+            ]
+        },
+        "gpio": {
+            "lfs": [
+                "srv/srv-gpio.lua"
+            ]
+        },
+        "dht11": {
+            "lfs": [
+                "srv/sensor/srv-dht11.lua"
+            ]
+        },
+        "ttp229": {
+            "lfs": [
+                "srv/srv-ttp229.lua"
+            ]
+        },
+        "bme280e": {
+            "lfs": [
+                "srv/sensor/srv-bme280e.lua"
+            ]
+        },
+        "ws2812": {
+            "lfs": [
+                "srv/srv-ws2812.lua"
+            ]
+        },
+        "hd44780-i2c": {
+            "lfs": [
+                "srv/srv-hd44780-i2c.lua"
+            ]
+        },
+        "ds18b20": {
+            "lfs": [
+                "lib/ds18b20.lua",
+                "srv/sensor/srv-ds18b20.lua"
+            ]
+        },
+        "telnet": {
+            "lfs": [
+                "lib/telnet.lua",
+                "srv/cmd/cmd-telnet.lua"
+            ]
+        },
+        "timezone": {
+            "lfs": [
+                "lib/timezone.lua"
+            ],
+            "root": [
+                "/etc/localtime"
+            ]
+        },
+        "pcm": {
+            "lfs": [
+                "srv/pcm/cmd-pcm.lua",
+                "srv/pcm/event-pcm.lua",
+                "srv/pcm/mod-pcm.lua"
+            ]
+        }
+    },
+    "disabled_modules": {
+        "irx": {
+            "comment": "not working",
+            "lfs": [
+                "srv/srv-irx.lua"
+            ]
+        }
+    }
+}

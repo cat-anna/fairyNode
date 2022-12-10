@@ -1,26 +1,33 @@
-local copas = require "copas"
-local lfs = require "lfs"
-local file = require "pl.file"
-local tablex = require "pl.tablex"
+
 local path = require "pl.path"
-local JSON = require "json"
-local shell = require "lib/shell"
+local file = require "pl.file"
+local json = require "json"
 local md5 = require "md5"
 local pretty = require 'pl.pretty'
-local struct = require 'struct'
 local file_image = require "lib/file-image"
+local shell = require "lib/shell"
 
-require "lib/ext"
-
--- local DeviceConfigFile = "devconfig.lua"
-local FirmwareConfigFile = "fwconfig.lua"
+-------------------------------------------------------------------------------------
 
 local CONFIG_HASH_NAME = "config_hash.cfg"
 
-local fairy_node_base = "../fairyNode"
+-------------------------------------------------------------------------------------
 
 local ProjectMt = {}
 ProjectMt.__index = ProjectMt
+
+function ProjectMt:Init(arg)
+    for k,v in pairs(arg) do
+        self[k] = v
+    end
+
+    self.search_paths = {
+        self.project_path,
+        self.firmware_path,
+    }
+
+    self:Preprocess()
+end
 
 local function GenerateFileLists(storage, fileList)
     local function store(f, content)
@@ -74,10 +81,10 @@ local function FilterFiles(source, fileList, generateList)
     end
 end
 
-local function PreprocessGeneratedFile(self, conf, vars)
+local function PreprocessGeneratedFile(self, conf, paths)
     for i, v in ipairs(conf) do
-        local arg = path.normpath(v:formatEx(vars))
-        -- print("GEN:", i, conf[i], "->", arg)
+        local arg = v--path.normpath(v:formatEx(paths))
+        print("GEN:", i, conf[i], "->", arg)
         conf[i] = arg
     end
 end
@@ -92,7 +99,25 @@ end
 --    end
 -- end
 
-local function PreprocessFileList(self, fileList, vars)
+local function FindFile(f, paths)
+    if (f:sub(1,1) == "/") and lfs.attributes(f) then
+        -- print("GLOBAL ", f, " -> ", f)
+        return f
+    end
+
+    for i,v in ipairs(paths) do
+        local full = path.normpath(v .. "/" .. f)
+        local att = lfs.attributes(full)
+        if att then
+            -- print("RESOLVE ", f, " -> ", full)
+            return full
+        end
+    end
+
+    error("Failed to find " .. f .. " in \n" .. table.concat(paths, "\n"))
+end
+
+local function PreprocessFileList(self, fileList, paths)
     local keys = table.keys(fileList)
     table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
 
@@ -105,11 +130,11 @@ local function PreprocessFileList(self, fileList, vars)
 
         if t == "number" then
             -- print(k, fileList[k])
-            fileList[k] = path.normpath(v:formatEx(vars))
+            fileList[k] = FindFile(v, paths)
         elseif t == "string" then
             -- print(k, v.mode)
             if v.mode == "generated" then
-                PreprocessGeneratedFile(self, v, vars)
+                PreprocessGeneratedFile(self, v, paths)
             else
                 error("Unknown file entry mode: " .. v.mode)
             end
@@ -123,37 +148,34 @@ function ProjectMt:AddModuleFiles()
     for _, v in ipairs(self.modules) do
         -- print("PROCESSING MODULE: ", v)
         local fw_module = self.firmware.modules[v]
-        if not fw_module then error("There is no module: " .. v) end
-        self.lfs = table.merge(self.lfs, fw_module.lfs or {})
-        self.files = table.merge(self.files, fw_module.files or {})
+        if not fw_module then --
+            error("There is no module: " .. v)
+        end
+        self.lfs = table.merge(self.lfs, fw_module.lfs)
+        self.root = table.merge(self.root, fw_module.root)
     end
 end
 
 function ProjectMt:Preprocess()
-    print("Preprocessing", self.name)
-    self.modules = table.merge(self.config.project.modules or {},
-                               table.keys(self.config.project.config.hw))
+    print("Preprocessing", self.chip.name)
+
+    self.modules = table.merge(self.project.modules, table.keys(self.project.config.hw))
     -- print("MODULES: ", table.concat(self.modules, ","))
 
-    self.lfs = table.merge(self.config.firmware.lfs, self.config.project.lfs)
-    self.files = table.merge(self.config.firmware.files,
-                             self.config.project.files)
-    self.config = table.merge(self.chip.config, self.config.project.config)
+    self.lfs = table.merge(self.firmware.base.lfs, self.project.lfs)
+    self.root = table.merge(self.firmware.base.root, self.project.root)
+    self.config = table.merge(self.chip.config, self.project.config)
 
     self.config["hostname"] = self.chip.name
 
-    local vars = {
-        FW = fairy_node_base .. "/src/",
-        PROJECT = self.projectDir .. "/files/",
-        COMMON = "common/"
-    }
+    local fairy_node_base = "../fairyNode"
 
     self:AddModuleFiles()
 
     -- print("LFS:")
-    PreprocessFileList(self, self.lfs, vars)
+    PreprocessFileList(self, self.lfs, self.search_paths)
     -- print("FILES:")
-    PreprocessFileList(self, self.files, vars)
+    PreprocessFileList(self, self.root, self.search_paths)
 end
 
 function ProjectMt:Timestamps()
@@ -181,7 +203,7 @@ function ProjectMt:Timestamps()
 
     self.__timestamps = {
         lfs = process(self.lfs),
-        root = process(self.files),
+        root = process(self.root),
         config = json.decode(self:GenerateConfigFiles()[CONFIG_HASH_NAME])
     }
     return self.__timestamps
@@ -196,7 +218,7 @@ function ProjectMt:GetConfigFileContent(name)
     if type(v) == "string" then
         return v
     else
-        return JSON.encode(v)
+        return json.encode(v)
     end
 end
 
@@ -212,7 +234,7 @@ function ProjectMt:GenerateConfigFiles()
     end
 
     table.sort(all_content)
-    r[CONFIG_HASH_NAME] = JSON.encode({
+    r[CONFIG_HASH_NAME] = json.encode({
         hash = md5.sumhexa(table.concat(all_content, "")),
         timestamp = os.time()
     })
@@ -289,7 +311,7 @@ end
 
 function ProjectMt:BuildRootImage()
     local fileList = {}
-    for _, v in ipairs(self.files) do
+    for _, v in ipairs(self.root) do
         fileList[path.basename(v)] = file.read(v)
     end
 
@@ -311,54 +333,6 @@ function ProjectMt:BuildConfigImage()
     return file_image.Pack(fileList)
 end
 
------------------------------------------------
+-------------------------------------------------------------------------------------
 
-local fairy_node_config = require "lib/modules/fairy-node-firmware/firmware-config"
-local project_config = require "project-config"
-
-local ProjectModule = {}
--- ProjectModule.__index = ProjectModule
--- ProjectModule.__deps = {
---    devconfig = "project-config",
---    fwconfig = "fw-config",
---    luac = "luac-builder",
--- }
-
-
-function ProjectModule.Tag() return "ProjectModule" end
-
-function ProjectModule:ProjectExists(chipid)
-    return project_config.chipid[chipid] ~= nil
-end
-
-function ProjectModule:ListDeviceIds() return tablex.keys(project_config.chipid) end
-
-function ProjectModule:LoadProjectForChip(chipid)
-    local chip_config = project_config.chipid[chipid]
-    if not chip_config then error("ERROR: Unknown chip " .. chipid) end
-
-    local mt = {
-        __index = function(t, name)
-            return rawget(t, name) or project_config.chipid[chipid][name] or
-                       ProjectMt[name]
-        end
-    }
-
-    local proj = {chip = chip_config}
-
-    proj.projectDir = project_config.projectDir .. "/" .. chip_config.project
-
-    proj.firmware = fairy_node_config
-    proj.config = {
-        firmware = fairy_node_config,
-        project = dofile(proj.projectDir .. "/" .. FirmwareConfigFile)
-    }
-    -- proj.luac = self.luac
-
-    setmetatable(proj, mt)
-    print(string.format("Loading project %s for chip %s", proj.name, chipid))
-    proj:Preprocess()
-    return proj
-end
-
-return ProjectModule
+return ProjectMt

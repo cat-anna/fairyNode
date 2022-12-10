@@ -35,11 +35,17 @@ end
 function ServerStorage:BeforeReload() end
 
 function ServerStorage:AfterReload()
+    if self.config.debug then
+        self.json_args =  nil -- { ident = 4 }
+    else
+        self.json_args = nil
+    end
     pl_dir.makepath(self:GetCachePath())
     pl_dir.makepath(self:GetStoragePath())
 end
 
-function ServerStorage:Init() end
+function ServerStorage:Init()
+end
 
 -------------------------------------------------------------------------------
 
@@ -60,7 +66,7 @@ function ServerStorage:UpdateCache(id, data)
         if self.config.verbose then
             print(self, "Update cache:", id)
         end
-        file.write(self:CacheFilePath(id), json.encode(data))
+        file.write(self:CacheFilePath(id), json.encode(data, self.json_args))
     end)
     if not r then print(self, "failed to write cache", id) end
 end
@@ -235,7 +241,7 @@ function ServerStorage:WriteStorage(id, data)
 end
 
 function ServerStorage:WriteObjectToStorage(id, data)
-    return self:WriteStorage(id, json.encode(data))
+    return self:WriteStorage(id, json.encode(data, self.json_args))
 end
 
 function ServerStorage:CheckStorage()
