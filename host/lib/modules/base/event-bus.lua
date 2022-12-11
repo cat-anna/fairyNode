@@ -54,7 +54,6 @@ end
 function EventBus:AfterReload()
     self.loader_module:RegisterWatcher(self:Tag(), self)
     self.loader_class:RegisterWatcher(self:Tag(), self)
-
 end
 
 function EventBus:Init()
@@ -86,14 +85,13 @@ end
 function EventBus:AllModulesLoaded()
     self:InvalidateHandlerCache()
     self:PushEvent({ event = "module.load_complete", })
-    self:PushEvent({ event = "app.start", })
 end
 
 function EventBus:ModuleReloaded(module_name, module)
     self:InvalidateHandlerCache()
     self:PushEvent({
         event = "module.reloaded",
-        argument = { name = module_name }
+        name = module_name,
     })
 end
 
@@ -103,7 +101,7 @@ function EventBus:OnObjectCreated(class_name, object)
 end
 
 function EventBus:PushEvent(event_info)
-    if self.config.debug and not event_info.silent then
+    if self.config.debug and (not event_info.silent) then
         print(self, "Push event " .. event_info.event)
     end
     event_info.uuid = uuid()
@@ -120,7 +118,7 @@ end
 function EventBus:ProcessEvent(event_info)
     local start = gettime()
 
-    if self.config.debug and not event_info.silent then
+    if self.config.debug and (not event_info.silent) then
         print(self, "Processing event " .. event_info.event)
     end
 

@@ -178,11 +178,9 @@ function HomieDevice:HandleStateChanged(topic, payload)
     end
 
     self.event_bus:PushEvent({
-        event = "device.event.state-change",
-        argument = {
-            device = self,
-            state = payload
-        }
+        event = "homie-host.device.event.state-change",
+        device = self,
+        state = payload
     })
 
     self.state = payload
@@ -366,32 +364,28 @@ function HomieDevice:HandlePropertyValue(topic, payload)
     if changed then
         property:CallSubscriptions()
         self.event_bus:PushEvent({
-            event = "device.property.change",
-            silent=true,
-            argument = {
-                device = self.name,
-                node = node_name,
-                property = prop_name,
-                value = value,
-                receive_timestamp = receive_timestamp,
-                timestamp = property.timestamp,
-                old_value = old_value,
-            }
+            event = "homie-host.device.property.change",
+            silent = true,
+            device = self.name,
+            node = node_name,
+            property = prop_name,
+            value = value,
+            receive_timestamp = receive_timestamp,
+            property_timestamp = property.timestamp,
+            old_value = old_value,
         })
     end
 
     if property.value ~= nil and node_name == "sysinfo" and prop_name == "event" then
         self.event_bus:PushEvent({
-            event = "device.event",
-            silent=true,
-            argument = {
-                device = self.name,
-                event = payload,
-                receive_timestamp = receive_timestamp,
-                timestamp = property.timestamp,
-                value = value,
-                old_value = old_value,
-            }
+            event = "homie-host.device.event",
+            silent = true,
+            device = self.name,
+            device_event = payload,
+            receive_timestamp = receive_timestamp,
+            property_timestamp = property.timestamp,
+            value = value,
+            old_value = old_value,
         })
     end
 
@@ -676,7 +670,7 @@ function HomieDevice:Delete(external)
     local sequence = {
         function ()
             self.event_bus:PushEvent({
-                event = "device.delete.start",
+                event = "homie-host.device.delete.start",
                 device = self.name,
             })
         end,
@@ -708,7 +702,7 @@ function HomieDevice:Delete(external)
         function () end,
         function ()
             self.event_bus:PushEvent({
-                event = "device.delete.finished",
+                event = "homie-host.device.delete.finished",
                 device = self.name,
             })
         end,

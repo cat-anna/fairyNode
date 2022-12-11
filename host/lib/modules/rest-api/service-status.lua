@@ -156,15 +156,12 @@ function ServiceStatus:BeforeReload()
 end
 
 function ServiceStatus:AfterReload()
-    self:OnAppStart()
 end
 
 function ServiceStatus:Init()
 end
 
--------------------------------------------------------------------------------------
-
-function ServiceStatus:OnAppStart()
+function ServiceStatus:StartModule()
     local stat_modules = { }
 
     local function to_network_id(n)
@@ -183,8 +180,8 @@ end
 
 -------------------------------------------------------------------------------------
 
-ServiceStatus.EventTable = {
-    ["app.start"] = ServiceStatus.OnAppStart
-}
+ServiceStatus.EventTable = { }
+
+-------------------------------------------------------------------------------------
 
 return ServiceStatus
