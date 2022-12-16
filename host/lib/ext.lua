@@ -71,7 +71,7 @@ end
 function table.merge(...)
     local r = { }
     for i=1,#arg do
-        local t = arg[i]
+        local t = select(i, ...)
         for k, v in pairs(t or {}) do
             if type(k) == "number" then
                 r[#r + 1] = v
@@ -155,6 +155,18 @@ end
 local quotepattern = '(['..("%^$().[]*+-?"):gsub("(.)", "%%%1")..'])'
 string.escape = function(str)
     return str:gsub(quotepattern, "%%%1")
+end
+
+function string.fromhex(str)
+    return (str:gsub('..', function (cc)
+        return string.char(tonumber(cc, 16))
+    end))
+end
+
+function string.tohex(str)
+    return (str:gsub('.', function (c)
+        return string.format('%02X', string.byte(c))
+    end))
 end
 
 local clock_gettime = posix.clock_gettime

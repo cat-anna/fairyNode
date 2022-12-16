@@ -6,9 +6,13 @@ local path = require "pl.path"
 
 local m = {}
 
-function m.Pack(file_list)
-   local FILE_SIGNATURE = "file"
+local FILE_SIGNATURE = "file"
 
+function m.VersionHash()
+   return "uid:a68989c774585d6a989be417cd9615b8"
+end
+
+function m.Pack(file_list)
    local out_buffer = {}
    local function put(block)
       table.insert(out_buffer, block)
@@ -39,8 +43,6 @@ function m.Pack(file_list)
 end
 
 function m.Unpack(packed_image)
-   local FILE_SIGNATURE = "file"
-
    local position = 0
    local function read(bytes)
       if position >= packed_image:len() then
@@ -66,7 +68,7 @@ function m.Unpack(packed_image)
       end
 
       local signature, size, crc = struct.unpack("<c4II", header)
-      if signature ~= "file" then
+      if signature ~= FILE_SIGNATURE then
          error("invalid block signature")
       end
       local file_name_size = struct.unpack("b", read(1))

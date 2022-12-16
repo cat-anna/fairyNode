@@ -5,8 +5,14 @@ local pretty = require 'pl.pretty'
 local loader_module = require "lib/loader-module"
 local uuid = require "uuid"
 local json = require "json"
-local sha2 = require "lib/sha2"
 local tablex = require "pl.tablex"
+
+-------------------------------------------------------------------------------
+
+local function sha256(data)
+    local sha2 = require "lib/sha2"
+    return "sha256:" .. sha2.sha256(data):lower()
+end
 
 -------------------------------------------------------------------------------
 
@@ -124,9 +130,9 @@ function ServiceOta:UploadImage(payload, device_id, key)
 
     local request = upload_request.request
 
-    local payload_hash = sha2.sha256(payload)
-    if request.payload_hash.value ~= payload_hash then
-        print(self, "payload hash mismatch")
+    local payload_hash = sha256(payload)
+    if request.payload_hash ~= payload_hash then
+        print(self, "Payload hash mismatch")
         return http.BadRequest
     end
 
@@ -246,6 +252,11 @@ function ServiceOta:ListOtaDevices(request)
     end
 
     return http.OK, (tablex.keys(r))
+end
+
+function ServiceOta:TriggerStorageCheck()
+    self.ota_host:CheckStoredFiles()
+    return http.OK, { }
 end
 
 -------------------------------------------------------------------------------

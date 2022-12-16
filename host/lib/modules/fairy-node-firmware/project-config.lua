@@ -165,6 +165,7 @@ function ProjectMt:Preprocess()
     self.lfs = table.merge(self.firmware.base.lfs, self.project.lfs)
     self.root = table.merge(self.firmware.base.root, self.project.root)
     self.config = table.merge(self.chip.config, self.project.config)
+    self.ota_install = self.firmware.ota_install
 
     self.config["hostname"] = self.chip.name
 
@@ -176,10 +177,14 @@ function ProjectMt:Preprocess()
     PreprocessFileList(self, self.lfs, self.search_paths)
     -- print("FILES:")
     PreprocessFileList(self, self.root, self.search_paths)
+    -- print("ota_install:")
+    PreprocessFileList(self, self.ota_install, self.search_paths)
 end
 
 function ProjectMt:Timestamps()
-    if self.__timestamps then return self.__timestamps end
+    if self.__timestamps then --
+        return self.__timestamps
+    end
 
     print("Preparing timestamps", self.name)
     function process(lst)
@@ -300,7 +305,7 @@ function ProjectMt:BuildLFS(luac)
     end
 
     --
-    shell.Start(luac, args, nil, unpack(fileList))
+    shell.Start(luac, args, nil, table.unpack(fileList))
 
     local image = file.read(result_file)
 
@@ -322,7 +327,7 @@ function ProjectMt:BuildRootImage()
 
     local files = table.keys(fileList)
     print("Files in root: ", #files, table.concat(files, " "))
-    return file_image.Pack(fileList)
+    return file_image.Pack(fileList), file_image.VersionHash()
 end
 
 function ProjectMt:BuildConfigImage()
@@ -330,7 +335,15 @@ function ProjectMt:BuildConfigImage()
 
     local files = table.keys(fileList)
     print("Files in config: ", #files, table.concat(files, " "))
-    return file_image.Pack(fileList)
+    return file_image.Pack(fileList), file_image.VersionHash()
+end
+
+function ProjectMt:GetOtaInstallFiles()
+    local fileList = { }
+    for _, v in ipairs(self.ota_install) do
+        fileList[path.basename(v)] = file.read(v)
+    end
+    return fileList
 end
 
 -------------------------------------------------------------------------------------

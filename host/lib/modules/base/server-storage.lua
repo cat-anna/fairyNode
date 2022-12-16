@@ -1,5 +1,5 @@
 local lfs = require "lfs"
-local json = require "json"
+local json = require "dkjson"
 local file = require "pl.file"
 local path = require "pl.path"
 local pl_dir = require "pl.dir"
@@ -36,7 +36,7 @@ function ServerStorage:BeforeReload() end
 
 function ServerStorage:AfterReload()
     if self.config.debug then
-        self.json_args =  nil -- { ident = 4 }
+        self.json_args = { ident = true }
     else
         self.json_args = nil
     end
@@ -218,7 +218,7 @@ function ServerStorage:FindStorageFiles(regex)
             local attr = lfs.attributes(f)
             if attr and attr.mode == "file" then
                 if not regex or file:match(regex) then
-                    printf(self,"Looking entries with regex '%s' matched '%s'", regex, file)
+                    -- printf(self, "Looking entries with regex '%s' matched '%s'", regex, file)
                     table.insert(result, file)
                 end
             end
@@ -237,6 +237,13 @@ function ServerStorage:WriteStorage(id, data)
         print(self, "Write storage:", id)
         file.write(self:StorageFile(id), tostring(data))
         -- self:CheckStorage()
+    end)
+end
+
+function ServerStorage:RemoveFromStorage(id)
+    SafeCall(function()
+        print(self, "Remove from storage:", id)
+        os.remove(self:StorageFile(id))
     end)
 end
 

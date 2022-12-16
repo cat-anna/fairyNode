@@ -1,5 +1,5 @@
 
--- local json = require "json"
+local json = require "dkjson"
 -- local tablex = require "pl.tablex"
 -- local file = require "pl.file"
 -- local shell = require "lib/shell"
@@ -42,23 +42,26 @@ function FirmwareBuilderApp:StartModule()
     self.host_client = require("lib.http-client").New()
     self.host_client:SetHost(config.host)
 
-    if config.port then
-        --TODO
-    elseif config.device then
-        self:CreateBuilder(config.device)
+    if config.port and (#config.port > 0) then
+        self:CreateBuilder(nil, config.port)
+    elseif config.device and (#config.device > 0) then
+        for _,v in ipairs(config.device) do
+            self:CreateBuilder(v)
+        end
     else
-        for i,v in ipairs(self:GetOtaDevices()) do
+        for i,v in ipairs(self.project_loader:ListDeviceIds()) do
             self:CreateBuilder(v)
         end
     end
 end
 
-function FirmwareBuilderApp:CreateBuilder(dev_id)
+function FirmwareBuilderApp:CreateBuilder(dev_id, port)
     local config = self.config[CONFIG_KEY_CONFIG]
     loader_class:CreateObject("fairy-node-firmware/firmware-builder", {
         owner = self,
         host_client = self.host_client,
         dev_id = dev_id,
+        port = port,
         rebuild = config.rebuild,
     })
 end
@@ -66,7 +69,7 @@ end
 -------------------------------------------------------------------------------------
 
 function FirmwareBuilderApp:QueryDeviceStatus(device_id)
-    return self.host_client:GetJson(string.format("ota/%s/status", device_id:upper()))
+    return self.host_client:GetJson(string.format("ota/device/%s/status", device_id:upper()))
 end
 
 function FirmwareBuilderApp:GetOtaDevices()
@@ -74,23 +77,26 @@ function FirmwareBuilderApp:GetOtaDevices()
 end
 
 function FirmwareBuilderApp:UploadImage(request)
-    local url_base = string.format("ota/%s", request.device_id:upper())
-    local req = self.host_client:PostJson(url_base .. "/update/prepare", {
+    local url_base = string.format("ota/device/%s", request.device_id:upper())
+    local prepare = self.host_client:PostJson(url_base .. "/update/prepare", {
         image = request.image,
         timestamp = request.timestamp,
         payload_hash = request.payload_hash,
         payload_size = #request.payload,
+        compiler_id = request.compiler_id,
     })
 
-    local req = self.host_client:Post({
-        url = url_base .. "/update/upload/" .. req.key,
+    local req, req_code = self.host_client:Post({
+        url = url_base .. "/update/upload/" .. prepare.key,
         body = request.payload,
         mime_type = "text/plain",
     })
+
+    return req_code == 200
 end
 
 function FirmwareBuilderApp:CommitFwSet(dev_id, fw_set)
-    local url_base = string.format("ota/%s", dev_id:upper())
+    local url_base = string.format("ota/device/%s", dev_id:upper())
     local req = self.host_client:PostJson(url_base .. "/update/commit", {
         device_id = dev_id,
         set = fw_set,
@@ -103,7 +109,9 @@ end
 function FirmwareBuilderApp:PrepareCompiler(worker, dev_info, device_id)
     local config = self.config[CONFIG_KEY_CONFIG]
     local git_commit_id = dev_info.nodeMcu.git_commit_id
-    assert(git_commit_id)
+    if not git_commit_id then
+        return
+    end
 
     if not self.compiler[git_commit_id] then
         local c = {
@@ -122,13 +130,15 @@ function FirmwareBuilderApp:PrepareCompiler(worker, dev_info, device_id)
 
     table.insert(compiler.pending, (coroutine.running()))
 
-    while compiler.pending do
+    if compiler.pending then
         print(worker, "Waiting for compiler git_commit_id=" .. git_commit_id)
-        copas.sleep(10)
+        while compiler.pending do
+            copas.sleep(1)
+        end
     end
 
     assert(compiler.exec_path)
-    return compiler.exec_path
+    return compiler.exec_path, "git:" .. git_commit_id:lower()
 end
 
 function FirmwareBuilderApp:CompilerReady(compiler, object, path)

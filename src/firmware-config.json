@@ -1,4 +1,9 @@
 {
+    "ota_install": [
+        "startup/init.lua",
+        "startup/ota-installer.lua",
+        "startup/init-bootstrap.lua"
+    ],
     "base": {
         "root": [
             "startup/init-bootstrap.lua",

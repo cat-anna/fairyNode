@@ -6,6 +6,50 @@ local json = require "json"
 
 -------------------------------------------------------------------------------------
 
+local ProjectConfig = { }
+ProjectConfig.__index = ProjectConfig
+
+function ProjectConfig:Init(project_path)
+    self.project_path = project_path
+    self.chip_id = { }
+end
+
+function ProjectConfig:AttachConfiguration(config)
+    assert(config)
+    self.current_config = tablex.deepcopy(config)
+end
+
+function ProjectConfig:UniqueDevice(entry)
+    assert(entry)
+    assert(entry.device_id)
+    assert(entry.project)
+    entry.device_id = entry.device_id:upper()
+    assert(self.chip_id[entry.device_id] == nil)
+
+    print(self, "Registering unique project:" .. entry.project ..  " dev_id:" .. entry.device_id)
+
+    entry.name = entry.name or entry.project
+    entry.config = self:GenerateConfig(entry.config)
+    self.chip_id[entry.device_id] = entry
+end
+
+function ProjectConfig:GenerateConfig(config)
+    assert(self.current_config)
+    config = config or { }
+
+    local current_config = self.current_config
+
+    for _,cfg_name in ipairs(current_config.default_set) do
+        if not config[cfg_name] then
+            config[cfg_name] = tablex.deepcopy(current_config.set[cfg_name])
+        end
+    end
+
+    return config
+end
+
+-------------------------------------------------------------------------------------
+
 local FIRMWARE_CONFIG_FILE = "fwconfig.lua"
 
 local CONFIG_KEY_SRC_PATH = "firmware.source.path"
@@ -24,7 +68,15 @@ end
 
 function ProjectModule:Init()
     self.project_path = self.config[CONFIG_KEY_PROJECT_PATH]
-    self.project_config = dofile(self.project_path .. "/project-config.lua")
+
+    self.project_config = setmetatable({ }, ProjectConfig)
+    self.project_config:Init(self.project_path)
+
+    self.project_metadata = dofile(self.project_path .. "/project-config.lua")
+
+    pcall(function()
+        self.project_metadata:Register(self.project_config)
+    end)
 
     self:LoadFirmwareConfig()
 end
