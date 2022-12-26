@@ -12,6 +12,7 @@ function Package.GetConfig(base_path)
             "rest-api/endpoint-cmd",
             "rest-api/endpoint-status",
         },
+        ["rest.log.enable"] = true,
     }
 end
 

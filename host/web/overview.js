@@ -504,6 +504,20 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
     jQuery('<div/>', {
         // id: 'some-id',
         "class": 'OtaTriggerButton',
+        html: 'Restart',
+        "device": entry.name,
+        click: function () {
+            body = {
+                command: 'restart',
+                args: {}
+            }
+            url = "/device/" + $(this).attr("device") + "/command"
+            QueryPostWithConfirm(url, body)
+        }
+    }).appendTo(header);
+    jQuery('<div/>', {
+        // id: 'some-id',
+        "class": 'OtaTriggerButton',
         html: 'Trigger OTA check',
         "device": entry.name,
         click: function () {
@@ -512,7 +526,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
                 args: {}
             }
             url = "/device/" + $(this).attr("device") + "/command"
-            QueryPost(url, body)
+            QueryPostWithConfirm(url, body)
         }
     }).appendTo(header);
     jQuery('<div/>', {
@@ -526,7 +540,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
                 args: {}
             }
             url = "/device/" + $(this).attr("device") + "/command"
-            QueryPost(url, body)
+            QueryPostWithConfirm(url, body)
         }
     }).appendTo(header);
 

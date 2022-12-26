@@ -4,7 +4,7 @@ local restserver_xavante = {}
 local xavante = require("xavante")
 local wsapi = require("wsapi.xavante")
 
-local function start(self)
+local function start(self, logger)
    local rules = {}
    for path, _ in pairs(self.config.paths) do
       -- TODO support placeholders in paths
@@ -14,6 +14,8 @@ local function start(self)
       }
    end
 
+   self.logger = logger
+
    -- HACK: There's no public API to change the server identification
    xavante._VERSION = "SGA"
    xavante.HTTP {
@@ -22,13 +24,13 @@ local function start(self)
          rules = rules
       }
    }
-   
+
    local ok, err = pcall(xavante.start, function()
       io.stdout:flush()
       io.stderr:flush()
       return false
    end, nil)
-   
+
    if not ok then
       return nil, err
    end

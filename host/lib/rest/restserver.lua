@@ -85,8 +85,12 @@ local function fail(self, wreq, code, msg)
    if not output then
       return fail(self, wreq, 500, "Internal Server Error - Server built a response that fails schema validation: "..err)
    end
-   wres:write(output)
 
+   if self.logger then
+      self.logger("Failure", code, msg)
+   end
+
+   wres:write(output)
    return wres:finish()
 end
 
@@ -100,7 +104,10 @@ end
 
 local function wsapi_handler_with_self(self, wsapi_env)
    local wreq = request.new(wsapi_env)
-   print("REST-API:", wreq.method, wsapi_env.PATH_INFO)
+
+   if self.logger then
+      self.logger("Request", wreq.method, wsapi_env.PATH_INFO)
+   end
 
    local methods = self.config.paths["^" .. wsapi_env.PATH_INFO .. "$"] or match_path(self, wsapi_env.PATH_INFO)
    local entry = methods and methods[wreq.method]
@@ -120,6 +127,7 @@ local function wsapi_handler_with_self(self, wsapi_env)
    else
       error("Other methods not implemented yet.")
    end
+
    if not input then
       return fail(self, wreq, 400, "Bad Request - Your request fails schema validation: ".. (err or "?"))
    end
@@ -144,6 +152,9 @@ local function wsapi_handler_with_self(self, wsapi_env)
       response_headers[k] = v
    end
    local wres = response.new(res.config.status, response_headers)
+   if self.logger then
+      self.logger("Response", res.config.status, #output)
+   end
    wres:write(output)
    return wres:finish()
 end

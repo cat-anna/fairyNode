@@ -124,6 +124,12 @@ function QueryPost(sub_url, body, on_data) {
         });
 }
 
+function QueryPostWithConfirm(sub_url, body, on_data) {
+    if (confirm("Are you sure?") == true) {
+        QueryPost(sub_url, body, on_data)
+    }
+}
+
 function QueryPostText(sub_url, body, on_data) {
     console.log("POST TEXT " + sub_url)
     async function getData(url) {
