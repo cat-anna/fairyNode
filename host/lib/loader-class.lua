@@ -45,7 +45,9 @@ function ClassLoader:UpdateBase(class)
     if class.base then
         local base = self:GetClass(class.base)
 
-        base.base_for[class.name] = class
+        if class.name then
+            base.base_for[class.name] = class
+        end
 
         -- base.child_metatable = base.child_metatable or { }
         -- base.child_metatable.__index = base.metatable
@@ -138,17 +140,15 @@ end
 
 -------------------------------------------------------------------------------
 
-function ClassLoader:CreateObject(class_name, object_arg)
-    local class = self:GetClass(class_name)
-    assert(class ~= nil)
-    assert(not class.interface)
-
+function ClassLoader:InitObject(class, class_name, object_arg)
     local obj = {
         uuid = uuid(),
     }
 
     obj = setmetatable(obj, class.metatable)
-    class.instances[obj.uuid] = obj
+    if class.instances then
+        class.instances[obj.uuid] = obj
+    end
 
     obj.config = config_handler:Query(obj.__config)
     self:UpdateObjectDeps(class, obj)
@@ -164,8 +164,33 @@ function ClassLoader:CreateObject(class_name, object_arg)
         SafeCall(function() target:OnObjectCreated(class_name, obj) end)
     end
 
-    printf("CLASS: Create %s name:%s", class.name, tostring(obj))
+    return obj
+end
 
+-------------------------------------------------------------------------------
+
+function ClassLoader:CreateSubObject(overlay_mt, base_class_name, object_arg)
+    overlay_mt.__index = overlay_mt
+    overlay_mt.__type = "class"
+
+    local class = {
+        metatable = overlay_mt,
+        base = base_class_name,
+        name = overlay_mt.__class_name or uuid(),
+    }
+    self:UpdateBase(class)
+
+    local obj = self:InitObject(class, class.name, object_arg)
+    printf("CLASS: Create sub from %s: %s:%s", base_class_name, class.name, tostring(obj))
+    return obj
+end
+
+function ClassLoader:CreateObject(class_name, object_arg)
+    local class = self:GetClass(class_name)
+    assert(class ~= nil)
+    assert(not class.interface)
+    local obj = self:InitObject(class, class_name, object_arg)
+    printf("CLASS: Create %s name:%s", class.name, tostring(obj))
     return obj
 end
 

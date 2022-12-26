@@ -19,7 +19,6 @@ local CONFIG_KEY_EVENT_BUS_LOG_ENABLE = "module.event-bus.log.enable"
 -------------------------------------------------------------------------------
 
 local EventBus = {}
-EventBus.__index = EventBus
 EventBus.__stats = true
 EventBus.__deps = {
     loader_module = "base/loader-module",

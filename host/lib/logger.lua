@@ -181,27 +181,7 @@ local function PrintFormat(args)
     return table.concat(args, " ")
 end
 
-local function ExtractTag(object)
-    if not object then
-        return nil
-    end
-    local tag = object.__log_tag
-    if tag then
-        return tag
-    end
-    local g = object.Tag
-    if g then
-        tag = g(object)
-    else
-        if object.__class_name then
-            tag = object.__class_name
-        else
-            tag = object.__name
-        end
-    end
-    object.__log_tag = tag or object.uuid
-    return tag
-end
+local ExtractTag = ExtractObjectTag
 
 -------------------------------------------------------------------------------
 

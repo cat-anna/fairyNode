@@ -4,6 +4,7 @@ local uuid = require "uuid"
 local copas = require "copas"
 local path = require "pl.path"
 local config_handler = require "lib/config-handler"
+require "lib/ext"
 
 -------------------------------------------------------------------------------
 
@@ -228,7 +229,7 @@ function ModuleLoader:Update()
                 local inst = module.instance
                 local f = inst[f_name]
                 if f then
-                    printf(self, "Calling %s of %s", f_name, inst:Tag())
+                    printf(self, "Calling %s of %s", f_name, ExtractObjectTag(inst) or "?")
                     SafeCall(function() f(inst) end)
                 end
             end

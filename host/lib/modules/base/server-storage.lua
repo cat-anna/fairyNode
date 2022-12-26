@@ -16,7 +16,6 @@ local CONFIG_KEY_LOG_PATH = "logger.path"
 -------------------------------------------------------------------------------
 
 local ServerStorage = {}
-ServerStorage.__index = ServerStorage
 ServerStorage.__deps = { }
 ServerStorage.__config = {
     [CONFIG_KEY_SERVER_STORAGE_CACHE_TTL] =   { type = "number", default = 86400 },
@@ -296,13 +295,13 @@ end
 
 -------------------------------------------------------------------------------
 
-function ServerStorage:InitSensors(sensors)
-    self.storage_sensor = sensors:RegisterSensor{
+function ServerStorage:InitProperties(manager)
+    self.storage_sensor = manager:RegisterSensor{
         owner = self,
-        handler = self,
+        class = "base/property-sensor-proxy",
         name = "Server storage",
         id = "server_storage",
-        nodes = {
+        values = {
             cache_size = { name = "Cache size", datatype = "float", unit = "KiB" },
             cache_entries = { name = "Cache entries", datatype = "integer" },
 

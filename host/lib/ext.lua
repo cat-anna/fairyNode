@@ -248,3 +248,27 @@ function table.setmt__gc(t, mt)
     t[prox] = true
     return setmetatable(t, mt)
 end
+
+
+function ExtractObjectTag(object)
+    if not object then
+        return "<nil>"
+    end
+    local tag = object.__log_tag
+    if tag then
+        return tag
+    end
+    local g = object.Tag
+    if g then
+        tag = g(object)
+    end
+    if not tag then
+        if object.__class_name then
+            tag = object.__class_name
+        else
+            tag = object.__name
+        end
+    end
+    object.__log_tag = tag or object.uuid or "?"
+    return tag
+end

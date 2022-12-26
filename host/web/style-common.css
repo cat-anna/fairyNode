@@ -638,6 +638,20 @@ html {
     font-family: monospace;
 }
 
+.StatTable td {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.StatTable tr {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.StatTable tr:nth-child(odd) {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
 .EvenTableRow {
     background-color: black;
 }

@@ -130,9 +130,9 @@ end
 -------------------------------------------------------------------------------------
 
 local SysInfoSensor = { }
-SysInfoSensor.__index = SysInfoSensor
+SysInfoSensor.__class_name = "SysInfoSensor"
 
-function SysInfoSensor:SensorReadoutFast(sensor, owner)
+function SysInfoSensor:ReadoutFast()
     local system_uptime = LinuxProcUptime()
     local mem_info = LinuxProcMemInfo()
     local self_statm = LinuxProcStatm()
@@ -142,7 +142,7 @@ function SysInfoSensor:SensorReadoutFast(sensor, owner)
     local mem_stat = mem_info.MemAvailable or mem_info.MemFree or
                             {value = 0}
 
-    sensor:UpdateAll{
+    self:UpdateAll{
         lua_mem_usage = LuaMemUsage(),
 
         process_memory = self_statm.size / 1024,
@@ -154,6 +154,9 @@ function SysInfoSensor:SensorReadoutFast(sensor, owner)
         system_memory = mem_stat.value / 1024,
         system_load = load[1],
     }
+end
+
+function SysInfoSensor:ReadoutSlow()
 end
 
 function SysInfoSensor:GetCpuUsage()
@@ -213,13 +216,13 @@ end
 
 -------------------------------------------------------------------------------------
 
-function HealthMonitor:InitSensors(sensors)
-    self.sysinfo_sensor = sensors:RegisterSensor{
+function HealthMonitor:InitProperties(manager)
+    self.sysinfo_sensor = manager:RegisterSensor{
         owner = self,
-        handler = setmetatable({}, SysInfoSensor),
+        class = SysInfoSensor,
         name = "System info",
         id = "sysinfo",
-        nodes = {
+        values = {
             errors = { name = "Active errors", datatype = "string" },
 
             system_uptime = { name = "System uptime", datatype = "float", unit = "s" },

@@ -23,6 +23,7 @@ return {
             service_method = "GetImage"
         },
 
+-------------------------------------------------------------------------------
 -- NEW API --
         {
             method = "POST",
@@ -45,17 +46,12 @@ return {
             produces = "application/json",
             service_method = "CommitFwSet",
         },
+-------------------------------------------------------------------------------
         {
             method = "GET",
             path = "device/{[A-Z0-9]+}/status",
             produces = "application/json",
             service_method = "GetFirmwareStatus",
-        },
-        {
-            method = "GET",
-            path = "device/{[A-Z0-9]+}/image/{[A-Z0-9]+}/{[A-Z0-9]+}",
-            produces = "text/plain",
-            service_method = "GetImageData",
         },
         {
             method = "POST",
@@ -64,17 +60,32 @@ return {
             consumes = "application/json",
             service_method = "CheckUpdate",
         },
+-------------------------------------------------------------------------------
+        {
+            method = "GET",
+            path = "device/{[A-Z0-9]+}/image/{[A-Z0-9]+}",
+            produces = "text/plain",
+            service_method = "GetImageData",
+        },
+-------------------------------------------------------------------------------
         {
             method = "GET",
             path = "list",
             produces = "application/json",
             service_method = "ListOtaDevices",
         },
+-------------------------------------------------------------------------------
         {
             method = "GET",
             path = "storage/check",
             produces = "application/json",
             service_method = "TriggerStorageCheck",
         },
+        -- {
+        --     method = "GET",
+        --     path = "storage/file/{[A-Z0-9:]+}",
+        --     produces = "application/json",
+        --     service_method = "GetStorageFile",
+        -- },
     }
 }
