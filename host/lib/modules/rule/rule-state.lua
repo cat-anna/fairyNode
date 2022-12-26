@@ -140,7 +140,7 @@ end
 
 function RuleState:LoadScript(rule)
     local text_script = string.format(RULE_SCRIPT, rule.text or "")
-    local script, err_msg = loadstring(text_script)
+    local script, err_msg = load(text_script)
     if not script or err_msg then
         print("Failed to load rule script:")
         print(text_script)

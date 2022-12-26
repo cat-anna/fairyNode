@@ -29,6 +29,7 @@ end
 
 -------------------------------------------------------------------------------
 
+local CONFIG_KEY_REST_LOG_ENABLE = "rest.log.enable"
 local CONFIG_KEY_REST_ENDPOINT_LIST = "rest.endpoint.list"
 local CONFIG_KEY_REST_ENDPOINT_PATHS = "rest.endpoint.paths"
 local CONFIG_KEY_REST_PORT = "rest.port"
@@ -108,10 +109,17 @@ end
 
 
 function RestServer:ExecuteServer(task)
+
+    local function HttpLogger(...)
+        if self.logger:Enabled() then
+            self.logger:WriteCsv{ ... }
+        end
+    end
+
     copas.sleep(1)
     if self.server then
         print(self, "Server started")
-        self.server:enable("lib.rest.restserver.xavante"):start()
+        self.server:enable("lib.rest.restserver.xavante"):start(HttpLogger)
         print(self, "Server stopped")
         self.server = nil
         self.server_task = nil
@@ -137,7 +145,7 @@ function RestServer:HandlerModule(module_name, module, handler_name)
                 return
             end
             table.insert(args, request.params or {})
-            code, result, content_type = handler(module, unpack(args))
+            code, result, content_type = handler(module, table.unpack(args))
         end
 
         local s, msg = SafeCall(invoke_func)
@@ -172,6 +180,7 @@ function RestServer:AfterReload()
 end
 
 function RestServer:Init()
+    self.logger = require("lib/logger"):New("http-access", CONFIG_KEY_REST_LOG_ENABLE)
     copas.addthread(function()
         copas.sleep(0.1)
         self:InitServer()

@@ -18,5 +18,5 @@ local function require_alternative(wanted, alternatives)
     error(string.format("No vialbe alternative for %s", wanted))
 end
 
-require_alternative("json", {"cjson", "dkjson"})
+-- require_alternative("json", {"cjson", "dkjson"})
 -- require_alternative("dkjson", {"json", "cjson"})

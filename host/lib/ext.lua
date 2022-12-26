@@ -3,6 +3,8 @@
 local copas = require "copas"
 local coxpcall = require "coxpcall"
 local posix = require "posix"
+local tablex = require "pl.tablex"
+local stringx = require "pl.stringx"
 
 -------------------------------------------------------------------------------
 
@@ -52,7 +54,7 @@ function SafeCall(f, ...)
     local args = { ... }
     local function call() return f(unpack(args)) end
     local function errh(msg)
-        print("Call failed: ", msg)
+        print("Call failed: ", msg, debug.traceback())
         if error_reporter then
             copas.addthread(function()
                 local id = msg:match("([%w%d:%./%-_]+):")
@@ -167,6 +169,32 @@ function string.tohex(str)
     return (str:gsub('.', function (c)
         return string.format('%02X', string.byte(c))
     end))
+end
+
+function table.encode_json_stable(data)
+    local handlers = {
+        ["nil"] = function() return "null" end,
+        ["number"] = function(v) return tostring(v) end,
+        ["string"] = function(v) return stringx.quote_string(v) end,
+        ["boolean"] = function(v) return v and "true" or "false" end,
+        ["table"] = function(v)
+            local t = { }
+            if #v == 0 then
+                local keys = tablex.keys(v)
+                table.sort(keys)
+                for _,k in ipairs(keys) do
+                    table.insert(t, string.format([["%s":%s]], k, table.encode_json_stable(v[k])))
+                end
+                return "{" .. table.concat(t, ",") .. "}"
+            else
+                for i=1,#v  do
+                    t[i] = table.encode_json_stable(v[i])
+                end
+                return "[" .. table.concat(t, ",") .. "]"
+            end
+        end,
+    }
+    return handlers[type(data)](data)
 end
 
 local clock_gettime = posix.clock_gettime

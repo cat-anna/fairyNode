@@ -36,7 +36,7 @@ function ServerStorage:BeforeReload() end
 
 function ServerStorage:AfterReload()
     if self.config.debug then
-        self.json_args = { ident = true }
+        self.json_args = { indent = true }
     else
         self.json_args = nil
     end
