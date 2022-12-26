@@ -11,7 +11,7 @@ end
 
 local function MakeFwSetKey(fw_set)
     local id_text = string.format("%s.%s.%s", fw_set.root, fw_set.lfs, fw_set.config)
-    return sha256(id_text)
+    return sha256(id_text), id_text
 end
 
 local OTA_COMPONENTS = {
@@ -45,6 +45,35 @@ end
 
 -------------------------------------------------------------------------------
 
+function FairyNodeOta:CheckDeviceCommits(db, device_id)
+    -- local device = db.device[device_id]
+    -- local components = device.components
+    -- local firmware = device.firmware
+
+    -- while #firmware.order > 8 do
+    --     local id = table.remove(firmware.order)
+    --     firmware.sets[id] = nil
+    -- end
+
+    -- local needed_images = { }
+    -- for k,v in pairs(firmware.sets) do
+    --     for c_id, hash in pairs(v.components) do
+    --         needed_images[c_id] = needed_images[c_id] or { }
+    --         needed_images[c_id][hash]=true
+    --     end
+    -- end
+
+    -- for c_id,info in pairs(components) do
+    --     local images = info.images
+    --     for _,hash in ipairs(tablex.keys(images)) do
+    --         local needed = needed_images[c_id]
+    --         if (not needed) or (not needed[hash]) then
+    --             images[hash] = nil
+    --         end
+    --     end
+    -- end
+end
+
 function FairyNodeOta:CheckDeviceFiles(db, device_id)
     local device = db.device[device_id]
     if not device then
@@ -52,20 +81,17 @@ function FairyNodeOta:CheckDeviceFiles(db, device_id)
     end
 
     local used_files = { }
-
-    for component_name, component in pairs(device.components) do
-        for image_id, image in pairs(component.images) do
-            used_files[image.file] = true
-        end
+    for _,image_entry in pairs(device.images) do
+        used_files[image_entry.file] = true
     end
 
-    local uploaded_files = db.file
-    for _,file_id in ipairs(tablex.keys(uploaded_files)) do
-        local entry = uploaded_files[file_id]
+    local id = "device:" .. device_id:upper(0)
+
+    for file_id,file_entry in pairs(db.file) do
         if used_files[file_id] then
-            entry.device[device_id] = true
+            file_entry.used_by[id] = true
         else
-            entry.device[device_id] = nil
+            file_entry.used_by[id] = nil
         end
     end
 end
@@ -73,49 +99,17 @@ end
 function FairyNodeOta:CheckFileImage(db, hash)
     local uploaded_files = db.file
     local entry = uploaded_files[hash]
-    local uses = tablex.keys(entry.device)
-    if #uses == 0 then
-        print(self, "File", hash, "is no longer in use. Removing.")
-        uploaded_files[hash] = nil
-        self.storage:RemoveFromStorage(entry.storage_id)
+
+    for _,_ in pairs(entry.used_by) do
+        return
     end
+
+    printf(self, "File %s is no longer in use. Removing.", hash)
+    uploaded_files[hash] = nil
+    self.storage:RemoveFromStorage(entry.storage_id)
 end
 
-function FairyNodeOta:CheckStoredFiles()
-    local db = self:LoadDatabase()
-    local uploaded_files = db.file
-
-    for _,device_id in ipairs(tablex.keys(db.device)) do
-        self:CheckDeviceFiles(db, device_id)
-    end
-    for _,hash in ipairs(tablex.keys(uploaded_files)) do
-        self:CheckFileImage(db, hash)
-    end
-
-    local missed_files = table.shallow_copy(uploaded_files)
-
-    local regex = string.format(OTA_IMAGE_PATTERN:gsub("([%.%-])", "%%%%%1"), "[A-Fa-f0-9%-]+")
-    local found_images = self.storage:FindStorageFiles(regex)
-
-    for _,file_name in ipairs(found_images) do
-        local content = self.storage:GetFromStorage(file_name)
-        local hash = sha256(content)
-        missed_files[hash] = nil
-
-        local entry = uploaded_files[hash]
-        if not entry or entry.storage_id ~= file_name then
-            print(self, "File", file_name, "has no entry in database. Removing file.")
-            self.storage:RemoveFromStorage(file_name)
-        end
-    end
-
-    for hash,_ in pairs(missed_files) do
-        print("File is missing:", hash)
-        uploaded_files[hash] = nil
-    end
-
-    self:SaveDatabase(db)
-end
+-------------------------------------------------------------------------------
 
 function FairyNodeOta:FindHomieDeviceById(device_id)
     local homie_host = loader_module:GetModule("homie/homie-host")
@@ -123,6 +117,8 @@ function FairyNodeOta:FindHomieDeviceById(device_id)
         return homie_host:FindDeviceById(device_id)
     end
 end
+
+-------------------------------------------------------------------------------
 
 function FairyNodeOta:SaveDatabase(db)
     self.storage:WriteObjectToStorage(OTA_DATABASE_NAME, db)
@@ -132,28 +128,88 @@ function FairyNodeOta:LoadDatabase()
     local db = self.storage:GetObjectFromStorage(OTA_DATABASE_NAME)
 
     db = db or {}
-    db.config = db.config or {}
+    -- db.config = db.config or {}
     db.device = db.device or {}
     db.file = db.file or {}
 
     return db
 end
 
-function FairyNodeOta:GetFwDevice(db, device_id, can_create)
+
+function FairyNodeOta:CheckDatabase()
+    local db = self:LoadDatabase()
+    local uploaded_files = db.file
+
+    self:CheckImagesInStorage(db)
+
+    for _,device_id in ipairs(tablex.keys(db.device)) do
+    --     self:CheckDeviceCommits(db, device_id)
+        self:CheckDeviceFiles(db, device_id)
+    end
+    for _,hash in ipairs(tablex.keys(uploaded_files)) do
+        self:CheckFileImage(db, hash)
+    end
+
+    self:SaveDatabase(db)
+end
+
+-------------------------------------------------------------------------------
+
+function FairyNodeOta:GetDeviceById(db, device_id, can_create)
     if can_create and (not db.device[device_id]) then
         db.device[device_id] = {
+            timestamp_create = os.timestamp(),
             firmware = {
                 order = { },
-                sets = { },
+                commits = { },
             },
-            components = {
-                root = {images = {}},
-                lfs = {images = {}},
-                config = {images = {}}
-            }
+            images = {},
         }
     end
     return db.device[device_id]
+end
+
+function FairyNodeOta:GetDeviceImageById(db, device_id, image_hash, can_create)
+    local device = self:GetDeviceById(db, device_id, can_create)
+    if not device then
+        printf(self, "Failed to create device %s", device_id)
+        return
+    end
+
+    if not device.images[image_hash] then
+        device.images[image_hash] = {
+            timestamp_create = os.timestamp(),
+        }
+    end
+
+    return device, device.images[image_hash]
+end
+
+-------------------------------------------------------------------------------
+
+function FairyNodeOta:ReadStoredImage(db, file_hash)
+    db = db or self:LoadDatabase()
+    local uploaded_files = db.file
+
+    local entry = uploaded_files[file_hash]
+    if not entry then
+        printf(self, "There is no file with hash: %s", file_hash)
+        return
+    end
+
+    local data = self.storage:GetFromStorage(entry.storage_id)
+    if not data then
+        printf(self, "Failed to read file with hash: %s", file_hash)
+        return
+    end
+
+    local payload_hash = sha256(data)
+    if file_hash ~= payload_hash then
+        printf(self, "Payload hash mismatch: wanted:%s got:%s", file_hash, payload_hash)
+        return
+    end
+
+    return data, entry
 end
 
 function FairyNodeOta:StoreImage(device_id, payload_hash, payload)
@@ -166,8 +222,8 @@ function FairyNodeOta:StoreImage(device_id, payload_hash, payload)
         local storage_id = string.format(OTA_IMAGE_PATTERN, uuid())
         self.storage:WriteStorage(storage_id, payload)
         file_entry = {
-            device = { },
-            upload_timestamp = os.timestamp(),
+            used_by = { },
+            ["timestamp:upload"] = os.timestamp(),
             storage_id = storage_id,
             size = #payload,
         }
@@ -176,56 +232,90 @@ function FairyNodeOta:StoreImage(device_id, payload_hash, payload)
         print(self, "image ", payload_hash, " was already stored")
     end
 
-    file_entry.device[device_id:upper()] = true
+    file_entry.used_by["device:" .. device_id:upper()] = true
     self:SaveDatabase(db)
     return true
 end
 
+function FairyNodeOta:ReleaseStoredFile(db, device_id, hash)
+    local uploaded_files = db.file
+    local entry =  uploaded_files[hash]
+    if entry then
+        entry.used_by["device:" .. device_id:upper()] = nil
+        self:CheckFileImage(db, hash)
+    end
+end
+
+function FairyNodeOta:CheckImagesInStorage(db)
+    local uploaded_files = db.file
+    local regex = string.format(OTA_IMAGE_PATTERN:gsub("([%.%-])", "%%%%%1"), "[A-Fa-f0-9%-]+")
+    local found_images = self.storage:FindStorageFiles(regex)
+    for _,file_name in ipairs(found_images) do
+        local content = self.storage:GetFromStorage(file_name)
+        local hash = sha256(content)
+
+        local entry = uploaded_files[hash]
+        if not entry or entry.storage_id ~= file_name then
+            print(self, "File", file_name, "has no entry in database. Removing.")
+            self.storage:RemoveFromStorage(file_name)
+        end
+    end
+end
+
 -------------------------------------------------------------------------------------
 
-function FairyNodeOta:GetDeviceStatus(device_id)
+function FairyNodeOta:UploadNewImage(device_id, request, payload)
+    local request_timestamp = request.timestamp
+    local image_hash = request_timestamp.hash
+
     local db = self:LoadDatabase()
-    local fw = self:GetFwDevice(db, device_id, false)
-    if not fw then
+    local device, image = self:GetDeviceImageById(db, device_id, image_hash, true)
+    if not image then
+        printf(self, "Failed to create device/image for %s/%s", device_id, image_hash)
+        return
+    end
+    if image.file then
+        self:ReleaseStoredFile(db, device_id, image.file)
+    end
+
+    image.component = request.image
+    image.file = request.payload_hash
+    image.compiler_id = request.compiler_id
+    image.timestamp_image = request_timestamp.timestamp
+
+    self:SaveDatabase(db)
+
+    return self:StoreImage(device_id, request.payload_hash, payload)
+end
+
+-------------------------------------------------------------------------------------
+
+function FairyNodeOta:GetLatestDeviceFirmwareCommit(db, device_id)
+    db = db or self:LoadDatabase()
+    local device = self:GetDeviceById(db, device_id, false)
+    if not device then
         print(self, "Unknown device ", device_id)
         return
     end
+    local fw_commit_hash = device.firmware.order[1]
+    if fw_commit_hash then
+        return device.firmware.commits[fw_commit_hash], fw_commit_hash
+    end
+end
 
-    local latest_fw_set_key = fw.firmware.order[1]
-    if latest_fw_set_key then
-        local r =  self:GetCommitComponentHash(db, device_id, latest_fw_set_key)
-        if r then
-            return r
-        end
+function FairyNodeOta:GetDeviceStatus(device_id)
+    local db = self:LoadDatabase()
+    local fw_commit, fw_commit_hash = self:GetLatestDeviceFirmwareCommit(db, device_id)
+    if fw_commit_hash then
+        return self:GetCommitComponentHash(db, device_id, fw_commit_hash)
     end
 
-    print(self, "Device ", device_id, " has not firmware commits")
-
-    local r = { }
-
-    -- for k,v in pairs(fw.components) do
-    --     local latest = v.latest
-    --     if latest then
-    --         local image = v.images[latest]
-    --         r[k] = {
-    --             hash = latest,
-    --             timestamp = image.timestamp
-    --         }
-    --     end
-    -- end
-
-    return r
+    printf(self, "Device %s has not firmware commits", device_id)
 end
 
 function FairyNodeOta:GetOtaDevices()
-    local r = {}
     local db = self:LoadDatabase()
-
-    for k,v in pairs(db.device) do
-        r[k] = true
-    end
-
-    return tablex.keys(r)
+    return tablex.keys(db.device)
 end
 
 -------------------------------------------------------------------------------------
@@ -233,103 +323,106 @@ end
 function FairyNodeOta:MarkDeviceBootSuccess(device_id, fw_set)
     local key = MakeFwSetKey(fw_set)
     local db = self:LoadDatabase()
-    local fw = self:GetFwDevice(db, device_id, false)
-    if not fw then
+    local device = self:GetDeviceById(db, device_id, false)
+    if not device then
         return
     end
 
-    local firmware = fw.firmware
-    if firmware.sets[key] then
-        if not firmware.sets[key].boot_successful then
-            firmware.sets[key].boot_successful = true
+    local firmware = device.firmware
+    local commit = firmware.commits[key]
+    if commit then
+        if not commit.boot_successful then
+            commit.boot_successful = true
             print(self, "Marking firmware ", key, " as successful")
             self:SaveDatabase(db)
         end
     end
 end
 
-function FairyNodeOta:AddFirmwareSet(device_id, request)
+function FairyNodeOta:AddFirmwareCommit(device_id, request)
     local db = self:LoadDatabase()
-    local fw = self:GetFwDevice(db, device_id, false)
-    if not fw then
+    local device = self:GetDeviceById(db, device_id, false)
+    if not device then
         return
     end
 
     local key = MakeFwSetKey(request.set)
-    local result = { key = key }
+    local result = { --
+        key = key
+    }
 
-    local firmware = fw.firmware
-    if firmware.sets[key] then
-        print(self, "Firmware ", key, " is already committed for ", device_id)
+    local firmware = device.firmware
+    if firmware.commits[key] then
+        printf(self, "Firmware '%s' already committed for device %s", key,  device_id)
         return result
     end
 
     table.insert(firmware.order, 1, key)
-    firmware.sets[key] = {
+    firmware.commits[key] = {
         components = request.set,
         timestamp = os.timestamp(),
         boot_successful = false,
     }
 
     self:SaveDatabase(db)
-    print(self, "Firmware ", key, " committed for ", device_id)
+    printf(self, "Firmware '%s' committed for %s", key, device_id)
     return result
 end
 
-function FairyNodeOta:UploadNewImage(device_id, request, payload)
-    local db = self:LoadDatabase()
-    local fw = self:GetFwDevice(db, device_id, true)
-
-    fw.components = fw.components or {}
-    local components = fw.components
-    local images = components[request.image]
-    local timestamp = request.timestamp
-
-    if images.images[timestamp.hash] then
-        local entry = images.images[timestamp.hash]
-        self:ReleaseStoredFile(db, device_id, entry.file)
+function FairyNodeOta:GetCommitComponentHash(db, device_id, commit)
+    local device = self:GetDeviceById(db, device_id, false)
+    if not device then
+        return
     end
 
-    images.latest = timestamp.hash
-    images.images[timestamp.hash] = {
-        file = request.payload_hash,
-        timestamp = timestamp.timestamp,
-        compiler_id = request.compiler_id,
-    }
+    local fw_commit = device.firmware.commits[commit]
+    if not fw_commit then
+        printf(self, "Device '%s' is missing commit meta: %s'", device_id, commit)
+        return
+    end
 
-    self:SaveDatabase(db)
-
-    return self:StoreImage(device_id, request.payload_hash, payload)
+    local r = { }
+    for component,image_hash in pairs(fw_commit.components) do
+        local img = device.images[image_hash]
+        if img then
+            r[component] = {
+                timestamp = img.timestamp_image,
+                hash = image_hash,
+            }
+        end
+    end
+    return r
 end
+
+-------------------------------------------------------------------------------------
 
 function FairyNodeOta:GetFirmwareImage(device_id, image_id, image_hash)
     local db = self:LoadDatabase()
-    local fw = self:GetFwDevice(db, device_id)
-
-    local components = fw.components
-    local images = components[image_id]
+    local device = self:GetDeviceById(db, device_id)
+    if not device then
+        printf(self, "Device %s does not exists", device_id)
+        return
+    end
 
     if (not image_hash) or image_hash == "latest" then
-        image_hash = images.latest
+        local fw_commit = self:GetLatestDeviceFirmwareCommit(db, device_id)
+        if not fw_commit then
+            printf(self, "Device %s does not have any commits", device_id)
+            return
+        end
+        image_hash = fw_commit.components[image_id]
     end
 
-    local entry = images.images[image_hash]
+    printf(self, "Using image %s:%s", image_id, image_hash)
+
+    local entry = device.images[image_hash]
     if not entry then
+        printf(self, "There is no image %s:%s for device", image_id, image_hash, device_id)
         return
     end
 
-    local data = self.storage:GetFromStorage(entry.storage_id)
-    if not data then
-        return
-    end
-
-    local payload_hash = sha256(data)
-    if entry.payload_hash ~= payload_hash then
-        print(self, "payload hash mismatch")
-        return
-    end
-
-    return data
+    local file_data, file_entry = self:ReadStoredImage(db, entry.file)
+    return file_data
 end
 
 -------------------------------------------------------------------------------------
@@ -345,6 +438,7 @@ function FairyNodeOta:HandleDeviceStateChange(event)
     end
 
     local fw_status = event.device:GetFirmwareStatus()
+
     local fw_set = { }
     for _,v in ipairs(OTA_COMPONENTS) do
         fw_set[v] = fw_status[v].hash:lower()
@@ -355,43 +449,8 @@ end
 
 FairyNodeOta.EventTable = {
     ["homie-host.device.event.state-change"] = FairyNodeOta.HandleDeviceStateChange,
-    -- ["timer.trigger_fail"] = ErrorHandler.TestFail
 }
 
 -------------------------------------------------------------------------------------
-
-function FairyNodeOta:ReleaseStoredFile(db, device_id, hash)
-    local uploaded_files = db.file
-    local entry =  uploaded_files[hash]
-    if entry then
-        entry.device[device_id] = nil
-        self:CheckFileImage(db, hash)
-    end
-end
-
-function FairyNodeOta:GetCommitComponentHash(db, device_id, commit)
-    local fw = self:GetFwDevice(db, device_id, false)
-    assert(fw)
-
-    local fw_set_info = fw.firmware.sets[commit]
-    if not fw_set_info then
-        print(self, "Device ", device_id, " is missing fw set commit meta:", commit)
-        return
-    end
-
-    local fw_components = fw_set_info.components
-    local images = fw.components
-    local r = { }
-    for component,image_hash in pairs(fw_components) do
-        local img = images[component].images[image_hash]
-        if img then
-            r[component] = {
-                timestamp = img.timestamp,
-                hash = image_hash,
-            }
-        end
-    end
-    return r
-end
 
 return FairyNodeOta

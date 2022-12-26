@@ -609,16 +609,22 @@ function HomieDevice:StartOta(use_force)
     end
 end
 
+function HomieDevice:Restart()
+    self:SendCommand("sys,restart", nil)
+end
+
 function HomieDevice:IsReady()
     return self.state == "ready"
 end
 
 function HomieDevice:IsFairyNodeClient()
-    return self.variables["fw/FairyNode/mode"] == "client"
+    return
+        self.variables["fw/FairyNode/mode"] == "client"
 end
 
 function HomieDevice:GetFirmwareStatus()
     if not self:IsFairyNodeClient() then
+        print(self, "Not a fairy node device")
         return
     end
 
@@ -638,22 +644,20 @@ end
 
 function HomieDevice:GetChipId()
     if not self:IsFairyNodeClient() then
+        print(self, "Not a fairy node device")
         return
     end
     return string.upper(self.variables["hw/chip_id"])
 end
 
 function HomieDevice:GetLfsSize()
-    if not self:IsFairyNodeClient() then
-        return
+    local v = self.variables["fw/NodeMcu/lfs_size"]
+    if v ~= nil then
+        return tonumber(v)
     end
-    return tonumber(self.variables["fw/NodeMcu/lfs_size"])
 end
 
 function HomieDevice:GetNodeMcuCommitId()
-    if not self:IsFairyNodeClient() then
-        return
-    end
     return self.variables["fw/NodeMcu/git_commit_id"]
 end
 

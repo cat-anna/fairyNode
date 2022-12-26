@@ -50,12 +50,9 @@ cd "%s"
 COMMIT_HASH="%s"
 TARGET_NAME="%s"
 
-rm -f "${TARGET_NAME}"
-rm -f luac.cross
 make clean
 
 git fetch --all
-git clean -xdf
 git reset --hard "${COMMIT_HASH}"
 make -C app/lua/luac_cross
 

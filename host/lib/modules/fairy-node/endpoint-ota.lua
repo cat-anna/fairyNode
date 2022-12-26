@@ -4,6 +4,12 @@ return {
     endpoints = {
 -- LEGACY --
         {
+            method = "GET",
+            path = "{[A-Z0-9]+}/status",
+            produces = "application/json",
+            service_method = "GetFirmwareStatus",
+        },
+        {
             method = "POST",
             path = "{[A-Z0-9]+}/status",
             produces = "application/json",

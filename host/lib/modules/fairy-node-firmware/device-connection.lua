@@ -86,7 +86,7 @@ function DeviceConnection:ReceiveThread()
 
         if err then
             if err == "timeout" then
-                print(self, "TIMEOUT")
+                -- print(self, "TIMEOUT")
                 if self.timeout_waiting_thread then
                     local th = self.timeout_waiting_thread
                     self.timeout_waiting_thread = nil
@@ -177,7 +177,7 @@ function DeviceConnection:DetectDevice()
     local commands = {
         heap = [[{free=node.heap()}]],
         hw = [[node.info("hw")]],
-        lfs = [[node.info("lfs")]],
+        -- lfs = [[node.info("lfs")]],
         sw_version = [[node.info("sw_version")]],
         build_config = [[node.info("build_config")]],
         partitions = [[node.getpartitiontable()]],

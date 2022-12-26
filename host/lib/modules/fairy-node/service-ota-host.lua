@@ -61,8 +61,12 @@ function ServiceOta:GetDeviceFirmwareProperties(device_id)
         if homie_dev then
             -- local fw = homie_dev:GetFirmwareStatus()
             result.git_commit_id = homie_dev:GetNodeMcuCommitId()
-            result.lfs_size =  homie_dev:GetLfsSize()
+            result.lfs_size = homie_dev:GetLfsSize()
+        else
+            printf(self, "Failed to find homie device %s", device_id)
         end
+    else
+        printf(self, "No homie host")
     end
     return result
 end
@@ -205,7 +209,7 @@ function ServiceOta:CheckUpdate(request, device_id)
 end
 
 function ServiceOta:CommitFwSet(request, device_id)
-    local r = self.ota_host:AddFirmwareSet(device_id, request)
+    local r = self.ota_host:AddFirmwareCommit(device_id, request)
     if r then
         return http.OK, r
     end
@@ -255,7 +259,7 @@ function ServiceOta:ListOtaDevices(request)
 end
 
 function ServiceOta:TriggerStorageCheck()
-    self.ota_host:CheckStoredFiles()
+    self.ota_host:CheckDatabase()
     return http.OK, { }
 end
 

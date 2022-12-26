@@ -42,6 +42,8 @@ function FirmwareBuilderApp:StartModule()
     self.host_client = require("lib.http-client").New()
     self.host_client:SetHost(config.host)
 
+    -- self:CheckOtaStorage()
+
     if config.port and (#config.port > 0) then
         self:CreateBuilder(nil, config.port)
     elseif config.device and (#config.device > 0) then
@@ -67,6 +69,10 @@ function FirmwareBuilderApp:CreateBuilder(dev_id, port)
 end
 
 -------------------------------------------------------------------------------------
+
+function FirmwareBuilderApp:CheckOtaStorage()
+    self.host_client:GetJson("ota/storage/check")
+end
 
 function FirmwareBuilderApp:QueryDeviceStatus(device_id)
     return self.host_client:GetJson(string.format("ota/device/%s/status", device_id:upper()))

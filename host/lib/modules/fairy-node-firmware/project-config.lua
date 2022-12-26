@@ -6,10 +6,22 @@ local md5 = require "md5"
 local pretty = require 'pl.pretty'
 local file_image = require "lib/file-image"
 local shell = require "lib/shell"
+local tablex = require "pl.tablex"
+local stringx = require "pl.stringx"
 
 -------------------------------------------------------------------------------------
 
 local CONFIG_HASH_NAME = "config_hash.cfg"
+
+local function sha256(data)
+    local sha2 = require "lib/sha2"
+    return "sha256:" .. sha2.sha256(data):lower()
+end
+
+local function md5(data)
+    local md5_lib = require "md5"
+    return md5_lib.sumhexa(data)
+end
 
 -------------------------------------------------------------------------------------
 
@@ -186,7 +198,7 @@ function ProjectMt:Timestamps()
         return self.__timestamps
     end
 
-    print("Preparing timestamps", self.name)
+    print(self, "Preparing timestamps")
     function process(lst)
         local content = {}
         local max = 0
@@ -199,11 +211,23 @@ function ProjectMt:Timestamps()
                 if attr.modification > max then
                     max = attr.modification
                 end
-                table.insert(content, file.read(v))
+
+                local entry = {
+                    v,
+                    sha256(file.read(v))
+                }
+
+                table.insert(content, table.concat(entry, ","))
             end
         end
-        local all_code = table.concat(content, "")
-        return {timestamp = max, hash = md5.sumhexa(all_code)}
+
+        table.sort(content)
+        local all_code = table.concat(content, "\n")
+
+        return {
+            timestamp = max,
+            hash = md5(all_code)
+        }
     end
 
     self.__timestamps = {
@@ -223,27 +247,39 @@ function ProjectMt:GetConfigFileContent(name)
     if type(v) == "string" then
         return v
     else
-        return json.encode(v)
+        local r = table.encode_json_stable(v)
+        json.decode(r)
+        return r
     end
 end
 
 function ProjectMt:GenerateConfigFiles()
+    if self.generated_config then
+        return self.generated_config
+    end
+
     local r = {}
     local all_content = {}
-    for k, _ in pairs(self.config) do
+
+    local keys = tablex.keys(self.config)
+    table.sort(keys)
+    for _, k in ipairs(keys) do
         local name = k .. ".cfg"
         local content = self:GetConfigFileContent(k)
-        -- print("GENERATE:", name, #content)
+        -- print("GENERATE:", name, content)
         r[name] = content
-        table.insert(all_content, name .. "|" .. content)
+        table.insert(all_content, name .. "|" .. sha256(content))
     end
 
     table.sort(all_content)
+    local c = table.concat(all_content, "\n")
+
     r[CONFIG_HASH_NAME] = json.encode({
-        hash = md5.sumhexa(table.concat(all_content, "")),
+        hash = md5(c),
         timestamp = os.time()
     })
 
+    self.generated_config = r
     return r
 end
 
@@ -294,8 +330,7 @@ function ProjectMt:BuildLFS(luac)
         error("Canot generate lfs if not all files are unique!")
     end
 
-    print("Files in lfs: ", #fileList,
-          table.concat(table.sorted(fileList), " "))
+    print("Files in lfs: ", #fileList, table.concat(table.sorted(fileList), " "))
     local result_file = generated_storage:AddFile("lfs.pending.img")
     local args = {"f", o = result_file}
     if not self.chip.config.debug then table.insert(args, "s") end
@@ -332,8 +367,8 @@ end
 
 function ProjectMt:BuildConfigImage()
     local fileList = self:GenerateConfigFiles()
-
     local files = table.keys(fileList)
+    table.sort(files)
     print("Files in config: ", #files, table.concat(files, " "))
     return file_image.Pack(fileList), file_image.VersionHash()
 end

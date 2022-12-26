@@ -10,6 +10,7 @@ function DevSrv:BeforeReload()
 end
 
 function DevSrv:AfterReload()
+    self:RegisterDeviceCommand("restart", function(...) return self:DeviceCommandRestart(...) end)
     self:RegisterDeviceCommand("clear_error", function(...) return self:DeviceCommandClearError(...) end)
     self:RegisterDeviceCommand("force_ota_update", function(...) return self:DeviceCommandOta(true, ...) end)
     self:RegisterDeviceCommand("check_ota_update", function(...) return self:DeviceCommandOta(false, ...) end)
@@ -23,6 +24,11 @@ end
 
 function DevSrv:RegisterDeviceCommand(command, handler)
     self.device_commands[command] = handler
+end
+
+function DevSrv:DeviceCommandRestart(device, command, arg)
+    device:Restart()
+    return http.OK, true
 end
 
 function DevSrv:DeviceCommandClearError(device, command, arg)
@@ -125,9 +131,11 @@ function DevSrv:SendCommand(request, device)
 
     local handler = self.device_commands[request.command]
     if not handler then
+        printf(self, "Command %s is not defined", request.command)
         return http.NotFound
     end
 
+    printf(self, "Triggering command %s for device", device)
     return handler(dev, request.command, request.args)
 end
 
