@@ -36,6 +36,10 @@ local DatatypeParser = {
     number = { to_homie = FormatFloat, from_homie = tonumber },
 }
 
+HomieCommon.FormatBoolean = FormatBoolean
+HomieCommon.FormatInteger = FormatInteger
+HomieCommon.FormatFloat = FormatFloat
+
 function HomieCommon.FromHomieValue(datatype, value)
     local fmt = DatatypeParser[datatype or "?"]
     if not fmt then

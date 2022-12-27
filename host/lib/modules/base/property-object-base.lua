@@ -7,6 +7,10 @@ function ValueMt:GetValue()
     return self.value, self.timestamp
 end
 
+function ValueMt:AddObserver(target)
+    self.observers[target.uuid] = target
+end
+
 -- function SensorNodeMt:Sensor()
 --     return self.sensor.instance
 -- end
@@ -51,6 +55,16 @@ end
 
 function PropertyObject:Tag()
     return self.global_id or "PropertyObject"
+end
+
+-------------------------------------------------------------------------------------
+
+function PropertyObject:ValueKeys()
+    return table.sorted_keys(self.values)
+end
+
+function PropertyObject:GetValue(key)
+    return self.values[key]
 end
 
 -------------------------------------------------------------------------------------
@@ -103,13 +117,16 @@ function PropertyObject:Reset(new_values)
         local existing = prev_values[id] or { }
 
         local value = { }
-        -- value.observers = existing.observers or table.weak()
+        value.observers = existing.observers or table.weak()
 
 --         node.sensor = node.sensor or table.weak{ instance = self }
 
         value.id = id
+        value.name = new_value.name
+
         value.datatype = new_value.datatype
         value.unit = new_value.unit
+
         value.value = new_value.value
         value.timestamp = new_value.timestamp
 
@@ -122,52 +139,70 @@ end
 
 -------------------------------------------------------------------------------------
 
+function PropertyObject:UpdateValue(id, updated_value, timestamp)
+    timestamp = timestamp or os.timestamp()
+
+    local value_object = self.values[id]
+    -- print(self, id, v.value, value, timestamp)
+    if value_object.value ~= updated_value then
+        value_object.value = updated_value
+        value_object.timestamp = timestamp
+        for _,v in pairs(value_object.observers or { }) do
+            self:CallValueObserver(v, value_object)
+        end
+        return value_object
+    end
+end
+
 function PropertyObject:UpdateAll(all)
     local timestamp = os.timestamp()
+    local any = false
     for k,v in pairs(all) do
-        self:Update(k, v, timestamp)
+        local r = self:UpdateValue(k, v, timestamp)
+        any = any or r
+    end
+
+    if any then
+        for _,v in pairs(self.observers or { }) do
+            self:CallPropertyObserver(v)
+        end
     end
 end
 
 function PropertyObject:Update(id, value, timestamp)
-    timestamp = timestamp or os.timestamp()
-
-    local v = self.values[id]
-    -- print(self, id, v.value, value, timestamp)
-    if v.value ~= value then
-        v.value = value
-        v.timestamp = timestamp
-        -- self:CallObserverList(self.observers, v)
-        -- self:CallObserverList(v.observers, v)
+    if self:UpdateValue(id, value, timestamp) then
+        for _,v in pairs(self.observers or { }) do
+            self:CallPropertyObserver(v)
+        end
     end
 end
 
 -------------------------------------------------------------------------------------
 
 function PropertyObject:AddObserver(target)
-    -- self.observers[target.uuid] = target
-    -- for _,v in pairs(self.values) do
-    --     self:CallObserver(target, v)
-    -- end
+    self.observers[target.uuid] = target
+    for _,v in pairs(self.values) do
+        self:CallPropertyObserver(target, v)
+    end
 end
 
--- function PropertyObject:ObserveValue(target, node)
---     self.values[node.id].observers[target.uuid] = target
---     self:CallObserver(target, node)
--- end
+function PropertyObject:ObserveValue(target, value)
+    self.values[value.id].observers[target.uuid] = target
+    self:CallValueObserver(target, value)
+end
 
 -------------------------------------------------------------------------------------
 
-function PropertyObject:CallObserverList(list, value)
-    -- for _,v in pairs(list or { }) do
-    --     self:CallPropertyObserver(v, value)
-    -- end
+function PropertyObject:CallPropertyObserver(target)
+    SafeCall(function ()  --
+        target:OnPropertyChanged(self)
+    end)
 end
 
-function PropertyObject:CallPropertyObserver(target, value)
-    -- SafeCall(function ()  --
-    --     target:OnPropertyChanged(self, value)
-    -- end)
+function PropertyObject:CallValueObserver(target, value)
+    SafeCall(function ()  --
+        target:OnPropertyValueChanged(self, value)
+    end)
 end
 
 -------------------------------------------------------------------------------------

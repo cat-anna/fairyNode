@@ -51,7 +51,9 @@ end
 
 function PropertyManager:Init()
     self.properties_by_id = { }
+
     self.local_sensors = { }
+    self.local_properties = { }
 
 --[[
     self.collection = {
@@ -124,14 +126,13 @@ end
 
 -------------------------------------------------------------------------------
 
--- function PropertyManager:GetGlobalSensorNodeId(sensor, node)
-    -- local group = { "local", "sensor", sensor.id,}
-    -- local full_path = { "local", "sensor", sensor.id, node.id }
-    -- return
-    --     string.format("%s", table.concat(full_path, ".")),
-    --     string.format("%s", table.concat(group, ".")),
-    --     full_path
--- end
+function PropertyManager:GetProperty(global_id)
+    return self.properties_by_id[global_id]
+end
+
+function PropertyManager:GetLocalProperties()
+    return table.sorted_keys(self.local_properties)
+end
 
 -------------------------------------------------------------------------------
 
@@ -231,6 +232,10 @@ function PropertyManager:RegisterProperty(opt)
 
     if object:IsSensor() then
         self.local_sensors[object.global_id] = object
+    end
+
+    if object:IsLocal() then
+        self.local_properties[object.global_id] = object
     end
 
     return object
@@ -357,10 +362,7 @@ function PropertyManager:GetStatistics()
 
     local r = { }
 
-    local sorted_ids = tablex.keys(self.properties_by_id)
-    table.sort(sorted_ids)
-
-    for _,id in ipairs(sorted_ids) do
+    for _,id in ipairs(table.sorted_keys(self.properties_by_id)) do
         -- print(self, id)
         local p = self.properties_by_id[id]
         table.insert(r, {
@@ -371,9 +373,7 @@ function PropertyManager:GetStatistics()
 
         })
 
-        local sorted_vs = tablex.keys(p.values)
-        table.sort(sorted_vs)
-        for _,key in ipairs(sorted_vs) do
+        for _,key in ipairs(table.sorted_keys(p.values)) do
             local v = p.values[key]
             -- print(self, v.global_id)
             table.insert(r, {

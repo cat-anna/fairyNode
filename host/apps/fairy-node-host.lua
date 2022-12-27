@@ -18,10 +18,8 @@ function Package.GetConfig(base_path)
             "base/debugging",
             "base/error-reporter",
             "base/server-storage",
-            "base/sensors",
             "base/health-monitor",
-
-            "base/properties",
+            "base/property-manager",
         },
 
         ["loader.class.paths"] = { path.normpath(base_path .. "/../lib/classes") },

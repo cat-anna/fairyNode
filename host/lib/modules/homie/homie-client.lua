@@ -1,6 +1,8 @@
 local socket = require("socket")
 local tablex = require "pl.tablex"
 local scheduler = require "lib/scheduler"
+local loader_module = require "lib/loader-module"
+local loader_class = require "lib/loader-class"
 
 -------------------------------------------------------------------------------
 
@@ -14,119 +16,11 @@ end
 
 -------------------------------------------------------------------------------
 
-local NodeObject = {}
-NodeObject.__index = NodeObject
-
-function NodeObject:Init()
-end
-
--- function NodeObject:SetValue(property, value)
---     self.properties[property]:SetValue(value)
--- end
-
-function NodeObject:Topic(t)
-    if not t then
-        return self.base_topic
-    else
-        return string.format("%s/%s", self.base_topic, t)
-    end
-end
-
-function NodeObject:PushMessage(q, topic, payload)
-    table.insert(q, {
-        topic = self:Topic(topic),
-        payload = payload,
-        retain = self.retained,
-        qos = self.qos,
-    })
-end
-
-function NodeObject:GetAllMessages(q)
-    for _,v in pairs(self.properties) do
-        v:GetAllMessages(q)
-    end
-    self:PushMessage(q, "$name", self.name)
-    self:PushMessage(q, "$properties", table.concat(tablex.keys(self.properties), ","))
-    return q
-end
+-- local NodeObject = {}
+-- local PropertyMT = {}
 
 -------------------------------------------------------------------------------
-
-local PropertyMT = {}
-PropertyMT.__index = PropertyMT
-
-function PropertyMT:Init()
-end
-
-function PropertyMT:Topic(t)
-    if not t then
-        return self.base_topic
-    else
-        return string.format("%s/%s", self.base_topic, t)
-    end
-end
-
-function PropertyMT:PushMessage(q, topic, payload)
-    table.insert(q, {
-        topic = self:Topic(topic),
-        payload = payload,
-        retain = self.retained,
-        qos = self.qos,
-    })
-end
-
-function PropertyMT:AddValueMessage(q)
-    if self.value ~= nil then
-        if self.timestamp ~= nil then
-            self:PushMessage(q, "$timestamp", self.homie_common.ToHomieValue("float", self.timestamp) )
-        end
-        self:PushMessage(q, nil, self.homie_common.ToHomieValue(self.datatype, self.value) )
-    end
-end
-
-function PropertyMT:GetAllMessages(q)
-    local passthrough_entries = {
-        "datatype", "name", "unit",
-    }
-
-    --TODO check/transform datatype
-
-    for _,id in ipairs(passthrough_entries) do
-        local value = self[id] or ""
-        self:PushMessage(q, "$" .. id, value)
-    end
-
-    self:PushMessage(q, "$retained", tostring(self.retained))
-    self:PushMessage(q, "$settable", "false") --tostring(boolean(self.handler)))
-    self:AddValueMessage(q)
-    return q
-end
-
-function PropertyMT:SetValue(value, timestamp)
-    self.timestamp = timestamp or os.gettime()
-    self.value = value
-
-    if self.controller:IsReady() then
-        local q = { }
-        self:AddValueMessage(q)
-        self.controller:BatchPublish(q)
-    end
-end
-
--- function PropertyMT:ImportValue(topic, payload)
---     print(string.format("HOMIE: Importing value %s.%s=%s", self.node.id, self.id, payload))
---     if not self.handler then
---         print("HOMIE: no handler for " .. topic)
---         return
---     end
---     self:SetValue(self.homie_common.FromHomieValue(self.datatype, payload))
---     if self.handler.SetNodeValue then
---         self.handler:SetNodeValue(topic, payload, self.node.id, self.id, self.value)
---     end
--- end
-
--------------------------------------------------------------------------------
-
+--
 local CONFIG_KEY_HOMIE_NAME = "module.homie-client.name"
 
 -------------------------------------------------------------------------------
@@ -138,7 +32,7 @@ HomieClient.__deps = {
     mqtt = "mqtt/mqtt-client",
     event_bus = "base/event-bus",
     homie_common = "homie/homie-common",
-    loader_module = "base/loader-module"
+    property_manager = "base/property-manager",
 }
 HomieClient.__config = {
     [CONFIG_KEY_HOMIE_NAME] = { type = "string", default = socket.dns.gethostname(), required = true },
@@ -178,7 +72,7 @@ function HomieClient:Init()
     self.state = ClientStates.unknown
     self.app_started = false
 
-    self.nodes = table.weak()
+    self.nodes = { }
 
     self.mqtt:SetLastWill{
         topic = self:Topic("$state"),
@@ -223,7 +117,7 @@ end
 -------------------------------------------------------------------------------
 
 function HomieClient:GetClientMode()
-    if self.loader_module:GetModule("homie/homie-host") then
+    if loader_module:GetModule("homie/homie-host") then
         return "host"
     else
         return "client"
@@ -245,7 +139,7 @@ end
 
 function HomieClient:GetReadyMessages()
     local q = { }
-    self:PushMessage(q, "$nodes", table.concat(tablex.keys(self.nodes), ","))
+    self:PushMessage(q, "$nodes", table.concat(table.sorted_keys(self.nodes), ","))
     self:PushMessage(q, "$state", self.homie_common.States.ready)
     return q
 end
@@ -263,78 +157,95 @@ end
 function HomieClient:AreNodesReady()
     local r = { }
     for k,v in pairs(self.nodes) do
-        if not v.ready then
+        if not v:GetReady() then
+            print(self, "Node ", v, " is not ready")
             table.insert(r,k)
         end
     end
     return (#r == 0), r
 end
 
-function HomieClient:AddNode(node_name, node)
-    if self:IsReady() then
-        printf(self, "Client is ready. Resetting for node update")
-        self:ResetState()
-    end
+-- function HomieClient:AddNode(node_name, node)
+--     if self:IsReady() then
+--         printf(self, "Client is ready. Resetting for node update")
+--         self:ResetState()
+--     end
 
-    self.nodes[node_name] = node
+--     self.nodes[node_name] = node
 
-    -- node = {
-    --     ready = true,
-    --     name = "some prop name",
-    --     properties = {
-    --         temperature = {
-    --             unit = "...", datatype = "...", name = "...", handler = ...,
-    --         }
-    --     }
-    -- }
+--     -- node = {
+--     --     ready = true,
+--     --     name = "some prop name",
+--     --     properties = {
+--     --         temperature = {
+--     --             unit = "...", datatype = "...", name = "...", handler = ...,
+--     --         }
+--     --     }
+--     -- }
 
-    node.id = node_name
-    node.properties = node.properties or {}
-    node.controller = self
-    node.base_topic = string.format("%s/%s", self.base_topic, node_name)
-    if node.retained == nil then
-        node.retained = self.retained
-    else
-        node.retained = boolean(node.retained)
-    end
+--     node.id = node_name
+--     node.properties = node.properties or {}
+--     node.controller = self
+--     node.base_topic = string.format("%s/%s", self.base_topic, node_name)
+--     if node.retained == nil then
+--         node.retained = self.retained
+--     else
+--         node.retained = boolean(node.retained)
+--     end
 
-    local has_owner = node.owner ~= nil
+--     local has_owner = node.owner ~= nil
 
-    for prop_name,property in pairs(node.properties) do
-        printf(self, "Adding node %s.%s", node_name or "?", prop_name or "?")
+--     for prop_name,property in pairs(node.properties) do
+--         printf(self, "Adding node %s.%s", node_name or "?", prop_name or "?")
 
-        property.id = prop_name
-        property.controller = self
-        property.node = node
-        property.owner = node.owner
-        property.homie_common = self.homie_common
-        property.base_topic = string.format("%s/%s", node.base_topic, prop_name)
+--         property.id = prop_name
+--         property.controller = self
+--         property.node = node
+--         property.owner = node.owner
+--         property.homie_common = self.homie_common
+--         property.base_topic = string.format("%s/%s", node.base_topic, prop_name)
 
-        if property.retained == nil then
-            property.retained = self.retained
-        else
-            property.retained = boolean(node.retained)
-        end
+--         if property.retained == nil then
+--             property.retained = self.retained
+--         else
+--             property.retained = boolean(node.retained)
+--         end
 
-        if property.handler then
-            if not has_owner then
-                error("Node has no owner, but has settable property")
-            end
+--         if property.handler then
+--             if not has_owner then
+--                 error("Node has no owner, but has settable property")
+--             end
 
-            -- property.settable = true
-            -- print("HOMIE: Settable address:", settable_topic)
-            -- local function proxy_handler(topic, payload)
-            --     return property:ImportValue(topic, payload)
-            -- end
-            -- self.mqtt:Watch_Topic(...)
-        end
+--             -- property.settable = true
+--             -- print("HOMIE: Settable address:", settable_topic)
+--             -- local function proxy_handler(topic, payload)
+--             --     return property:ImportValue(topic, payload)
+--             -- end
+--             -- self.mqtt:Watch_Topic(...)
+--         end
 
-        setmetatable(property, PropertyMT)
-        property:Init()
-    end
+--         setmetatable(property, PropertyMT)
+--         property:Init()
+--     end
 
-    setmetatable(node, NodeObject)
-    node:Init()
+--     setmetatable(node, NodeObject)
+--     node:Init()
+--     return node
+-- end
+
+function HomieClient:CreateNode(opt)
+    opt.controller = self
+    opt.homie_client = self
+    -- retained = self.retained,
+    -- qos = self.qos,
+
+    local node = loader_class:CreateObject(opt.class or "homie/homie-client-node", opt)
+    local id = node:GetId()
+
+    assert(self.nodes[id] == nil)
+    self.nodes[id] = node
+    print(self, "Added node", id)
+
     return node
 end
 
@@ -344,13 +255,21 @@ function HomieClient:PushMessage(q, topic, payload)
     table.insert(q, {
         topic = self:Topic(topic),
         payload = payload,
-        retain = self.retained,
-        qos = self.qos,
+        retain = self:GetRetained(),
+        qos = self:GetQos(),
     })
 end
 
 function HomieClient:BatchPublish(queue)
     self.mqtt:BatchPublish(queue)
+end
+
+function HomieClient:GetRetained()
+    return self.retained
+end
+
+function HomieClient:GetQos()
+    return self.qos
 end
 
 -------------------------------------------------------------------------------
@@ -380,12 +299,22 @@ function HomieClient:OnEnterInit()
 end
 
 function HomieClient:HandleInitState()
-    self.loader_module:EnumerateModules(
-        function(name, module)
-            if module.InitHomieNode then
-                module:InitHomieNode(self)
-            end
-        end)
+
+    for _,gid in ipairs(self.property_manager:GetLocalProperties()) do
+        local opt = {
+            local_property_global_id = gid,
+            local_property = self.property_manager:GetProperty(gid),
+            class = "homie/homie-client-local-property-node",
+        }
+        self:CreateNode(opt)
+    end
+
+    -- self.loader_module:EnumerateModules(
+    --     function(name, module)
+    --         if module.InitHomieNode then
+    --             module:InitHomieNode(self)
+    --         end
+    --     end)
 
     self:EnterState(ClientStates.goto_ready)
 end

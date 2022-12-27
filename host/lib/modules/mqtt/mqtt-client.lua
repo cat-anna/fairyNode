@@ -203,7 +203,7 @@ function MqttClient:OnMqttMessage(backend, message)
 
     entry.message = message
 
-    self:MqttLog("message", message.topic, message.payload, message.retain, message.qos)
+    self:MqttLog("message", message.topic, message.payload, message.retain, message.qos, message.timestamp)
     self:NotifyWatchers(message)
 
     -- self.event_bus:PushEvent({
