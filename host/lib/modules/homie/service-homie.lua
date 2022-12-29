@@ -3,7 +3,7 @@ local http = require "lib/http-code"
 local DevSrv = {}
 DevSrv.__index = DevSrv
 DevSrv.__deps = {
-    device = "homie/homie-host"
+    homie_host = "homie/homie-host"
 }
 
 function DevSrv:BeforeReload()
@@ -41,21 +41,24 @@ function DevSrv:DeviceCommandOta(use_force, device, command, arg)
     return http.OK, true
 end
 
--------
+-------------------------------------------------------------------------------------
 
 function DevSrv:ListDevices(request)
-    local devs = self.device:GetDeviceList()
-
     local result = { }
-    for _,dev_name in ipairs(devs) do
+    for _,dev_name in ipairs(self.homie_host:GetDeviceList()) do
         local r = {}
         table.insert(result, r)
 
-        local dev = self.device:GetDevice(dev_name)
+        local dev = self.homie_host:GetDevice(dev_name)
 
-        r.name = dev.name
-        r.state = dev.state
-        r.nodes = dev.nodes
+        r.name = dev:GetName()
+        r.id = dev:GetId()
+        r.state = dev:GetState()
+
+        -- r.uptime = 0
+        -- State	Errors	Uptime	LFS timestamp	NodeMCU | FairyNode version	Signal
+
+        r.nodes = dev:GetNodesSummary()
         r.variables = dev.variables
     end
 
@@ -63,28 +66,40 @@ function DevSrv:ListDevices(request)
 end
 
 function DevSrv:GetProperty(request, device, node, property)
-    local dev = self.device:GetDevice(device)
-    local node = dev.nodes[node]
-    local prop = {}
-    for k,v in pairs(node.properties[property]) do
-        if k[1] ~= "_" and k ~= "history" then
-            prop[k] = v
-        end
-    end
-    return http.OK, prop
+    return http.BadRequest, {}
+    -- local dev = self.homie_host:GetDevice(device)
+    -- local node = dev.nodes[node]
+    -- local prop = {}
+    -- for k,v in pairs(node.properties[property]) do
+    --     if k[1] ~= "_" and k ~= "history" then
+    --         prop[k] = v
+    --     end
+    -- end
+    -- return http.OK, prop
 end
 
 function DevSrv:SetProperty(request, device, node, property)
     if request.value == nil then
-        return http.NotAcceptable
+        return http.NotAcceptable, false
     end
 
-    local dev = self.device:GetDevice(device)
-    local node = dev.nodes[node]
-    local prop = node.properties[property]
+    local dev = self.homie_host:GetDevice(device)
+    if not dev then
+        return http.BadRequest, false
+    end
 
-    if not prop.settable then
-        return http.Forbidden
+    local node = dev.nodes[node]
+    if not node then
+        return http.BadRequest, false
+    end
+
+    local prop = node.properties[property]
+    if not prop then
+        return http.BadRequest, false
+    end
+
+    if not prop:IsSettable() then
+        return http.Forbidden, false
     end
 
     prop:SetValue(request.value)
@@ -93,59 +108,64 @@ function DevSrv:SetProperty(request, device, node, property)
 end
 
 function DevSrv:GetPropertyHistory(request, device, node_name, property_name)
-    local dev = self.device:GetDevice(device)
+    local dev = self.homie_host:GetDevice(device)
     if not dev then
         return http.BadRequest, {}
     end
-    local node = dev.nodes[node_name]
-    local prop = node.properties[property_name]
-    return http.OK, {
-        label = node.name .. " - " .. prop.name,
-        timestamp = os.time(),
-        history = dev:GetHistory(node_name, property_name)
-    }
+    -- local node = dev.nodes[node_name]
+    -- local prop = node.properties[property_name]
+    return http.BadRequest, {}
+    -- return http.OK, {
+    --     label = node.name .. " - " .. prop.name,
+        -- timestamp = os.timestamp(),
+    --     history = dev:GetHistory(node_name, property_name)
+    -- }
 end
 
 function DevSrv:GetNode(request, device, node)
-    local dev = self.device:GetDevice(device)
-    local node = dev.nodes[node]
-    return http.OK, node
+    -- local dev = self.device:GetDevice(device)
+    -- local node = dev.nodes[node]
+    -- return http.OK, node
+    return http.BadRequest, {}
 end
 
 function DevSrv:DeleteDevice(request, device)
-    local dev = self.device:GetDevice(device)
-    if not dev then
-        printf("SERVICE-HOMIE: Cannot remove non-existing device '%s'", device)
-        return http.BadRequest, {}
-    end
+    return http.BadRequest, {}
+    -- local dev = self.device:GetDevice(device)
+    -- if not dev then
+    --     printf("SERVICE-HOMIE: Cannot remove non-existing device '%s'", device)
+    --     return http.BadRequest, {}
+    -- end
 
-    if not self.device:DeleteDevice(device) then
-        return http.ServiceUnavailable, {}
-    end
+    -- if not self.device:DeleteDevice(device) then
+    --     return http.ServiceUnavailable, {}
+    -- end
 
-    return http.OK, {}
+    -- return http.OK, {}
 end
 
 function DevSrv:SendCommand(request, device)
-    local dev = self.device:GetDevice(device)
+    return http.BadRequest, {}
+    -- local dev = self.homie_host:GetDevice(device)
 
-    local handler = self.device_commands[request.command]
-    if not handler then
-        printf(self, "Command %s is not defined", request.command)
-        return http.NotFound
-    end
+    -- local handler = self.device_commands[request.command]
+    -- if not handler then
+    --     printf(self, "Command %s is not defined", request.command)
+    --     return http.NotFound
+    -- end
 
-    printf(self, "Triggering command %s for device", device)
-    return handler(dev, request.command, request.args)
+    -- printf(self, "Triggering command %s for device", device)
+    -- return handler(dev, request.command, request.args)
 end
 
 function DevSrv:GetCommandResult(request, device)
-    local dev = self.device:GetDevice(device)
-    local r = self["last_command_result_" .. dev.id]
-    self["last_command_result_" .. dev.id]  = nil
-    return http.OK, r
+    return http.BadRequest, {}
+    -- local dev = self.device:GetDevice(device)
+    -- local r = self["last_command_result_" .. dev.id]
+    -- self["last_command_result_" .. dev.id]  = nil
+    -- return http.OK, r
 end
 
--------
+-------------------------------------------------------------------------------------
 
 return DevSrv

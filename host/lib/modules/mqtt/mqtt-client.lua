@@ -272,7 +272,26 @@ function MqttClient:StopWatching(target)
     end
 end
 
-function MqttClient:WatchTopic(target, handler, topics)
+function MqttClient:FetchCached(topics)
+    if type(topics) == "string" then
+        topics = { topics }
+    end
+
+    local r = { }
+
+    for _,mqtt_regex in ipairs(topics) do
+        local regex = topic2regexp(mqtt_regex)
+        for topic,cache in pairs(self.cache) do
+            if topic:match(regex) and cache.message then
+                table.insert(r, m)
+            end
+        end
+    end
+
+    return r
+end
+
+function MqttClient:WatchTopic(target, handler, topics, single_shot)
     if type(topics) == "string" then
         topics = { topics }
     end
@@ -288,6 +307,7 @@ function MqttClient:WatchTopic(target, handler, topics)
             entry.watchers = table.weak_keys()
         end
         entry.watchers[target.uuid] = table.weak_values({
+            single_shot = single_shot,
             target = target,
             handler = handler,
         })
@@ -295,11 +315,14 @@ function MqttClient:WatchTopic(target, handler, topics)
         if entry.message then
             local m = entry.message
             SafeCall(handler, target, topic, m.payload, m.timestamp, m)
+            if single_shot then
+                entry.watchers[target.uuid] = nil
+            end
         end
     end
 end
 
-function MqttClient:WatchRegex(target, handler, topics)
+function MqttClient:WatchRegex(target, handler, topics, single_shot)
     if type(topics) == "string" then
         topics = { topics }
     end
@@ -318,6 +341,7 @@ function MqttClient:WatchRegex(target, handler, topics)
         end
 
         entry.watchers[target.uuid] = table.weak_values({
+            single_shot = single_shot,
             target = target,
             handler = handler,
         })
@@ -326,6 +350,9 @@ function MqttClient:WatchRegex(target, handler, topics)
             if topic:match(entry.regex) and cache.message then
                 local m = cache.message
                 SafeCall(handler, target, topic, m.payload, m.timestamp, m)
+                if single_shot then
+                    entry.watchers[target.uuid] = nil
+                end
             end
         end
     end
@@ -346,12 +373,23 @@ function MqttClient:NotifyWatchers(message)
 end
 
 function MqttClient:CallWatchers(watchers, message)
+    local expired = { }
     for uuid,entry in pairs(watchers) do
         if entry.target and entry.handler then
             scheduler.CallLater(function()
                 entry.handler(entry.target, message.topic, message.payload, message.timestamp, message)
             end)
+        else
+            table.insert(expired, uuid)
         end
+        if entry.single_shot then
+            table.insert(expired, uuid)
+        end
+    end
+
+    for _,v in ipairs(expired) do
+        print(self, "Watcher expired", v)
+        watchers[v] = nil
     end
 end
 

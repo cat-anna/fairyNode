@@ -129,6 +129,12 @@ function table.sorted(t, comp)
     return r
 end
 
+function table.sorted_keys(t)
+    local k = tablex.keys(t)
+    table.sort(k)
+    return k
+end
+
 function table.weak_values(t)
     return setmetatable(t or {}, { __mode="v" })
 end
@@ -271,4 +277,13 @@ function ExtractObjectTag(object)
     end
     object.__log_tag = tag or object.uuid or "?"
     return tag
+end
+
+function NotImplemented(txt)
+    -- print(debug.traceback("Not implemented " .. (txt or "")))
+    -- print(, )
+end
+
+function AbstractMethod()
+    assert(false, "Abstract method called")
 end

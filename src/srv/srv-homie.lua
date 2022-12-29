@@ -81,11 +81,10 @@ function Module:PublishBaseInfo()
     self:Publish("/$localip", wifi.sta.getip() or "")
     self:Publish("/$mac", wifi.sta.getmac() or "")
 
-    self:Publish("/$implementation", "fairyNode")
-    self:Publish("/$fw/name", "fairyNode")
-    self:Publish("/$fw/FairyNode/mode", "client")
-    self:Publish("/$fw/FairyNode/os", "esp8266")
-    self:Publish("/$fw/FairyNode/version", "0.0.4")
+    self:Publish("/$implementation", "FairyNode")
+    self:Publish("/$fw/name", "FairyNode")
+    self:Publish("/$fw/FairyNode/mode", "esp8266")
+    self:Publish("/$fw/FairyNode/version", "0.0.8")
 
     for k,v in pairs(require "fairy-node-info") do
         self:Publish("/$fw/FairyNode/" .. k, v)

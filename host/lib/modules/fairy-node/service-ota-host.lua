@@ -57,7 +57,7 @@ end
 function ServiceOta:GetDeviceFirmwareProperties(device_id)
     local result = { }
     if self.homie_host then
-        local homie_dev = self.homie_host:FindDeviceById(device_id)
+        local homie_dev = self.homie_host:FindDeviceByHardwareId(device_id)
         if homie_dev then
             -- local fw = homie_dev:GetFirmwareStatus()
             result.git_commit_id = homie_dev:GetNodeMcuCommitId()
@@ -80,7 +80,7 @@ fw/FairyNode/config/hash
 function ServiceOta:GetDeviceCurrentFirmware(device_id)
     local result = { }
     if self.homie_host then
-        local homie_dev = self.homie_host:FindDeviceById(device_id)
+        local homie_dev = self.homie_host:FindDeviceByHardwareId(device_id)
         if homie_dev then
             result.lfs = homie_dev:GetInfoValue("fw/FairyNode/lfs/hash")
             result.root = homie_dev:GetInfoValue("fw/FairyNode/root/hash")

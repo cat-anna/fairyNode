@@ -35,7 +35,7 @@ HomieClient.__deps = {
     property_manager = "base/property-manager",
 }
 HomieClient.__config = {
-    [CONFIG_KEY_HOMIE_NAME] = { type = "string", default = socket.dns.gethostname(), required = true },
+    [CONFIG_KEY_HOMIE_NAME] = { type = "string", required = true },
 }
 
 -------------------------------------------------------------------------------
@@ -99,6 +99,16 @@ end
 function HomieClient:StartModule()
     print(self, "Starting")
     self.app_started = true
+
+    for _,gid in ipairs(self.property_manager:GetLocalProperties()) do
+        local opt = {
+            local_property_global_id = gid,
+            local_property = self.property_manager:GetProperty(gid),
+            class = "homie/homie-client-local-property-node",
+        }
+        self:CreateNode(opt)
+    end
+
     self:ResetState()
 end
 
@@ -157,7 +167,7 @@ end
 function HomieClient:AreNodesReady()
     local r = { }
     for k,v in pairs(self.nodes) do
-        if not v:GetReady() then
+        if not v:IsReady() then
             print(self, "Node ", v, " is not ready")
             table.insert(r,k)
         end
@@ -239,7 +249,7 @@ function HomieClient:CreateNode(opt)
     -- retained = self.retained,
     -- qos = self.qos,
 
-    local node = loader_class:CreateObject(opt.class or "homie/homie-client-node", opt)
+    local node = loader_class:CreateObject(opt.class or "homie/common/base-node", opt)
     local id = node:GetId()
 
     assert(self.nodes[id] == nil)
@@ -255,7 +265,7 @@ function HomieClient:PushMessage(q, topic, payload)
     table.insert(q, {
         topic = self:Topic(topic),
         payload = payload,
-        retain = self:GetRetained(),
+        retain = self:IsRetained(),
         qos = self:GetQos(),
     })
 end
@@ -264,12 +274,16 @@ function HomieClient:BatchPublish(queue)
     self.mqtt:BatchPublish(queue)
 end
 
-function HomieClient:GetRetained()
+function HomieClient:IsRetained()
     return self.retained
 end
 
 function HomieClient:GetQos()
     return self.qos
+end
+
+function HomieClient:GetGlobalId()
+    return "HomieClient"
 end
 
 -------------------------------------------------------------------------------
@@ -299,16 +313,6 @@ function HomieClient:OnEnterInit()
 end
 
 function HomieClient:HandleInitState()
-
-    for _,gid in ipairs(self.property_manager:GetLocalProperties()) do
-        local opt = {
-            local_property_global_id = gid,
-            local_property = self.property_manager:GetProperty(gid),
-            class = "homie/homie-client-local-property-node",
-        }
-        self:CreateNode(opt)
-    end
-
     -- self.loader_module:EnumerateModules(
     --     function(name, module)
     --         if module.InitHomieNode then

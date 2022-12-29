@@ -26,7 +26,7 @@ ClassLoader.__deps = {
 function ClassLoader:FindClassFile(class_name)
    local fn = fs.FindScriptByPathList(class_name, self.config[CONFIG_KEY_CLASS_PATHS], self.config[CONFIG_KEY_MODULE_PATHS])
     if not fn then
-        printf("CLASS: Failed to find source for class %s", class_name)
+        printf("CLASS: Failed to find source for class '%s'", class_name)
     end
     return fn
 end
@@ -100,7 +100,16 @@ function ClassLoader:ReloadClass(class)
 end
 
 function ClassLoader:UpdateObjectDeps(class, object)
-    return self.loader_module:UpdateObjectDeps(object)
+
+    local deps = class.metatable.__deps
+    if deps then
+        self.loader_module:UpdateObjectDeps(object, deps)
+    end
+
+    if class.base then
+        local base = self:GetClass(class.base)
+        self:UpdateObjectDeps(base, object)
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -155,6 +164,9 @@ function ClassLoader:InitObject(class, class_name, object_arg)
 
     if obj.Init then
         obj:Init(object_arg)
+    end
+    if obj.PostInit then
+        obj:PostInit()
     end
     if obj.AfterReload then
         obj:AfterReload()

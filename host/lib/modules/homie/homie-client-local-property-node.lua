@@ -5,8 +5,8 @@
 local HomieLocalProperty = {}
 HomieLocalProperty.__class_name = "HomieLocalProperty"
 HomieLocalProperty.__type = "class"
-HomieLocalProperty.__base = "homie/homie-client-node"
-HomieLocalProperty.__deps = { }
+HomieLocalProperty.__base = "homie/common/base-node"
+-- HomieLocalProperty.__deps = { }
 
 -------------------------------------------------------------------------------------
 

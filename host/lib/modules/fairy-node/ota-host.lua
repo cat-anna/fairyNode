@@ -114,7 +114,7 @@ end
 function FairyNodeOta:FindHomieDeviceById(device_id)
     local homie_host = loader_module:GetModule("homie/homie-host")
     if homie_host then
-        return homie_host:FindDeviceById(device_id)
+        return homie_host:FindDeviceByHardwareId(device_id)
     end
 end
 

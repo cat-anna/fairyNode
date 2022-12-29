@@ -27,7 +27,6 @@ local CONFIG_KEY_SENSOR_SLOW_INTERVAL =   "module.property.sensor.interval.slow"
 local PropertyManager = {}
 PropertyManager.__stats = true
 PropertyManager.__deps = {
-    -- sensor_handler = "base/sensors",
     -- server_storage = "base/server-storage",
     -- mongo_connection = "mongo/mongo-connection",
 }
@@ -196,14 +195,13 @@ end
 
 function PropertyManager:RegisterRemoteProperty(opt)
     opt.property_type = PROPERTY_TYPE_REMOTE
+    opt.class = "base/property-object-remote"
     return self:RegisterProperty(opt)
 end
 
 local function CreatePropertyObject(opt)
     local base_class = "base/property-object-base"
-    if not opt.class then
-        opt.class = base_class
-    end
+    opt.class = opt.class or base_class
 
     local t = type(opt.class)
     if t == "string" then
@@ -216,13 +214,17 @@ local function CreatePropertyObject(opt)
 end
 
 function PropertyManager:RegisterProperty(opt)
-    opt.property_type =  opt.property_type or PROPERTY_TYPE_LOCAL
+    opt.property_type = opt.property_type or PROPERTY_TYPE_LOCAL
     opt.readout_mode = opt.readout_mode or PROPERTY_MODE_PASSIVE
 
-    opt.global_id = string.format("%s.%s.%s",
-            opt.readout_mode,
-            opt.property_type,
-            opt.id)
+    local property_type = opt.property_type
+    if property_type == PROPERTY_TYPE_REMOTE and opt.remote_name then
+        property_type = opt.remote_name
+    end
+
+    opt.global_id = string.format("%s.%s", property_type, opt.id)
+
+    print(self, "Registering property", opt.global_id)
 
     opt.manager = self
 
@@ -376,21 +378,34 @@ function PropertyManager:GetStatistics()
         for _,key in ipairs(table.sorted_keys(p.values)) do
             local v = p.values[key]
             -- print(self, v.global_id)
+            local val, timestamp = v:GetValue()
             table.insert(r, {
                 "value",
                 v.global_id,
                 p.readout_mode,
                 p.property_type,
-                v.value,
-                v.unit,
-                v.timestamp,
-                v.datatype,
+                val,
+                v:GetUnit(),
+                timestamp,
+                v:GetDatatype(),
             })
         end
     end
 
     return { header = header, data = r }
 end
+
+-- function Sensors:GetPathBuilder(result_callback)
+--     return require("lib/path_builder").PathBuilderWrapper({
+--         name = "Sensor",
+--         host = self,
+--         path_getters = {
+--             function (t, obj) return obj.sensors[t] end,
+--             function (t, obj) return obj.node[t] end,
+--         },
+--         result_callback = result_callback,
+--     })
+-- end
 
 -------------------------------------------------------------------------------
 

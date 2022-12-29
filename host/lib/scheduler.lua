@@ -17,23 +17,18 @@ local Scheduler = {}
 Scheduler.__index = Scheduler
 Scheduler.__stats = true
 
-
 function Scheduler.Push(func)
     copas.addthread(function()
+        copas.pause(0)
         SafeCall(func)
     end)
 end
 
-function Scheduler.CallLater(func)
-    copas.addthread(function()
-        copas.sleep(0.001)
-        SafeCall(func)
-    end)
-end
+Scheduler.CallLater = Scheduler.Push
 
 function Scheduler.Delay(timeout, func)
     copas.addthread(function()
-        copas.sleep(timeout)
+        copas.pause(timeout)
         SafeCall(func)
     end)
 end
@@ -41,7 +36,7 @@ end
 function Scheduler.Sleep(timeout)
     local before = gettime()
     local mem_before = collectgarbage "count"
-    copas.sleep(timeout)
+    copas.pause(timeout)
     local mem_after = collectgarbage "count"
     local after = gettime()
 

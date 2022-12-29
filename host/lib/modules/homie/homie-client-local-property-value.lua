@@ -5,10 +5,8 @@ local tablex = require "pl.tablex"
 local HomieClientLocalPropertyValue = {}
 HomieClientLocalPropertyValue.__class_name = "HomieClientLocalPropertyValue"
 HomieClientLocalPropertyValue.__type = "class"
-HomieClientLocalPropertyValue.__base = "homie/homie-client-node-property"
-HomieClientLocalPropertyValue.__deps = {
-    -- homie_client = "homie/homie-client"
-}
+HomieClientLocalPropertyValue.__base = "homie/common/base-property"
+-- HomieClientLocalPropertyValue.__deps = { }
 
 -------------------------------------------------------------------------------------
 
@@ -28,24 +26,23 @@ function HomieClientLocalPropertyValue:Tag()
 end
 
 function HomieClientLocalPropertyValue:GetName()
-    return self.local_value.name
+    return self.local_value:GetName()
 end
 
 function HomieClientLocalPropertyValue:GetId()
-    return self.local_value.id
+    return self.local_value:GetId()
 end
 
 function HomieClientLocalPropertyValue:GetDatatype()
-    return self.local_value.datatype or "string"
+    return self.local_value:GetDatatype()
 end
 
 function HomieClientLocalPropertyValue:GetUnit()
-    return self.local_value.unit
+    return self.local_value:GetUnit()
 end
 
 function HomieClientLocalPropertyValue:GetValue()
-    local lv = self.local_value
-    return lv.value, lv.timestamp
+    return self.local_value:GetValue()
 end
 
 -------------------------------------------------------------------------------------

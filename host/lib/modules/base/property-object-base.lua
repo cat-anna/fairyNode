@@ -11,9 +11,21 @@ function ValueMt:AddObserver(target)
     self.observers[target.uuid] = target
 end
 
--- function SensorNodeMt:Sensor()
---     return self.sensor.instance
--- end
+function ValueMt:GetDatatype()
+    return self.datatype or "string"
+end
+
+function ValueMt:GetUnit()
+    return self.unit
+end
+
+function ValueMt:GetName()
+    return self.name
+end
+
+function ValueMt:GetId()
+    return self.id
+end
 
 -------------------------------------------------------------------------------------
 
@@ -31,6 +43,8 @@ function PropertyObject:Init(config)
     self.owner = config.owner
     self.manager = config.manager
 
+    self.remote_name = config.remote_name
+
     self.global_id = config.global_id
     self.property_type = config.property_type
     self.readout_mode = config.readout_mode
@@ -45,6 +59,10 @@ function PropertyObject:Init(config)
     self:Reset(config.values or { })
 
     self.ready = true
+end
+
+function PropertyObject:PostInit()
+    PropertyObject.super.PostInit(self)
 end
 
 function PropertyObject:BeforeReload()
@@ -119,14 +137,11 @@ function PropertyObject:Reset(new_values)
         local value = { }
         value.observers = existing.observers or table.weak()
 
---         node.sensor = node.sensor or table.weak{ instance = self }
-
         value.id = id
         value.name = new_value.name
 
         value.datatype = new_value.datatype
         value.unit = new_value.unit
-
         value.value = new_value.value
         value.timestamp = new_value.timestamp
 
