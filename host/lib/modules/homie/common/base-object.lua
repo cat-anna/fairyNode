@@ -51,47 +51,15 @@ function HomieObjectBase:Subscribe(target, func)
         return
     end
 
-    assert(target and func)
-
-    -- print(self, "Adding subscription to " .. id)
-
-    if self.subscriptions[target.uuid] then
-        print(self, "Failed to add subscription, target is already subscribed")
-        return
-    end
-
-    if not self.subscriptions then
-        self.subscriptions = table.weak()
-    end
-
-    local entry = table.weak_values()
-    self.subscriptions[target.uuid] = entry
-    entry.target = target
-    entry.func = func
-
-    return true
+    return HomieObjectBase.super.Subscribe(self, target, func)
 end
 
-function HomieObjectBase:CallSubscribers(...)
-    if not self.subscriptions then
+function HomieObjectBase:CallSubscribers()
+    if self:IsDeleting() then
+        print(self, "Failed to add subscription. During deletion.")
         return
     end
-
-    local call_args = { ... }
-
-    for _,entry in pairs(self.subscriptions) do
-        local target = entry.target
-        local func = entry.func
-        if target and func then
-            scheduler.Push(function()
-                func(target, self, table.unpack(call_args))
-            end)
-        end
-    end
-
-    -- for _,v in pairs(list) do
-    --     SafeCall(function() v:PropertyStateChanged(property, property:GetValue()) end)
-    -- end
+    return HomieObjectBase.super.CallSubscribers(self)
 end
 
 -------------------------------------------------------------------------------------

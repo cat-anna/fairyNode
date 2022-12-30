@@ -4,7 +4,7 @@ local homie_common = require "lib/modules/homie/homie-common"
 
 local HomieBaseProperty = {}
 HomieBaseProperty.__class_name = "HomieBaseProperty"
-HomieBaseProperty.__type = "class"
+HomieBaseProperty.__type = "interface"
 HomieBaseProperty.__base = "homie/common/base-object"
 -- HomieBaseProperty.__deps = { }
 
@@ -12,8 +12,6 @@ HomieBaseProperty.__base = "homie/common/base-object"
 
 function HomieBaseProperty:Init(config)
     HomieBaseProperty.super.Init(self, config)
-
-    -- self.subscriptions = table.weak_keys()
 end
 
 function HomieBaseProperty:PostInit()
@@ -62,10 +60,7 @@ end
 -------------------------------------------------------------------------------------
 
 function HomieBaseProperty:OnValueChanged()
-    NotImplemented()
-    --TODO
-    -- local q = self:AddValueMessage({})
-    -- self:BatchPublish(q)
+    self:CallSubscribers()
 end
 
 function HomieBaseProperty:AddValueMessage(q)

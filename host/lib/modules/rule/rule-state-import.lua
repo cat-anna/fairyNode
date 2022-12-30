@@ -6,10 +6,10 @@ local stringx = require "pl.stringx"
 local RuleStateImport = {}
 RuleStateImport.__index = RuleStateImport
 RuleStateImport.__deps = {
-    device_tree = "homie/device-tree",
+    -- device_tree = "homie/device-tree",
     datetime_utils = "util/datetime-utils",
     class = "base/loader-class",
-    sensor_handler = "base/sensors",
+    -- sensor_handler = "base/sensors",
 }
 RuleStateImport.__config = {
 }
@@ -551,8 +551,8 @@ function RuleStateImport:CreateStateEnv()
     end
 
     state_prototype.State = setmetatable({}, StateMt)
-    state_prototype.Homie = self.device_tree:GetPropertyPath(WrapCall(self, self.ImportHomieState, object))
-    state_prototype.Sensor = self.sensor_handler:GetPathBuilder(WrapCall(self, self.ImportSensorState, object))
+    -- state_prototype.Homie = self.device_tree:GetPropertyPath(WrapCall(self, self.ImportHomieState, object))
+    -- state_prototype.Sensor = self.sensor_handler:GetPathBuilder(WrapCall(self, self.ImportSensorState, object))
 
     state_prototype.AddState = WrapCall(self, self.AddState, object)
     state_prototype.Source = WrapCall(env, AddSource)

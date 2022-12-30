@@ -5,7 +5,7 @@ local loader_class = require "lib/loader-class"
 local HomieBaseNode = {}
 HomieBaseNode.__class_name = "HomieBaseNode"
 HomieBaseNode.__base = "homie/common/base-object"
-HomieBaseNode.__type = "class"
+HomieBaseNode.__type = "interface"
 -- HomieBaseNode.__deps = { }
 
 -------------------------------------------------------------------------------------

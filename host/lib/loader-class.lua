@@ -3,6 +3,7 @@ local fs = require "lib/fs"
 local copas = require "copas"
 local config_handler = require "lib/config-handler"
 local uuid = require "uuid"
+local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------
 
@@ -13,6 +14,7 @@ local CONFIG_KEY_MODULE_PATHS = "loader.module.paths"
 
 local ClassLoader = {}
 ClassLoader.__index = ClassLoader
+ClassLoader.__stats = true
 ClassLoader.__config = {
     [CONFIG_KEY_MODULE_PATHS] = { mode = "merge", type = "string-table", default = { } },
     [CONFIG_KEY_CLASS_PATHS] = { mode = "merge", type = "string-table", default = { } },
@@ -37,6 +39,10 @@ function ClassLoader:Update()
     for _,class in pairs(self.loaded_classes) do
         self:ReloadClass(class)
     end
+end
+
+function ClassLoader:Tag()
+    return "ClassLoader"
 end
 
 -------------------------------------------------------------------------------
@@ -79,6 +85,7 @@ function ClassLoader:ReloadClass(class)
     class.interface = new_mt.__type == "interface"
     class.metatable = new_mt
     class.timestamp = att.modification
+    class.type = new_mt.__type
     if new_mt.__class_name ~= "Object" then
         class.base = new_mt.__base or "object"
     end
@@ -237,6 +244,33 @@ function ClassLoader:Init()
             self.update_thread = nil
         end)
     end
+end
+
+-------------------------------------------------------------------------------
+
+function ClassLoader:GetStatistics()
+    local header = {
+        "class",
+        "type",
+        "base",
+        "instances",
+    }
+
+    local r = { }
+
+    for _,id in ipairs(table.sorted_keys(self.loaded_classes)) do
+        local p = self.loaded_classes[id]
+
+        table.insert(r, {
+            id,
+            p.type,
+            p.base,
+            #tablex.keys(p.instances),
+        })
+
+    end
+
+    return { header = header, data = r }
 end
 
 -------------------------------------------------------------------------------

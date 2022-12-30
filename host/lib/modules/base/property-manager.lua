@@ -1,3 +1,4 @@
+
 local tablex = require "pl.tablex"
 local scheduler = require "lib/scheduler"
 local loader_class = require "lib/loader-class"
@@ -27,11 +28,12 @@ local CONFIG_KEY_SENSOR_SLOW_INTERVAL =   "module.property.sensor.interval.slow"
 local PropertyManager = {}
 PropertyManager.__stats = true
 PropertyManager.__deps = {
-    -- server_storage = "base/server-storage",
-    -- mongo_connection = "mongo/mongo-connection",
+    mongo_connection = "mongo/mongo-connection",
 }
 PropertyManager.__config = {
-    -- [CONFIG_KEY_SENSOR_FAST_INTERVAL] =   { type = "integer", default = 60 },
+    [CONFIG_KEY_SENSOR_FAST_INTERVAL] =   { type = "integer", default = 60 },
+    [CONFIG_KEY_SENSOR_SLOW_INTERVAL] =   { type = "integer", default = 10 * 60 },
+
     -- [CONFIG_KEY_PROPERTY_SKIP_AGE] =   { type = "integer", default = 60*60 },
 }
 
@@ -42,7 +44,6 @@ function PropertyManager:Tag()
 end
 
 function PropertyManager:AfterReload()
-    -- self.sensor_handler:AddSensorSink(self)
 end
 
 function PropertyManager:BeforeReload()
@@ -50,40 +51,12 @@ end
 
 function PropertyManager:Init()
     self.properties_by_id = { }
+    self.values_by_id = { }
 
     self.local_sensors = { }
     self.local_properties = { }
 
---[[
-    self.collection = {
-        PropertyManager = self.mongo_connection:GetCollection("property_list"),
-        history = self.mongo_connection:GetCollection("property_history"),
-    }
-
-    self.local_objects = {
-        sensors = table.weak_values(),
-        -- groups = { },
-        PropertyManager = { },
-        property_list = { },
-    }
-
-    self.local_objects.property_list = self.collection.PropertyManager:FetchAll()
-    for _,item in ipairs(self.local_objects.property_list ) do
-        -- if not self.local_objects.groups[item.global_id] then
-        --     self.local_objects.groups[item.global_id] = table.weak_values()
-        -- end
-        self.local_objects.PropertyManager[item.global_id] = item
-        item.uuid = uuid()
-    end
-
---]]
-
-    -- self.remote_objects = {
-    --     sensors = { },
-    -- }
-
-    -- self.PropertyManager = table.weak()
-    -- self.sensor_sink = table.weak()
+    self.database = self:GetManagerDatabase()
 end
 
 function PropertyManager:PostInit()
@@ -97,8 +70,8 @@ end
 
 function PropertyManager:StartModule()
     local intervals = {
-        Fast = 1,  -- self.config[CONFIG_KEY_SENSOR_FAST_INTERVAL],
-        Slow = 10, --self.config[CONFIG_KEY_SENSOR_SLOW_INTERVAL],
+        Fast = self.config[CONFIG_KEY_SENSOR_FAST_INTERVAL],
+        Slow = self.config[CONFIG_KEY_SENSOR_SLOW_INTERVAL],
     }
 
     self.tasks = { }
@@ -114,12 +87,7 @@ function PropertyManager:StartModule()
         )
     end
 
-    -- for k,v in pairs(self.PropertyManager) do
-    --     v:Readout()
-    -- end
-
     self.started = true
-
     self:DoSensorReadout()
 end
 
@@ -129,64 +97,24 @@ function PropertyManager:GetProperty(global_id)
     return self.properties_by_id[global_id]
 end
 
+function PropertyManager:GetValue(global_id)
+    return self.values_by_id[global_id]
+end
+
 function PropertyManager:GetLocalProperties()
     return table.sorted_keys(self.local_properties)
 end
 
--------------------------------------------------------------------------------
-
--- function PropertyManager:SensorAdded(sensor)
-    --[[
-    print(self, "Adding sensor")
-    local local_objects = self.local_objects
-    local_objects.sensors[sensor.uuid] = sensor
-
-    for node_name,node in pairs(sensor.node) do
-        local global_id, group_id, full_path = self:GetGlobalSensorNodeId(sensor, node)
-
-        local property = local_objects.PropertyManager[global_id]
-        if not property then
-            property = self:CreateProperty {
-                global_id = global_id,
-                group_id = group_id,
-                -- full_path = full_path,
-                name = node.name,
-                type = "sensor",
-                -- uuid = uuid(),
-            }
-        end
-
-        -- assert(self.local_objects.groups[global_id])
-        -- local group = self.local_objects.groups[global_id]
-        -- group[global_id] = property
-
-        -- property.target = table.weak_values{
-        --     node = node,
-        --     sensor = sensor,
-        -- }
-
-        -- sensor:ObserveNode(property, node)
-
-        printf(self, "Added property %s", property.global_id)
-    end
-
-    --]]
--- end
+function PropertyManager:GetAllProperties()
+    return table.sorted_keys(self.properties_by_id)
+end
 
 -------------------------------------------------------------------------------
-
--- function PropertyManager:AddSink(target)
---     self.sensor_sink[target.uuid] = target
---     for _,v in pairs(self.PropertyManager) do
---         target:SensorAdded(v)
---     end
--- end
 
 function PropertyManager:RegisterSensor(opt)
     opt.readout_mode = PROPERTY_MODE_SENSOR
     return self:RegisterLocalProperty(opt)
 end
-
 
 function PropertyManager:RegisterLocalProperty(opt)
     opt.property_type = PROPERTY_TYPE_LOCAL
@@ -195,12 +123,16 @@ end
 
 function PropertyManager:RegisterRemoteProperty(opt)
     opt.property_type = PROPERTY_TYPE_REMOTE
-    opt.class = "base/property-object-remote"
+    opt.class = "base/property/remote-property"
     return self:RegisterProperty(opt)
 end
 
 local function CreatePropertyObject(opt)
-    local base_class = "base/property-object-base"
+    if opt.proxy and opt.class == nil then
+        opt.class = "base/property/sensor-proxy"
+    end
+
+    local base_class = "base/property/local-property"
     opt.class = opt.class or base_class
 
     local t = type(opt.class)
@@ -222,117 +154,108 @@ function PropertyManager:RegisterProperty(opt)
         property_type = opt.remote_name
     end
 
+    opt.source_name = property_type
     opt.global_id = string.format("%s.%s", property_type, opt.id)
 
     print(self, "Registering property", opt.global_id)
 
-    opt.manager = self
+    opt.property_manager = self
 
     local object = CreatePropertyObject(opt)
+    local gid = object:GetGlobalId()
 
-    self.properties_by_id[object.global_id] = object
+    self.properties_by_id[gid] = object
 
     if object:IsSensor() then
-        self.local_sensors[object.global_id] = object
+        self.local_sensors[gid] = object
     end
 
     if object:IsLocal() then
-        self.local_properties[object.global_id] = object
+        self.local_properties[gid] = object
+    end
+
+    for k,v in pairs(object:GetValues()) do
+        self.values_by_id[v:GetGlobalId()] = v
+    end
+
+    if self.database then
+        self:WriteManagerDatabaseEntry({
+            global_id = object:GetGlobalId(),
+
+            name = object:GetName(),
+            id = object:GetId(),
+
+            type = "property",
+            property = "",
+            property_type = object.property_type,
+            readout_mode = object.readout_mode,
+
+            history_key = "",
+        })
     end
 
     return object
-
---[[
-    self.local_objects.PropertyManager[opt.global_id] = opt
-
-    table.insert(self.local_objects.property_list, opt)
-    local MT = { }
-    function MT:SensorNodeChanged(sensor, node)
-        local v, t = node:GetValue()
-        if v ~= nil and t ~= nil then
-            self:PushValue({ value = v, timestamp = t })
-        end
-    end
-
-    function MT:PushValue(vt)
-        vt.property = self.global_id
-        self.controller:PushPropertyValue(self, vt)
-    end
-
-    self.collection.PropertyManager:Insert(opt)
---]]
 end
 
 -------------------------------------------------------------------------------
 
--- function PropertyManager:RegisterProperty(def)
-    -- local owner = def.owner
-    -- assert(owner)
+function PropertyManager:GetManagerDatabase()
+    local db_id = "property.manager"
+    return self.mongo_connection:GetCollection(db_id)
+end
 
-    -- def.id = def.id or owner.__name
-    -- def.nodes = def.nodes or { }
+function PropertyManager:WriteManagerDatabaseEntry(data)
+    if self.database then
+        local db_key = { global_id = data.global_id }
+        return self.database:InsertOrReplace(db_key, data)
+    end
+end
 
-    -- owner.registered_PropertyManager = owner.registered_PropertyManager or { }
+function PropertyManager:GetValueDatabase(value)
+    local db_id = value:GetDatabaseId()
 
-    -- local s = self.PropertyManager[def.id]
-    -- if not s then
-    --     s = self.loader_class:CreateObject("base/sensor-object", def)
-    --     s.sensor_host = self
-    --     self.PropertyManager[def.id] = s
-    -- else
-    --     s:Reset(def)
-    -- end
+    if self.database then
+        self:WriteManagerDatabaseEntry({
+            global_id = value:GetGlobalId(),
 
-    -- owner.registered_PropertyManager[s.id] = s
+            name = value:GetName(),
+            id = value:GetId(),
+            unit = value:GetUnit(),
+            datatype = value:GetDatatype(),
 
-    -- for _,v in pairs(self.sensor_sink) do
-    --     v:SensorAdded(s)
-    -- end
+            type = "value",
+            property = value.owner_property:GetGlobalId(),
+            property_type = "",
+            readout_mode = "",
 
-    -- if self.module_started then
-    --     s:Readout()
-    -- end
+            history_key = db_id,
+        })
+    end
 
-    -- return s
--- end
+    return self.mongo_connection:GetCollection(db_id, "timestamp")
+end
 
 -------------------------------------------------------------------------------
 
 function PropertyManager:DoSensorReadout()
-    for k,v in pairs(self.local_sensors) do
-        v:Readout()
+    for _,v in pairs(self.local_sensors) do
+        scheduler.Push(function() v:Readout() end)
     end
 end
 
 function PropertyManager:DoSensorReadoutSlow()
-    for k,v in pairs(self.local_sensors) do
-        v:ReadoutSlow()
+    for _,v in pairs(self.local_sensors) do
+        scheduler.Push(function() v:ReadoutSlow() end)
+        -- v:ReadoutSlow()
     end
 end
 
 function PropertyManager:DoSensorReadoutFast()
-    for k,v in pairs(self.local_sensors) do
-        v:ReadoutFast()
+    for _,v in pairs(self.local_sensors) do
+        scheduler.Push(function() v:ReadoutFast() end)
+        -- v:ReadoutFast()
     end
 end
-
--------------------------------------------------------------------------------
-
--- function PropertyManager:PushPropertyValue(property, entry)
---[[
-    if property.last_history_entry then
-        local lhe = property.last_history_entry
-        local age = os.timestamp() - lhe.timestamp
-        if (age < self.config[CONFIG_KEY_PROPERTY_SKIP_AGE]) and
-           (lhe.value == entry.value or lhe.timestamp == entry.timestamp) then
-            return
-        end
-    end
-
-    property.last_history_entry = entry
-    self.collection.history:Insert(entry)
---]]
--- end
 
 -------------------------------------------------------------------------------
 
@@ -394,18 +317,6 @@ function PropertyManager:GetStatistics()
 
     return { header = header, data = r }
 end
-
--- function Sensors:GetPathBuilder(result_callback)
---     return require("lib/path_builder").PathBuilderWrapper({
---         name = "Sensor",
---         host = self,
---         path_getters = {
---             function (t, obj) return obj.sensors[t] end,
---             function (t, obj) return obj.node[t] end,
---         },
---         result_callback = result_callback,
---     })
--- end
 
 -------------------------------------------------------------------------------
 

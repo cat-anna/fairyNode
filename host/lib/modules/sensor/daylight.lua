@@ -22,7 +22,7 @@ function DaylightSensor:ReadoutSlow()
     local config = self.config
     local moon = sun_pos.GetMoonPosition(config[CONFIG_KEY_LATITUDE], config[CONFIG_KEY_LONGITUDE])
     local moon_phase = sun_pos.GetMoonPhase()
-    self:UpdateAll{
+    self:UpdateValues{
         moon_phase = moon_phase.phase,
         moon_phase_fraction = moon_phase.fraction,
         moon_phase_angle = moon_phase.angle,
@@ -34,7 +34,7 @@ end
 function DaylightSensor:ReadoutFast()
     local config = self.config
     local sun = sun_pos.GetSunPosition(config[CONFIG_KEY_LATITUDE], config[CONFIG_KEY_LONGITUDE])
-    self:UpdateAll{
+    self:UpdateValues{
         sun_azimuth = sun.azimuth,
         sun_altitude = sun.altitude,
     }

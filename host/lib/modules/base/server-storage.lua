@@ -146,7 +146,7 @@ function ServerStorage:CheckCache()
         end
     end
     if self.storage_sensor then
-        self.storage_sensor:UpdateAll {
+        self.storage_sensor:UpdateValues {
             cache_size = total_size / 1024,
             cache_entries = entry_count,
         }
@@ -253,7 +253,7 @@ end
 function ServerStorage:CheckStorage()
     if self.storage_sensor then
         local r = fs.CountFilesInFolder(self:GetStoragePath())
-        self.storage_sensor:UpdateAll {
+        self.storage_sensor:UpdateValues {
             storage_size = r.size / 1024,
             storage_entries = r.count,
         }
@@ -286,7 +286,7 @@ end
 function ServerStorage:CheckLogs()
     if self.storage_sensor then
         local r = fs.CountFilesInFolder(self:GetLogPath())
-        self.storage_sensor:UpdateAll {
+        self.storage_sensor:UpdateValues {
             log_size = r.size / 1024,
             log_entries = r.count,
         }
@@ -298,7 +298,7 @@ end
 function ServerStorage:InitProperties(manager)
     self.storage_sensor = manager:RegisterSensor{
         owner = self,
-        class = "base/property-sensor-proxy",
+        proxy = true,
         name = "Server storage",
         id = "server_storage",
         values = {
@@ -321,10 +321,6 @@ function ServerStorage:SensorReadoutSlow()
     self:CheckStorage()
     self:CheckLogs()
 end
-
--------------------------------------------------------------------------------
-
-ServerStorage.EventTable = { }
 
 -------------------------------------------------------------------------------
 

@@ -16,7 +16,7 @@ function HomieClientLocalPropertyValue:Init(config)
     -- self.local_property = config.local_property
     self.local_value = config.local_value
 
-    self.local_value:AddObserver(self)
+    self.local_value:Subscribe(self, self.OnPropertyValueChanged)
 end
 
 -------------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ end
 
 -------------------------------------------------------------------------------------
 
-function HomieClientLocalPropertyValue:OnPropertyValueChanged(prop, value)
+function HomieClientLocalPropertyValue:OnPropertyValueChanged(prop)
     self:OnValueChanged()
 end
 

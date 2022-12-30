@@ -142,7 +142,7 @@ function SysInfoSensor:ReadoutFast()
     local mem_stat = mem_info.MemAvailable or mem_info.MemFree or
                             {value = 0}
 
-    self:UpdateAll{
+    self:UpdateValues{
         lua_mem_usage = LuaMemUsage(),
 
         process_memory = self_statm.size / 1024,
@@ -244,7 +244,7 @@ function HealthMonitor:UpdateActiveErrors(event)
         local error_hex = md5.sumhexa(error_str)
 
         if self.active_errors_hash ~= error_hex then
-            self.sysinfo_sensor:Update("errors", error_str)
+            self.sysinfo_sensor:UpdateValue("errors", error_str)
             self.active_errors_hash = error_hex
         end
     end

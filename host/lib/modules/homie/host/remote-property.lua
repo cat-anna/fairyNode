@@ -118,8 +118,8 @@ function HomieRemoteProperty:HandlePropertyValue(topic, payload, receive_timesta
         self.timestamp = nil
     end
 
+    self:OnValueChanged()
     if changed then
-        self:OnValueChanged()
         -- property:CallSubscriptions()
         -- self.event_bus:PushEvent({
         --     event = "homie-host.device.property.change",

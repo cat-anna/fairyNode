@@ -9,6 +9,10 @@ function FairyNode_InitStatus() {
         </div>
 
         <div class="StatTableHolder">
+            Object instances
+            <table id="ClassLoaderStats" class="StatTable"></table>
+        </div>
+        <div class="StatTableHolder">
             Scheduler
             <table id="SchedulerStats" class="StatTable"></table>
         </div>
@@ -17,9 +21,10 @@ function FairyNode_InitStatus() {
             <table id="EventBusStats" class="StatTable"></table>
         </div>
         <div class="StatTableHolder">
-        PropertyManagerStats
+            PropertyManagerStats
             <table id="PropertyManagerStats" class="StatTable"></table>
         </div>
+
 `;
 
     node = document.getElementById('fairyNode-root');
@@ -66,6 +71,7 @@ function refresh() {
     QueryGet("/status/stats/scheduler", function (data) { HandleStatTable("SchedulerStats", data) })
     QueryGet("/status/stats/base_event_bus", function (data) { HandleStatTable("EventBusStats", data) })
     QueryGet("/status/stats/base_property_manager", function (data) { HandleStatTable("PropertyManagerStats", data) })
+    QueryGet("/status/stats/base_loader_class", function (data) { HandleStatTable("ClassLoaderStats", data) })
 }
 
 function FairyNodeStart() {
