@@ -1,7 +1,7 @@
-local TOKEN_FILE_NAME = "ota.ready"
-local LFS_PENDING_FILE = "lfs.pending.img"
-local ROOT_PENDING_FILE = "root.pending.img"
-local CONFIG_PENDING_FILE = "config.pending.img"
+-- local TOKEN_FILE_NAME = "ota.ready"
+-- local LFS_PENDING_FILE = "lfs.pending.img"
+-- local ROOT_PENDING_FILE = "root.pending.img"
+-- local CONFIG_PENDING_FILE = "config.pending.img"
 
 local function makeRestRequestUrl(command)
     return string.format("/ota/%06X/%s", node.chipid(), command)
