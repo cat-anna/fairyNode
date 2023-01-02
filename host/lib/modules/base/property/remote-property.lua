@@ -24,6 +24,7 @@ end
 
 function RemoteProperty:InitProperties(new_values)
     for id,new_value in pairs(new_values or {}) do
+
         local opt = {
             owner = new_value,
 

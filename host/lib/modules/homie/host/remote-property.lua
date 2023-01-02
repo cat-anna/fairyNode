@@ -30,6 +30,14 @@ end
 
 -------------------------------------------------------------------------------------
 
+function HomieRemoteProperty:GetPropertyId()
+    if self.property_handle then
+        return self.property_handle:GetGlobalId()
+    end
+end
+
+-------------------------------------------------------------------------------------
+
 function HomieRemoteProperty:GetValue()
     return self.value, (self.timestamp or self.receive_timestamp)
 end

@@ -22,11 +22,6 @@ end
 
 -------------------------------------------------------------------------------------
 
-function HomieBaseDevice:EnterState(state)
-    self.state = state
-    printf(self, "Entered state %s", self.state)
-end
-
 -------------------------------------------------------------------------------------
 
 function HomieBaseDevice:IsFairyNodeDevice()
@@ -36,8 +31,7 @@ end
 -------------------------------------------------------------------------------------
 
 function HomieBaseDevice:DeleteDevice()
-    self.is_deleting = true
-    -- TODO
+    print(self, "Delete device operation is not supported")
 end
 
 -------------------------------------------------------------------------------------

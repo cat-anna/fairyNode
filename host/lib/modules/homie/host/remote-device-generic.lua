@@ -12,10 +12,6 @@ HomieRemoteDevice.__base = "homie/common/base-device"
 HomieRemoteDevice.__config = { }
 HomieRemoteDevice.__deps = {
     mqtt = "mqtt/mqtt-client",
-
-    -- host = "homie/homie-host",
-    -- event_bus = "base/event-bus",
-    -- server_storage = "base/server-storage",
 }
 
 -------------------------------------------------------------------------------------
@@ -25,10 +21,7 @@ function HomieRemoteDevice:Init(config)
 
     self.variables = { }
 
-    -- self.history = config.history
-    -- self.configuration = config.configuration
     -- self.active_errors = {}
-    -- self.subscriptions = {}
 end
 
 function HomieRemoteDevice:Tag()
@@ -57,12 +50,15 @@ end
 
 ------------------------------------------------------------------------------
 
+function HomieRemoteDevice:EnterState(state)
+    self.state = state
+    printf(self, "Entered state %s", self.state)
+end
 
-------------------------------------------------------------------------------
-
--- function HomieRemoteDevice:Publish(topic, payload, retain)
---     print(self,"Publishing: " .. topic .. "=" .. payload)
---     self.mqtt:Publish(self:BaseTopic() .. topic, payload, retain or false)
+-- function HomieRemoteDevice:DeleteDevice()
+--     print(self, "Delete device operation is not supported")
+--     self.is_deleting = true
+--     -- TODO
 -- end
 
 ------------------------------------------------------------------------------

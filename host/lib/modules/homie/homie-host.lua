@@ -1,5 +1,7 @@
 local json = require "json"
 local loader_class = require "lib/loader-class"
+local loader_module = require "lib/loader-module"
+local scheduler = require "lib/scheduler"
 
 -------------------------------------------------------------------------------
 
@@ -53,31 +55,42 @@ function HomieHost:Topic(t)
     end
 end
 
+function HomieHost:RegisterLocalClient(local_client)
+    local id = local_client:GetId()
+    assert(self.devices[id] == nil)
+
+    printf(self, "Adding local device %s", id)
+    assert(local_client)
+
+    self.devices[id] = local_client
+end
+
 ------------------------------------------------------------------------------
 
 function HomieHost:AddDevice(topic, payload, timestamp)
     local device_name = topic:match("homie/([^.]+)/$homie")
-    local homie_version = payload
-
     if self.devices[device_name] then
         return
     end
 
-    if self.config[CONFIG_KEY_HOMIE_NAME] then
-        if self.config[CONFIG_KEY_HOMIE_NAME] == device_name then
-            return
+    local homie_version = payload
+
+    local opt = {
+        pending = true,
+    }
+
+    local function do_crete_device(class)
+        if opt.pending then
+            opt.pending = nil
+            self:CreateDevice(homie_version, device_name, class)
         end
     end
 
-    local function do_crete_device(_, mode_topic, payload)
-        self:CreateDevice(homie_version, device_name, payload)
-    end
+    local function create_client() do_crete_device("client") end
+    self.mqtt:WatchTopic(self, create_client, self:Topic(device_name .. "/$fw/FairyNode/mode"), true)
+    self.mqtt:WatchTopic(self, create_client, self:Topic(device_name .. "/$fw/FairyNode/version"), true)
 
---$fw/FairyNode/version
-    do_crete_device(nil, nil, "client")
-
-    --TODO this will ignore non fairy-node implementations
-    -- self.mqtt:WatchTopic(self, do_crete_device, self:Topic(device_name .. "/$fw/FairyNode/mode"), true)
+    scheduler.Delay(5, function() do_crete_device("generic") end)
 end
 
 function HomieHost:GetDeviceList()
@@ -100,7 +113,6 @@ end
 
 function HomieHost:CreateDevice(homie_version, device_name, device_mode)
     local mode_class = {
-        -- ["linux-client"] = nil,
         client = "homie/host/remote-device-fairy-node",
         generic = "homie/host/remote-device-generic",
     }

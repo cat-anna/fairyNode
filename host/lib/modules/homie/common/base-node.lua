@@ -88,6 +88,7 @@ function HomieBaseNode:GetSummary()
 
     return {
         id = self:GetId(),
+        global_id = self:GetGlobalId(),
         name = self:GetName(),
         properties = props,
     }

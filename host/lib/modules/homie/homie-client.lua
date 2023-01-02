@@ -1,4 +1,4 @@
-local socket = require("socket")
+local socket = require "socket"
 local tablex = require "pl.tablex"
 local scheduler = require "lib/scheduler"
 local loader_module = require "lib/loader-module"
@@ -82,6 +82,16 @@ function HomieClient:Init()
     }
 end
 
+function HomieClient:PostInit()
+    local host = loader_module:GetModule("homie/homie-host")
+    if host then
+        self.client_mode = "host"
+        host:RegisterLocalClient(self)
+    else
+        self.client_mode = "client"
+    end
+end
+
 function HomieClient:IsReady()
     return self.current_state == ClientStates.ready
 end
@@ -92,6 +102,14 @@ function HomieClient:Topic(t)
     else
         return string.format("%s/%s", self.base_topic, t)
     end
+end
+
+function HomieClient:GetName()
+    return self.client_name
+end
+
+function HomieClient:GetId()
+    return self.client_name
 end
 
 -------------------------------------------------------------------------------
@@ -127,18 +145,14 @@ end
 -------------------------------------------------------------------------------
 
 function HomieClient:GetClientMode()
-    if loader_module:GetModule("homie/homie-host") then
-        return "host"
-    else
-        return "client"
-    end
+    return self.client_mode
 end
 
 function HomieClient:GetInitMessages()
     local q = { }
     self:PushMessage(q, "$state", self.homie_common.States.init)
     self:PushMessage(q, "$name", self.client_name)
-    self:PushMessage(q, "$homie", "3.0.0")
+    self:PushMessage(q, "$homie", self:GetHomieVersion())
     self:PushMessage(q, "$implementation", "FairyNode")
     self:PushMessage(q, "$fw/name", "FairyNode")
     self:PushMessage(q, "$fw/FairyNode/version", "0.0.8")
@@ -259,6 +273,16 @@ function HomieClient:CreateNode(opt)
     return node
 end
 
+function HomieClient:GetNodesSummary()
+    local r = { }
+
+    for k,v in pairs(self.nodes) do
+        r[k] = v:GetSummary()
+    end
+
+    return r
+end
+
 -------------------------------------------------------------------------------
 
 function HomieClient:PushMessage(q, topic, payload)
@@ -284,6 +308,14 @@ end
 
 function HomieClient:GetGlobalId()
     return "HomieClient"
+end
+
+function HomieClient:GetHomieVersion()
+    return "3.0.0"
+end
+
+function HomieClient:IsDeleting()
+    return false
 end
 
 -------------------------------------------------------------------------------
@@ -372,6 +404,10 @@ HomieClient.StateMachineHandlers = {
     },
 }
 
+function HomieClient:GetState()
+    return self.current_state
+end
+
 function HomieClient:EnterState(target_state)
     self.pending_state = target_state
     scheduler.CallLater(function ()
@@ -421,6 +457,17 @@ function HomieClient:ProcessStateMachine()
         client = self,
     })
 end
+
+-------------------------------------------------------------------------------
+
+-- function HomieLocalDevice:StopDevice()
+--     HomieLocalDevice.super.StopDevice(self)
+-- end
+
+-- function HomieLocalDevice:GetHardwareId()
+--     print(self, "Get hardware id is not supported")
+--     return self.uuid
+-- end
 
 -------------------------------------------------------------------------------
 

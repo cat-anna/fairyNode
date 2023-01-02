@@ -45,6 +45,10 @@ function HomieClientLocalPropertyValue:GetValue()
     return self.local_value:GetValue()
 end
 
+function HomieClientLocalPropertyValue:GetPropertyId()
+    return self.local_value:GetGlobalId()
+end
+
 -------------------------------------------------------------------------------------
 
 function HomieClientLocalPropertyValue:SetValue(value, timestamp)

@@ -53,13 +53,14 @@ function DevSrv:ListDevices(request)
 
         r.name = dev:GetName()
         r.id = dev:GetId()
+        r.global_id = dev:GetGlobalId()
         r.state = dev:GetState()
+        r.nodes = dev:GetNodesSummary()
 
         -- r.uptime = 0
         -- State	Errors	Uptime	LFS timestamp	NodeMCU | FairyNode version	Signal
 
-        r.nodes = dev:GetNodesSummary()
-        r.variables = dev.variables
+        r.variables = dev.variables or { }
     end
 
     return http.OK, result
@@ -107,21 +108,6 @@ function DevSrv:SetProperty(request, device, node, property)
     return http.OK, true
 end
 
-function DevSrv:GetPropertyHistory(request, device, node_name, property_name)
-    local dev = self.homie_host:GetDevice(device)
-    if not dev then
-        return http.BadRequest, {}
-    end
-    -- local node = dev.nodes[node_name]
-    -- local prop = node.properties[property_name]
-    return http.BadRequest, {}
-    -- return http.OK, {
-    --     label = node.name .. " - " .. prop.name,
-        -- timestamp = os.timestamp(),
-    --     history = dev:GetHistory(node_name, property_name)
-    -- }
-end
-
 function DevSrv:GetNode(request, device, node)
     -- local dev = self.device:GetDevice(device)
     -- local node = dev.nodes[node]
@@ -145,17 +131,16 @@ function DevSrv:DeleteDevice(request, device)
 end
 
 function DevSrv:SendCommand(request, device)
-    return http.BadRequest, {}
-    -- local dev = self.homie_host:GetDevice(device)
+    local dev = self.homie_host:GetDevice(device)
 
-    -- local handler = self.device_commands[request.command]
-    -- if not handler then
-    --     printf(self, "Command %s is not defined", request.command)
-    --     return http.NotFound
-    -- end
+    local handler = self.device_commands[request.command]
+    if not handler then
+        printf(self, "Command %s is not defined", request.command)
+        return http.NotFound
+    end
 
-    -- printf(self, "Triggering command %s for device", device)
-    -- return handler(dev, request.command, request.args)
+    printf(self, "Triggering command %s for device", device)
+    return handler(dev, request.command, request.args)
 end
 
 function DevSrv:GetCommandResult(request, device)

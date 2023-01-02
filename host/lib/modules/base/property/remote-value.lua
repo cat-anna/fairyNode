@@ -10,6 +10,7 @@ RemoteValue.__class_name = "RemoteValue"
 function RemoteValue:Init(config)
     RemoteValue.super.Init(self, config)
     self.owner:Subscribe(self, self.PropertyChanged)
+    self.owner.property_handle = self
 end
 
 function RemoteValue:PostInit()

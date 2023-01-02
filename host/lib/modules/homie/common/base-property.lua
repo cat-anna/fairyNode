@@ -40,6 +40,10 @@ function HomieBaseProperty:IsSettable()
     return self.settable or false
 end
 
+function HomieBaseProperty:GetPropertyId()
+    return nil
+end
+
 -------------------------------------------------------------------------------------
 
 function HomieBaseProperty:GetValue()
@@ -101,6 +105,9 @@ function HomieBaseProperty:GetSummary()
     local v,t = self:GetValue()
     return {
         id = self:GetId(),
+        global_id = self:GetGlobalId(),
+        property_id = self:GetPropertyId(),
+
         name = self:GetName(),
         unit = self:GetUnit(),
         datatype = self:GetDatatype(),

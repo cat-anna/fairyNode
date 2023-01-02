@@ -142,18 +142,18 @@ function newDate(timestamp) {
 }
 
 function RefreshChart(chart) {
-    var url = chart.source_url + "?time_span=" + chart.time_span
+    var url = chart.source_url + "?last=" + chart.time_span
     console.log(url)
     QueryGet(url, function (data) {
         console.log(data)
 
         if(chart.last_timestamp == 0) {
-            chart.last_timestamp = data.timestamp - chart.time_span
+            chart.last_timestamp = data.from
         }
 
-        data.history.sort(function (a, b) { return a.timestamp < b.timestamp; })
-        for (var key in data.history) {
-            var item = data.history[key]
+        // data.list.sort(function (a, b) { return a.timestamp < b.timestamp; })
+        for (var key in data.list) {
+            var item = data.list[key]
             if (chart.last_timestamp < item.timestamp) {
                 chart.config.data.labels.push(newDate(item.timestamp));
                 chart.config.data.datasets[0].data.push({
@@ -187,15 +187,15 @@ function OpenDevicePropertyChart(url, parent_block) {
     var header = GetOrCreateDiv("HEADER_" + chart_div_id, chart_div_id, "DeviceNodePropertyChartBlockHeader", { })
 
     var times = {
-        "1H": 60*60,
-        "2H": 2*60*60,
-        "6H": 6*60*60,
-        "12H": 12*60*60,
-        "1D": 24*60*60,
-        "2D": 2*24*60*60,
-        "4D": 4*24*60*60,
-        "1W": 7*24*60*60,
-        "2W":14*24*60*60,
+        "1H":       60*60,
+        "2H":     2*60*60,
+        "6H":     6*60*60,
+        "12H":   12*60*60,
+        "1D":    24*60*60,
+        "2D":  2*24*60*60,
+        "4D":  4*24*60*60,
+        "1W":  7*24*60*60,
+        "2W": 14*24*60*60,
         "1M": 30*24*60*60,
         // "1Y": 365*24*60*60,
     }
@@ -342,7 +342,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
 
             if (prop.datatype == "float" || prop.datatype == "integer" || prop.datatype == "boolean" || prop.datatype == "number") {
-                var chart_source = "/device/" + entry.name + "/history/" + node.id + "/" + prop.id
+                var chart_source = "/property/value/" + prop.property_id + "/history"
                 var chart_node_id = "CHART_BTN_" + prop_id
                 var open_chart = GetOrCreateDiv(chart_node_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyOpenChart", { html: "&nbsp" })
                 $(open_chart).attr("data-url", chart_source)

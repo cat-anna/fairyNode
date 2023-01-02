@@ -54,14 +54,21 @@ function ServiceProperty:GetValueInfo(request, value_id)
 end
 
 function ServiceProperty:GetValueHistory(request, value_id)
-    -- print(self, "GetValueHistory:", pretty.write(request, ""))
-
     local v = self.property_manager:GetValue(value_id)
     if not v then
         return http.NotFound, { }
     end
-    local from, to = tonumber(request.from), tonumber(request.to)
-    return http.OK, v:Query(from, to)
+    local from = tonumber(request.from)
+    local to = tonumber(request.to)
+    local last = tonumber(request.last)
+    if last ~= nil then
+        to = nil
+        from = os.timestamp() - last
+    end
+
+    local result = v:Query(from, to)
+
+    return http.OK, result
 end
 
 -------------------------------------------------------------------------------------

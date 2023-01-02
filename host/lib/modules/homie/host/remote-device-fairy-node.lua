@@ -69,7 +69,7 @@ function FairyNodeRemoteDevice:SendCommand(cmd, callback)
 
     self.command_pending = callback or function () end
     print(self, "Sending command: " .. cmd)
-    self.mqtt:Publish(self:BaseTopic() .. "/$cmd", cmd, false)
+    self.mqtt:Publish(self:Topic("$cmd"), cmd, false)
 end
 
 function FairyNodeRemoteDevice:HandleCommandOutput(topic, payload)
@@ -105,7 +105,7 @@ end
 
 function FairyNodeRemoteDevice:SendEvent(event)
     print(self,"Sending event: " .. event)
-    self.mqtt:Publish(self:BaseTopic() .. "/$event", event, false)
+    self.mqtt:Publish(self:Topic("$event"), event, false)
 end
 
 -------------------------------------------------------------------------------------
