@@ -26,6 +26,10 @@ end
 
 -------------------------------------------------------------------------------------
 
+function RemoteValue:IsPersistent()
+    return self.owner:IsPersistent()
+end
+
 function RemoteValue:GetDatatype()
     return self.owner:GetDatatype()
 end

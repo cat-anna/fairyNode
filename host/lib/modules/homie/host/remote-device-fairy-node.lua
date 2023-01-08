@@ -56,6 +56,10 @@ function FairyNodeRemoteDevice:GetFirmwareStatus()
     }
 end
 
+function FairyNodeRemoteDevice:GetNodeClass(node_id)
+    return "homie/host/remote-node-fairy-node"
+end
+
 -------------------------------------------------------------------------------------
 
 function FairyNodeRemoteDevice:SendCommand(cmd, callback)

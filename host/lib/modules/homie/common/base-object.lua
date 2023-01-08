@@ -15,6 +15,7 @@ function HomieObjectBase:Init(config)
     self.controller = config.controller
 
     self.base_topic = config.base_topic
+    self.persistent = config.persistent
 
     self.retained = config.retained
     self.qos = config.qos
@@ -111,6 +112,13 @@ end
 
 function HomieObjectBase:IsDeleting()
     return self.is_deleting
+end
+
+function HomieObjectBase:IsPersistent()
+    if self.persistent ~= nil then
+        return self.persistent
+    end
+    return true
 end
 
 function HomieObjectBase:IsReady()

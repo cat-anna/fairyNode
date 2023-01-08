@@ -111,6 +111,10 @@ function HomieRemoteDevice:HandleDeviceInfo(topic, payload)
     self.variables[variable] = payload
 end
 
+function HomieRemoteDevice:GetNodeClass(node_id)
+    return "homie/host/remote-node"
+end
+
 function HomieRemoteDevice:HandleNodes(topic, payload)
     if not payload then
         return
@@ -126,7 +130,7 @@ function HomieRemoteDevice:HandleNodes(topic, payload)
             controller = self,
             id = node_id,
 
-            class = "homie/host/remote-node",
+            class = self:GetNodeClass(node_id),
         }
 
         local node = loader_class:CreateObject(opt.class, opt)

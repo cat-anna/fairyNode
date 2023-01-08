@@ -212,6 +212,7 @@ function PropertyManager:WriteManagerDatabaseEntry(data)
 end
 
 function PropertyManager:GetValueDatabase(value)
+    local persistent = value:IsPersistent()
     local db_id = value:GetDatabaseId()
 
     if self.database then
@@ -227,12 +228,15 @@ function PropertyManager:GetValueDatabase(value)
             property = value.owner_property:GetGlobalId(),
             property_type = "",
             readout_mode = "",
+            persistent = persistent,
 
             history_key = db_id,
         })
     end
 
-    return self.mongo_connection:GetCollection(db_id, "timestamp")
+    if persistent then
+        return self.mongo_connection:GetCollection(db_id, "timestamp")
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -283,6 +287,7 @@ function PropertyManager:GetStatistics()
         "unit",
         "timestamp",
         "datatype",
+        "persistent",
     }
 
     local r = { }
@@ -307,10 +312,11 @@ function PropertyManager:GetStatistics()
                 v.global_id,
                 p.readout_mode,
                 p.property_type,
-                val,
+                tostring(val):sub(1,64),
                 v:GetUnit(),
                 timestamp,
                 v:GetDatatype(),
+                v:IsPersistent(),
             })
         end
     end

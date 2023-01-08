@@ -28,6 +28,10 @@ end
 
 -------------------------------------------------------------------------------------
 
+function PropertyBaseObject:IsPersistent()
+    return true
+end
+
 function PropertyBaseObject:IsReady()
     return self.ready
 end

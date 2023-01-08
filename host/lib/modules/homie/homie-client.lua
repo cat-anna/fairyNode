@@ -464,10 +464,10 @@ end
 --     HomieLocalDevice.super.StopDevice(self)
 -- end
 
--- function HomieLocalDevice:GetHardwareId()
---     print(self, "Get hardware id is not supported")
---     return self.uuid
--- end
+function HomieClient:GetHardwareId()
+    -- print(self, "Get hardware id is not supported")
+    return self:GetId()
+end
 
 -------------------------------------------------------------------------------
 

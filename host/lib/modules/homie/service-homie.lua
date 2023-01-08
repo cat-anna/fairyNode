@@ -50,12 +50,12 @@ function DevSrv:ListDevices(request)
         table.insert(result, r)
 
         local dev = self.homie_host:GetDevice(dev_name)
-
         r.name = dev:GetName()
         r.id = dev:GetId()
         r.global_id = dev:GetGlobalId()
         r.state = dev:GetState()
         r.nodes = dev:GetNodesSummary()
+        r.hardware_id = dev:GetHardwareId()
 
         -- r.uptime = 0
         -- State	Errors	Uptime	LFS timestamp	NodeMCU | FairyNode version	Signal

@@ -26,6 +26,10 @@ end
 
 -------------------------------------------------------------------------------------
 
+function HomieRemoteNode:GetPropertyClass(prop_id)
+    return "homie/host/remote-property"
+end
+
 function HomieRemoteNode:HandleNodeProperties(topic, payload)
     if not payload then
         return
@@ -43,7 +47,7 @@ function HomieRemoteNode:HandleNodeProperties(topic, payload)
         local opt = {
             id = prop_id,
 
-            class = "homie/host/remote-property",
+            class = self:GetPropertyClass(prop_id),
         }
 
         local prop = self:AddProperty(opt)
