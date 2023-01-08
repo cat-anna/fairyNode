@@ -1,7 +1,9 @@
 
 var kMissingValueBlock = "<span class='MissingValue'>&lt;&nbsp;?&nbsp;&gt;<span>"
 
-var ActivePage = "Devices"
+ActivePage = "Devices"
+ActiveDevice = null
+ActiveDevicePage = { }
 
 function FairyNode_InitOverview() {
     bootstrap_code = `
@@ -23,7 +25,7 @@ function FairyNode_InitOverview() {
                 </div>
             </div>
 
-            <div id="PageDevices" class="Page  OverviewTable ">
+            <div id="PageDevices" class="Page OverviewTable">
                 <div id="DeviceList" class="DeviceListNodes"></div>
                 <div id="DeviceListContent" class="DeviceListContent">
                     <div id="OverviewTable" class="DeviceListPages tabcontent tab_active">
@@ -71,6 +73,7 @@ function FairyNode_InitOverview() {
         $(".DeviceListPages.tab_active").removeClass("tab_active")
         $("#OverviewTable").addClass("tab_active")
         $(".DeviceListPages.tab_button_active").removeClass("tab_button_active")
+        ActiveDevice = null
     });
 
     ResetRuleCodeEditor();
@@ -507,10 +510,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         html: 'Restart',
         "device": entry.name,
         click: function () {
-            body = {
-                command: 'restart',
-                args: {}
-            }
+            body = { command: 'restart', }
             url = "/device/" + $(this).attr("device") + "/command"
             QueryPostWithConfirm(url, body)
         }
@@ -521,10 +521,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         html: 'Trigger OTA check',
         "device": entry.name,
         click: function () {
-            body = {
-                command: 'check_ota_update',
-                args: {}
-            }
+            body = { command: 'check_ota_update', }
             url = "/device/" + $(this).attr("device") + "/command"
             QueryPostWithConfirm(url, body)
         }
@@ -535,10 +532,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         html: 'Force OTA',
         "device": entry.name,
         click: function () {
-            body = {
-                command: 'force_ota_update',
-                args: {}
-            }
+            body = { command: 'force_ota_update', }
             url = "/device/" + $(this).attr("device") + "/command"
             QueryPostWithConfirm(url, body)
         }
@@ -654,9 +648,126 @@ function SetDeviceInfoPage(entry, sub_id, body_id) {
     return page
 }
 
-function SetDeviceCmdPage(entry, sub_id, body_id) {
+function SetDeviceSoftwareActionsPage(entry, body_id) {
+    var node_id = "ACTIONS_" + body_id
+    GetOrCreateDiv(node_id, body_id, "DeviceNode")
+
+    var header = GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader")
+    header.html("<div style='float: left; display: block; padding-right:20px;'>Actions</div>")
+    jQuery('<div/>', {
+        // id: 'some-id',
+        "class": 'OtaTriggerButton',
+        html: 'Restart',
+        "device": entry.name,
+        click: function () {
+            body = { command: 'restart', }
+            url = "/device/" + $(this).attr("device") + "/command"
+            QueryPostWithConfirm(url, body)
+        }
+    }).appendTo(header);
+    jQuery('<div/>', {
+        // id: 'some-id',
+        "class": 'OtaTriggerButton',
+        html: 'Trigger OTA check',
+        "device": entry.name,
+        click: function () {
+            body = { command: 'check_ota_update',}
+            url = "/device/" + $(this).attr("device") + "/command"
+            QueryPostWithConfirm(url, body)
+        }
+    }).appendTo(header);
+    jQuery('<div/>', {
+        // id: 'some-id',
+        "class": 'OtaTriggerButton',
+        html: 'Force OTA',
+        "device": entry.name,
+        click: function () {
+            body = { command: 'force_ota_update', }
+            url = "/device/" + $(this).attr("device") + "/command"
+            QueryPostWithConfirm(url, body)
+        }
+    }).appendTo(header);
+}
+
+function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
+    var node_id = "SW_LIST_" + body_id
+    var body = GetOrCreateDiv(node_id, body_id, "DeviceNode")
+    body.html("")
+    var header = GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader")
+    header.html("Software list")
+
+    if (entries.order == null) {
+        return
+    }
+
+    for (var i = 0; i < entries.order.length; i++) {
+        let key = entries.order[i]
+        var value = entries.commits[key]
+        var prop_id = key.replace(":", "_") + "_" + node_id
+
+        GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
+
+        GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: key.substring(0,24) })
+        var active_status = "&nbsp;"
+        if (entries.active == key) {
+            active_status = "Active"
+        }
+        GetOrCreateDiv("ACTIVE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodeSwCommitActive", { html: active_status })
+        var success_block = GetOrCreateDiv("SUCCESS_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodeSwCommitSuccessful")
+        if (value.boot_successful != null){
+            success_block.html("&nbsp;" + value.boot_successful)
+        } else {
+            success_block.html("&nbsp;-")
+        }
+
+        if(value.timestamp != null) {
+            value.timestamp = new Date(value.timestamp * 1000).toLocaleString()
+        }
+        GetOrCreateDiv("TIMESTAMP_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyTimestamp").html(value.timestamp)
+
+        var actions = GetOrCreateDiv("ACTIONS_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodeSwCommitActions").html("&nbsp;")
+
+        jQuery('<div/>', {
+            // id: 'some-id',
+            "class": 'OtaTriggerButton',
+            html: 'Activate',
+            click: function () {
+                QueryPostWithConfirm("/ota/device/" + hardware_id + "/commit/" + key + "/activate", {})
+                RefreshDeviceSoftwareListPage(hardware_id, body_id)
+            }
+        }).appendTo(actions);
+        jQuery('<div/>', {
+            // id: 'some-id',
+            "class": 'OtaTriggerButton',
+            html: 'Delete',
+            click: function () {
+                QueryPostWithConfirm("/ota/device/" + hardware_id + "/commit/" + key + "/delete", {})
+                RefreshDeviceSoftwareListPage(hardware_id, body_id)
+            }
+        }).appendTo(actions);
+
+    }
+}
+
+function RefreshDeviceSoftwareListPage(hardware_id, body_id) {
+    if(ActiveDevicePage[hardware_id] == "OTA") {
+        QueryGet("/ota/device/" + hardware_id + "/commit", function (data) {
+            SetDeviceSoftwareListPage(hardware_id, body_id, data)
+        })
+    }
+}
+
+function SetDeviceSoftwarePage(entry, sub_id, body_id) {
     var page = GetOrCreateDiv(body_id, sub_id, "DevicePageContent DevicePage tabcontent tab_inactive")
 
+    SetDeviceSoftwareActionsPage(entry, body_id)
+    RefreshDeviceSoftwareListPage(entry.hardware_id, body_id)
+
+    return page
+}
+
+function SetDeviceCmdPage(entry, sub_id, body_id) {
+    var page = GetOrCreateDiv(body_id, sub_id, "DevicePageContent DevicePage tabcontent tab_inactive")
     return page
 }
 
@@ -716,6 +827,7 @@ function UpdateDevice(entry) {
             $(".DeviceListPages.tab_button_active").removeClass("tab_button_active")
             $("#" + "DEVICE_PAGE_" + entry.name).removeClass("tab_inactive").addClass("tab_active")
             $(device).addClass("tab_button_active")
+            ActiveDevice = entry.hardware_id
         });
     }
 
@@ -757,17 +869,23 @@ function UpdateDevice(entry) {
         GetOrCreateDiv("NODES_" + pages_id, pages_id, my_class + " DevicePage DevicePageButton tab_button tab_button_active", { html: "Nodes", data: "NODES" }),
         GetOrCreateDiv("INFO_" + pages_id, pages_id, my_class + " DevicePage DevicePageButton tab_button", { html: "Device info", data: "INFO" }),
         GetOrCreateDiv("CMD_" + pages_id, pages_id, my_class + " DevicePage DevicePageButton tab_button", { html: "Commands", data: "CMD" }),
+        GetOrCreateDiv("OTA_" + pages_id, pages_id, my_class + " DevicePage DevicePageButton tab_button", { html: "Software", data: "OTA" }),
     ]
 
     var del_btn = GetOrCreateDiv("DELETE_" + pages_id, pages_id, my_class + " DevicePageButtonDelete ", { html: "&nbsp;", data: "DELETE" })
 
     if (first) {
+        let hardware_id = entry.hardware_id
+        ActiveDevicePage[entry.hardware_id] = btns[0].attr("data")
         for (var i in btns) {
             $(btns[i]).click(function (event) {
                 $(".DevicePage.tab_active." + my_class).removeClass("tab_active")
                 $(".DevicePage.tab_button_active." + my_class).removeClass("tab_button_active")
                 $("#" + $(this).attr("data") + "_" + sub_id).addClass("tab_active")
+                ActiveDevicePage[hardware_id] = $(this).attr("data")
                 $(this).addClass("tab_button_active")
+
+                RefreshDeviceSoftwareListPage(hardware_id, "OTA_" + sub_id)
             });
         }
         $(del_btn).click(function (event) {
@@ -781,6 +899,7 @@ function UpdateDevice(entry) {
         SetDeviceNodesPage(entry, sub_id, "NODES_" + sub_id),
         SetDeviceInfoPage(entry, sub_id, "INFO_" + sub_id),
         SetDeviceCmdPage(entry, sub_id, "CMD_" + sub_id),
+        SetDeviceSoftwarePage(entry, sub_id, "OTA_" + sub_id),
     ]
     if (first) {
         for (var i in pages) {
@@ -800,7 +919,7 @@ function HandleDeviceResponse(data) {
         }
         return 0;
     })
-    console.log(data)
+    // console.log(data)
 
     data.forEach(function (entry) {
         UpdateDevice(entry);

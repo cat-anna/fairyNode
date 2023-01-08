@@ -49,6 +49,27 @@ return {
 -------------------------------------------------------------------------------
         {
             method = "GET",
+            path = "device/{[A-Z0-9]+}/commit",
+            produces = "application/json",
+            service_method = "GetDeviceFirmwareCommits",
+        },
+        {
+            method = "POST",
+            path = "device/{[A-Z0-9]+}/commit/{[a-zA-Z0-9]+}/activate",
+            consumes = "application/json",
+            produces = "application/json",
+            service_method = "DeviceFirmwareCommitActivate",
+        },
+        {
+            method = "POST",
+            path = "device/{[A-Z0-9]+}/commit/{[a-zA-Z0-9]+}/delete",
+            consumes = "application/json",
+            produces = "application/json",
+            service_method = "DeviceFirmwareCommitDelete",
+        },
+-------------------------------------------------------------------------------
+        {
+            method = "GET",
             path = "device/{[A-Z0-9]+}/status",
             produces = "application/json",
             service_method = "GetFirmwareStatus",

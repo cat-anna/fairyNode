@@ -265,6 +265,49 @@ end
 
 -------------------------------------------------------------------------------
 
+function ServiceOta:GetDeviceFirmwareCommits(request, device_id)
+    local ota_host = self.ota_host
+    local db = ota_host:LoadDatabase()
+    local device = ota_host:GetDeviceById(db, device_id)
+
+    if not device then
+        return http.BadRequest, {}
+    end
+
+    local fw = device.firmware
+    return http.OK, {
+        order = fw.order,
+        commits = fw.commits,
+        active = fw.active,
+    }
+end
+
+function ServiceOta:DeviceFirmwareCommitActivate(request, device_id, commit_id)
+    device_id = device_id:upper()
+    commit_id = commit_id:lower()
+
+
+    if not self.ota_host:ActiveDeviceCommit(device_id, commit_id) then
+        return http.Forbidden, false
+    end
+
+    return http.OK, true
+end
+
+function ServiceOta:DeviceFirmwareCommitDelete(request, device_id, commit_id)
+    device_id = device_id:upper()
+    commit_id = commit_id:lower()
+
+    if not self.ota_host:DeleteDeviceCommit(device_id, commit_id) then
+        return http.Forbidden, false
+    end
+
+    self.ota_host:CheckDatabase()
+    return http.OK, true
+end
+
+-------------------------------------------------------------------------------
+
 -- LEGACY --
 
 function ServiceOta:GetImage(request, device_id, image_id)

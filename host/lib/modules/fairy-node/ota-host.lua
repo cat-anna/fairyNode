@@ -46,32 +46,27 @@ end
 -------------------------------------------------------------------------------
 
 function FairyNodeOta:CheckDeviceCommits(db, device_id)
-    -- local device = db.device[device_id]
-    -- local components = device.components
-    -- local firmware = device.firmware
+    local device = db.device[device_id]
+    local firmware = device.firmware
 
-    -- while #firmware.order > 8 do
-    --     local id = table.remove(firmware.order)
-    --     firmware.sets[id] = nil
-    -- end
+    while #firmware.order > 8 do
+        local id = table.remove(firmware.order, #firmware.orde)
+        firmware.commits[id] = nil
+    end
 
-    -- local needed_images = { }
-    -- for k,v in pairs(firmware.sets) do
-    --     for c_id, hash in pairs(v.components) do
-    --         needed_images[c_id] = needed_images[c_id] or { }
-    --         needed_images[c_id][hash]=true
-    --     end
-    -- end
+    local needed_images = { }
+    for k,v in pairs(firmware.commits) do
+        for c_id, hash in pairs(v.components) do
+            -- needed_images[c_id] = needed_images[c_id] or { }
+            needed_images[hash] = true
+        end
+    end
 
-    -- for c_id,info in pairs(components) do
-    --     local images = info.images
-    --     for _,hash in ipairs(tablex.keys(images)) do
-    --         local needed = needed_images[c_id]
-    --         if (not needed) or (not needed[hash]) then
-    --             images[hash] = nil
-    --         end
-    --     end
-    -- end
+    for _,k in ipairs(tablex.keys(device.images)) do
+        if not needed_images[k] then
+            -- device.images[k] = nil
+        end
+    end
 end
 
 function FairyNodeOta:CheckDeviceFiles(db, device_id)
@@ -143,7 +138,7 @@ function FairyNodeOta:CheckDatabase()
     self:CheckImagesInStorage(db)
 
     for _,device_id in ipairs(tablex.keys(db.device)) do
-    --     self:CheckDeviceCommits(db, device_id)
+        self:CheckDeviceCommits(db, device_id)
         self:CheckDeviceFiles(db, device_id)
     end
     for _,hash in ipairs(tablex.keys(uploaded_files)) do
@@ -303,6 +298,20 @@ function FairyNodeOta:GetLatestDeviceFirmwareCommit(db, device_id)
     end
 end
 
+function FairyNodeOta:GetActiveDeviceFirmwareCommit(db, device_id)
+    db = db or self:LoadDatabase()
+    local device = self:GetDeviceById(db, device_id, false)
+    if not device then
+        print(self, "Unknown device ", device_id)
+        return
+    end
+
+    local fw_commit_hash = device.firmware.active
+    if fw_commit_hash then
+        return device.firmware.commits[fw_commit_hash], fw_commit_hash
+    end
+end
+
 function FairyNodeOta:GetDeviceStatus(device_id)
     local db = self:LoadDatabase()
     local fw_commit, fw_commit_hash = self:GetLatestDeviceFirmwareCommit(db, device_id)
@@ -361,7 +370,6 @@ function FairyNodeOta:AddFirmwareCommit(device_id, request)
     firmware.commits[key] = {
         components = request.set,
         timestamp = os.timestamp(),
-        boot_successful = false,
     }
 
     self:SaveDatabase(db)
@@ -405,7 +413,7 @@ function FairyNodeOta:GetFirmwareImage(device_id, image_id, image_hash)
     end
 
     if (not image_hash) or image_hash == "latest" then
-        local fw_commit = self:GetLatestDeviceFirmwareCommit(db, device_id)
+        local fw_commit = self:GetActiveDeviceFirmwareCommit(db, device_id)
         if not fw_commit then
             printf(self, "Device %s does not have any commits", device_id)
             return
@@ -423,6 +431,57 @@ function FairyNodeOta:GetFirmwareImage(device_id, image_id, image_hash)
 
     local file_data, file_entry = self:ReadStoredImage(db, entry.file)
     return file_data
+end
+
+-------------------------------------------------------------------------------------
+
+function FairyNodeOta:ActiveDeviceCommit(device_id, commit_id)
+    local db = self:LoadDatabase()
+    local device = self:GetDeviceById(db, device_id)
+
+    if not device then
+        return false
+    end
+
+    local fw = device.firmware
+    if not fw.commits[commit_id] then
+        return false
+    end
+
+    fw.active = commit_id
+
+    self:SaveDatabase(db)
+    printf(self, "Firmware '%s' activated for '%s'", commit_id, device_id)
+
+    return true
+end
+
+function FairyNodeOta:DeleteDeviceCommit(device_id, commit_id)
+    local db = self:LoadDatabase()
+    local device = self:GetDeviceById(db, device_id)
+
+    if not device then
+        return false
+    end
+    local fw = device.firmware
+    if not fw.commits[commit_id] then
+        return false
+    end
+    if fw.active == commit_id then
+        printf(self, "Firmware '%s' is in use for '%s'", commit_id, device_id)
+        return false
+    end
+
+    fw.commits[commit_id] = nil
+    for i,v in ipairs(fw.order) do
+        if v == commit_id then
+            table.remove(fw.order, i)
+        end
+    end
+
+    self:SaveDatabase(db)
+    printf(self, "Firmware '%s' deleted for '%s'", commit_id, device_id)
+    return true
 end
 
 -------------------------------------------------------------------------------------
