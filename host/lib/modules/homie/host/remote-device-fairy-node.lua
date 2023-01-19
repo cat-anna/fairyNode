@@ -27,7 +27,10 @@ end
 -------------------------------------------------------------------------------------
 
 function FairyNodeRemoteDevice:GetHardwareId()
-    return string.upper(self.variables["hw/chip_id"])
+    local chip_id = self.variables["hw/chip_id"]
+    if chip_id then
+        return chip_id:upper()
+    end
 end
 
 function FairyNodeRemoteDevice:GetLfsSize()
