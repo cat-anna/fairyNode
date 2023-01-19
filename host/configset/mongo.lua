@@ -9,8 +9,8 @@ function Package.GetConfig(base_path)
         ["loader.module.list"] = {
             "mongo/mongo-connection",
         },
-        ["module.mongodb.database"] = socket.dns.gethostname() .. "_database",
-        ["module.mongodb.connection"] = "mongodb://admin:admin@kalessin.lan:27017",
+        ["module.mongodb.database"] = "fairy_node_" .. socket.dns.gethostname():lower() .. "_database",
+        ["module.mongodb.connection"] = "mongodb://admin:admin@mongo:27017",
     }
 end
 
