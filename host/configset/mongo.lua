@@ -10,7 +10,7 @@ function Package.GetConfig(base_path)
             "mongo/mongo-connection",
         },
         ["module.mongodb.database"] = "fairy_node_" .. socket.dns.gethostname():lower() .. "_database",
-        ["module.mongodb.connection"] = "mongodb://admin:admin@mongo:27017",
+        -- ["module.mongodb.connection"] = "mongodb://admin:admin@mongo:27017",
     }
 end
 
