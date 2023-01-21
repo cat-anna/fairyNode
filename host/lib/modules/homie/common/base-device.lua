@@ -6,7 +6,6 @@ HomieBaseDevice.__class_name = "HomieBaseDevice"
 HomieBaseDevice.__type = "interface"
 HomieBaseDevice.__base = "homie/common/base-object"
 HomieBaseDevice.__deps = {
-    mqtt = "mqtt/mqtt-client",
 }
 
 -------------------------------------------------------------------------------------
@@ -20,6 +19,9 @@ function HomieBaseDevice:PostInit()
     HomieBaseDevice.super.PostInit(self)
 end
 
+function HomieBaseDevice:StopDevice()
+end
+
 -------------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------------
@@ -31,13 +33,14 @@ end
 -------------------------------------------------------------------------------------
 
 function HomieBaseDevice:DeleteDevice()
-    print(self, "Delete device operation is not supported")
+    warning(self, "Delete device operation is not supported")
+    return false
 end
 
 -------------------------------------------------------------------------------------
 
 function HomieBaseDevice:GetHardwareId()
-    print(self, "Get hardware id is not supported")
+    warning(self, "Get hardware id is not supported")
     return self.uuid
 end
 
@@ -66,7 +69,7 @@ end
 -------------------------------------------------------------------------------------
 
 function HomieBaseDevice:Restart()
-    print(self, "Restart operation is not supported")
+    warning(self, "Restart operation is not supported")
 end
 
 -------------------------------------------------------------------------------------

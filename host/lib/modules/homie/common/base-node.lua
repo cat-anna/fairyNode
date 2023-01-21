@@ -19,6 +19,14 @@ function HomieBaseNode:PostInit()
     HomieBaseNode.super.PostInit(self)
 end
 
+function HomieBaseNode:Finalize()
+    for _,p in pairs(self.properties) do
+        p:Finalize()
+    end
+    self.properties = { }
+    self.super.Finalize(self)
+end
+
 -------------------------------------------------------------------------------------
 
 function HomieBaseNode:AddProperty(opt)

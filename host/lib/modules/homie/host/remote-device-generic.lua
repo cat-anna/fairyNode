@@ -12,6 +12,7 @@ HomieRemoteDevice.__base = "homie/common/base-device"
 HomieRemoteDevice.__config = { }
 HomieRemoteDevice.__deps = {
     mqtt = "mqtt/mqtt-client",
+    event_bus = "base/event-bus",
 }
 
 -------------------------------------------------------------------------------------
@@ -45,21 +46,70 @@ end
 
 function HomieRemoteDevice:StopDevice()
     HomieRemoteDevice.super.StopDevice(self)
-    self.mqtt:StopWatching(self)
+    self:StopWatching()
 end
 
 ------------------------------------------------------------------------------
 
 function HomieRemoteDevice:EnterState(state)
     self.state = state
+    self.event_bus:PushEvent({
+        event = "homie.device.event.state-change",
+        id = self:GetId(),
+        state = state,
+        device_handle = self,
+    })
     printf(self, "Entered state %s", self.state)
 end
 
--- function HomieRemoteDevice:DeleteDevice()
---     print(self, "Delete device operation is not supported")
---     self.is_deleting = true
---     -- TODO
--- end
+function HomieRemoteDevice:DeleteDevice()
+    if self.deleting then
+        return
+    end
+    printf(self, "Deleting device")
+
+    local sequence = {
+        function ()
+            self.event_bus:PushEvent({
+                event = "homie.device.delete.start",
+                device = self.name,
+            })
+        end,
+        function () self:Publish("$state", "lost", true) end,
+        function () self:StopWatching() end,
+        function () self:Publish("$homie", "", true) end,
+        function ()
+            self:ClearSubscribers()
+            for _,n in pairs(self.nodes) do
+                n:StopNode()
+            end
+        end,
+        function ()
+                print(self, "Starting topic clear")
+                self:WatchRegex("#", function(_, topic, payload)
+                        payload = payload or ""
+                        if payload ~= "" then
+                            print(self, "Clearing: " .. topic .. "=" .. payload)
+                            self.mqtt:Publish(topic, "", true)
+                        end
+                    end)
+        end,
+        function () end,
+        function ()
+            self.event_bus:PushEvent({
+                event = "homie.device.delete.finished",
+                device = self.name,
+            })
+        end,
+        function ()
+            self.deleting = true
+            self:StopDevice()
+        end,
+    }
+
+    self.deleting = scheduler:CreateTaskSequence(self, "deleting device", 1, sequence)
+    return self:IsDeleting()
+end
 
 ------------------------------------------------------------------------------
 
@@ -72,8 +122,8 @@ function HomieRemoteDevice:HandleHomieNode(topic, payload)
         return
     end
 
-    assert(payload == "3.0.0")
     self.homie_version = payload
+    assert(payload == "3.0.0")
 end
 
 function HomieRemoteDevice:HandleDeviceName(topic, payload)
@@ -92,12 +142,6 @@ function HomieRemoteDevice:HandleStateChange(topic, payload)
 --         print(self,self.name .. " 'ota -> lost' state transition ignored")
 --         return
 --     end
-
---     self.event_bus:PushEvent({
---         event = "homie-host.device.event.state-change",
---         device = self,
---         state = payload
---     })
 
     self:EnterState(payload)
 end

@@ -24,6 +24,14 @@ function HomieRemoteNode:PostInit()
     self:WatchTopic("$properties", self.HandleNodeProperties)
 end
 
+function HomieRemoteNode:Finalize()
+    if self.remote_property then
+        self.property_manager:ReleaseProperty(self.remote_property)
+        self.remote_property = nil
+    end
+    self.super.Finalize(self)
+end
+
 -------------------------------------------------------------------------------------
 
 function HomieRemoteNode:GetPropertyClass(prop_id)

@@ -5,7 +5,7 @@ local HomieCommon = {}
 ------------------------------------------------------------------------------
 
 local function FormatInteger(v)
-    return string.format(math.floor(tonumber(v)))
+    return tostring(math.floor(tonumber(v) or 0))
 end
 
 local function tointeger(v)

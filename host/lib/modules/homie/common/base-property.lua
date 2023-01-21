@@ -26,6 +26,10 @@ function HomieBaseProperty:PostInit()
     -- end
 end
 
+function HomieBaseProperty:Finalize()
+    self.super.Finalize(self)
+end
+
 -------------------------------------------------------------------------------------
 
 function HomieBaseProperty:GetDatatype()
@@ -68,11 +72,13 @@ function HomieBaseProperty:OnValueChanged()
 end
 
 function HomieBaseProperty:AddValueMessage(q)
+    q = q or { }
     local value,timestamp = self:GetValue()
     if value ~= nil then
         if timestamp ~= nil then
             self:PushMessage(q, "$timestamp", homie_common.FormatFloat(timestamp))
         end
+        -- print(self, "AddValueMessage", self:GetDatatype(), value, homie_common.ToHomieValue(self:GetDatatype(), value))
         self:PushMessage(q, nil, homie_common.ToHomieValue(self:GetDatatype(), value))
     end
     return q
@@ -103,6 +109,13 @@ end
 
 function HomieBaseProperty:GetSummary()
     local v,t = self:GetValue()
+    local datatype = self:GetDatatype()
+    if v ~= nil and type(v) ~= "string" then
+        v = homie_common.ToHomieValue(datatype, v)
+    end
+    if type(t) == "number" then
+        t = homie_common.FormatFloat(t)
+    end
     return {
         id = self:GetId(),
         global_id = self:GetGlobalId(),
@@ -110,7 +123,7 @@ function HomieBaseProperty:GetSummary()
 
         name = self:GetName(),
         unit = self:GetUnit(),
-        datatype = self:GetDatatype(),
+        datatype = datatype,
         value = v,
         timestamp = t,
         settable = self:IsSettable(),

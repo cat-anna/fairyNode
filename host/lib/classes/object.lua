@@ -60,6 +60,10 @@ function Object:CallSubscribers(argument)
     end
 end
 
+function Object:ClearSubscribers()
+    self.subscriptions = nil
+end
+
 -------------------------------------------------------------------------------------
 
 return Object

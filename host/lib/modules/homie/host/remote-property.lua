@@ -28,6 +28,11 @@ function HomieRemoteProperty:PostInit()
     self:WatchTopic(nil, self.HandlePropertyValue)
 end
 
+function HomieRemoteProperty:Finalize()
+    self.property_handle = nil
+    self.super.Finalize(self)
+end
+
 -------------------------------------------------------------------------------------
 
 function HomieRemoteProperty:GetPropertyId()
@@ -95,10 +100,10 @@ function HomieRemoteProperty:HandlePropertyValue(topic, payload, receive_timesta
     end
     local node_name, prop_name = topic:match("/([^/]+)/([^/]+)$")
 
-    local changed = true
-    if self.receive_timestamp ~= nil and self.raw_value == payload then
-        changed = false
-    end
+    -- local changed = true
+    -- if self.receive_timestamp ~= nil and self.raw_value == payload then
+    --     changed = false
+    -- end
 
     local old_value = self.value
     local value = payload
@@ -113,9 +118,9 @@ function HomieRemoteProperty:HandlePropertyValue(topic, payload, receive_timesta
         end
     end
 
-    -- if changed and self.config.verbose then
+    if self.config.debug then
         print(self, string.format("node %s.%s = %s -> %s", node_name, prop_name, self.raw_value or "", payload or ""))
-    -- end
+    end
 
     self.value = value
     self.raw_value = payload

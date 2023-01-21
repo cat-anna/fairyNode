@@ -175,26 +175,6 @@ end
 
 ------------------------------------------------------------------------------
 
-function HomieHost:DeleteDevice(device)
-    local dev = self:GetDevice(device)
-    if not dev then
-        return false
-    end
-
-    printf(self, "Deleting device '%s'", device)
-    dev:Delete()
-
-    return true
-end
-
-function HomieHost:FinishDeviceRemoval(device)
-    self.devices[device] = nil
-    self.history[device] = nil
-    printf(self, "Device '%s' removal finished", device)
-end
-
-------------------------------------------------------------------------------
-
 function HomieHost:IsRetained()
     return self.retained
 end
@@ -209,7 +189,19 @@ end
 
 ------------------------------------------------------------------------------
 
--- HomieHost.EventTable = { }
+function HomieHost:OnDeviceDeleteFinished(event)
+    local device = event.device
+
+    self.devices[device] = nil
+    printf(self, "Device '%s' removed", device)
+end
+
+------------------------------------------------------------------------------
+
+HomieHost.EventTable = {
+    ["homie.device.delete.start"] = HomieHost.OnDeviceDeleteStart,
+    ["homie.device.delete.finished"] = HomieHost.OnDeviceDeleteFinished,
+}
 
 ------------------------------------------------------------------------------
 

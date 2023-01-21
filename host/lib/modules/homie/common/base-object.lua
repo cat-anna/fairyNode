@@ -30,6 +30,10 @@ function HomieObjectBase:PostInit()
     end
 end
 
+function HomieObjectBase:Finalize()
+    self:StopWatching()
+end
+
 function HomieObjectBase:Tag()
     if not self.global_id then
         self:UpdateGlobalId()
@@ -57,7 +61,7 @@ end
 
 function HomieObjectBase:CallSubscribers()
     if self:IsDeleting() then
-        print(self, "Failed to add subscription. During deletion.")
+        print(self, "Failed to call subscribers. During deletion.")
         return
     end
     return HomieObjectBase.super.CallSubscribers(self)
@@ -108,10 +112,14 @@ function HomieObjectBase:WatchRegex(topic, handler)
     self.mqtt:WatchRegex(self, handler, self:Topic(topic))
 end
 
+function HomieObjectBase:StopWatching()
+    self.mqtt:StopWatching(self)
+end
+
 -------------------------------------------------------------------------------------
 
 function HomieObjectBase:IsDeleting()
-    return self.is_deleting
+    return self.deleting ~= nil
 end
 
 function HomieObjectBase:IsPersistent()

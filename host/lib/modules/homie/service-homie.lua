@@ -116,18 +116,17 @@ function DevSrv:GetNode(request, device, node)
 end
 
 function DevSrv:DeleteDevice(request, device)
-    return http.BadRequest, {}
-    -- local dev = self.device:GetDevice(device)
-    -- if not dev then
-    --     printf("SERVICE-HOMIE: Cannot remove non-existing device '%s'", device)
-    --     return http.BadRequest, {}
-    -- end
+    local dev = self.homie_host:GetDevice(device)
+    if not dev then
+        printf("SERVICE-HOMIE: Cannot remove non-existing device '%s'", device)
+        return http.BadRequest, {}
+    end
 
-    -- if not self.device:DeleteDevice(device) then
-    --     return http.ServiceUnavailable, {}
-    -- end
+    if not dev:DeleteDevice() then
+        return http.ServiceUnavailable, {}
+    end
 
-    -- return http.OK, {}
+    return http.OK, {}
 end
 
 function DevSrv:SendCommand(request, device)
