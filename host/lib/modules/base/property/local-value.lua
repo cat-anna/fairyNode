@@ -15,7 +15,7 @@ function LocalValue:Init(config)
     self.datatype = config.datatype
     self.unit = config.unit
     self.value = config.value
-    self.timestamp = config.timestamp
+    self.timestamp = config.timestamp or 0
 end
 
 -- function LocalValue:PostInit()
@@ -29,6 +29,9 @@ function LocalValue:GetValue()
 end
 
 function LocalValue:GetDatatype()
+    if not self.datatype then
+        print(self, "Datatype is not set!")
+    end
     return self.datatype or "string"
 end
 
@@ -39,12 +42,13 @@ end
 -------------------------------------------------------------------------------------
 
 function LocalValue:Update(updated_value, timestamp)
-    if self.value == updated_value then
+    timestamp = timestamp or os.timestamp()
+    if (self.value == updated_value) and (timestamp - self.timestamp < 60 * 60) then
         return false
     end
 
     self.value = updated_value
-    self.timestamp = timestamp or os.timestamp()
+    self.timestamp = timestamp
 
     self:CallSubscribers()
 

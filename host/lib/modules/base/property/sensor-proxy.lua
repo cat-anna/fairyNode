@@ -11,6 +11,9 @@ function PropertySensorProxy:Readout()
     local f = self.owner.SensorReadout
     if f then
         f(self.owner)
+    else
+        self:ReadoutFast()
+        self:ReadoutSlow()
     end
 end
 

@@ -8,7 +8,7 @@ local CONFIG_KEY_LONGITUDE = "server.location.longitude"
 -------------------------------------------------------------------------------
 
 local DaylightSensor = {}
-DaylightSensor.__base = "base/property-object-base"
+DaylightSensor.__base = "base/property/local-property"
 DaylightSensor.__config = {
     [CONFIG_KEY_LATITUDE] = { type = "float", default = 0 },
     [CONFIG_KEY_LONGITUDE] = { type = "float", default = 0 },
