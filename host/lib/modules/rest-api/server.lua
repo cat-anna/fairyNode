@@ -67,8 +67,20 @@ function RestServer:FindEndpoint(endpoint_name)
     end
 end
 
-function RestServer:AddEndpoint(endpoint_def)
+function RestServer:AddEndpoint(endpoint_name, endpoint_file)
+    local r, endpoint_def = pcall(dofile, endpoint_file)
+    if not r then
+        print(self, "Failed to load endpoiint", endpoint_name)
+        return
+    end
+    assert(not self.endpoints[endpoint_name])
     local module = self.loader_module:LoadModule(endpoint_def.service)
+
+    self.endpoints[endpoint_name] = {
+        file = endpoint_file,
+        definition = endpoint_def,
+        timestamp = os.timestamp(),
+    }
 
     for _,endpoint in ipairs(endpoint_def.endpoints) do
         if endpoint.service_method then
@@ -87,7 +99,7 @@ function RestServer:LoadEndpoints()
             printf(self, "failed to find source for endpoint %s", endpoint_name)
         else
             printf(self, "Adding endpoint %s", endpoint_name)
-            self:AddEndpoint(dofile(endpoint_file))
+            self:AddEndpoint(endpoint_name, endpoint_file)
         end
     end
 end
@@ -109,7 +121,6 @@ end
 
 
 function RestServer:ExecuteServer(task)
-
     local function HttpLogger(...)
         if self.logger:Enabled() then
             self.logger:WriteCsv{ ... }
@@ -180,6 +191,7 @@ function RestServer:AfterReload()
 end
 
 function RestServer:Init()
+    self.endpoints = { }
     self.logger = require("lib/logger"):New("http-access", CONFIG_KEY_REST_LOG_ENABLE)
     copas.addthread(function()
         copas.sleep(0.1)
