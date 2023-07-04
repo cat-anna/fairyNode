@@ -26,7 +26,7 @@ function Sensor:ControllerInit(event, ctl)
             errors = { name = "Active errors", datatype = "string" },
             free_space = { name = "Free flash space", datatype = "integer" },
             event = { name = "Event", datatype = "string", value = "" },
-            vdd = self.use_vdd and { name = "Supply voltage", datatype = "float" , unit = "mV" } or nil,
+            vdd = self.vdd and { name = "Supply voltage", datatype = "float" , unit = "mV" } or nil,
         }
     })
 end
@@ -42,7 +42,7 @@ function Sensor:Readout(event, sensors)
     self.node:SetValue("uptime", tostring(tmr.time()))
     self.node:SetValue("wifi", tostring(GetWifiSignalQuality()))
 
-    if self.use_vdd then
+    if self.vdd then
         self.node:SetValue("vdd", tostring(adc.readvdd33(0)))
     end
 end
@@ -72,15 +72,16 @@ Sensor.EventHandlers = {
 
 return {
     Init = function()
-        local use_vdd = nil
-        if hw and hw.adc and adc then
-            use_vdd = hw.adc == "vdd"
-            if use_vdd and adc.force_init_mode(adc.INIT_VDD33) then
+        local vdd = nil
+        if hw and adc then
+            vdd = (hw.adc == "vdd" or hw.adc == nil)
+            if vdd and adc.force_init_mode(adc.INIT_VDD33) then
               print("SYSINFO: Restarting to force adc vdd mode")
               node.restart()
               return -- don't bother continuing, the restart is scheduled
             end
+            hw.adc = nil
         end
-        return setmetatable({ use_vdd = use_vdd }, Sensor)
+        return setmetatable({ vdd = vdd }, Sensor)
     end,
 }

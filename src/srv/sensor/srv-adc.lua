@@ -60,14 +60,13 @@ Sensor.EventHandlers = {
 
 return {
     Init = function()
-        local use_vdd = nil
         if hw and hw.adc and adc and hw.adc == "adc" then
             if adc.force_init_mode(adc.INIT_ADC) then
                 print("ADC: Restarting to force adc mode")
                 node.restart()
                 return -- don't bother continuing, the restart is scheduled
             end
+            return setmetatable({value = 0, update_delta = 0.05}, Sensor)
         end
-        return setmetatable({value = 0, update_delta = 0.05}, Sensor)
     end
 }

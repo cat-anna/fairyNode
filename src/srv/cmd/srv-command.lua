@@ -23,7 +23,10 @@ local function HandleCommand(cmdLine, outputFunctor)
         return
     end
 
-    pcall(m.Execute, args, outputFunctor, cmdLine)
+    node.task.post(function()
+        collectgarbage()
+        pcall(m.Execute, args, outputFunctor, cmdLine)
+    end)
 end
 
 function Module:MqttCommand(topic, payload)

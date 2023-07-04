@@ -30,6 +30,9 @@ function Module:Reset()
 end
 
 function Module:ImportValue(topic, payload, node_name, prop_name)
+    if not  self.node then
+        return
+    end
     if self.conf[prop_name] ~= nil then
         if prop_name == "enabled" then
             self.conf.enabled = payload == "true"
@@ -104,9 +107,14 @@ function Module:OnOtaStart()
     ws2812_effects.start()
 end
 
+function Module:SetEnabled(event, value)
+    self:ImportValue(nil, value.state and "true" or "false", nil, "enabled")
+end
+
 Module.EventHandlers = {
     ["ota.start"] = Module.OnOtaStart,
-    ["controller.init"] = Module.ControllerInit
+    ["controller.init"] = Module.ControllerInit,
+    ["ws2812.set_enabled"] = Module.SetEnabled
 }
 
 return {

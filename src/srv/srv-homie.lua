@@ -8,8 +8,13 @@ end
 
 ----------------------
 
-local function GetHomieBaseTopic()
-    return "homie/" .. (wifi.sta.gethostname() or string.format("%06x", node.chipid()))
+local function GetHomieBaseTopic(sub_topic)
+    local my_name = wifi.sta.gethostname() or string.format("%06x", node.chipid())
+    local t = "homie/" .. my_name
+    if sub_topic then
+        return t .. "/" .. sub_topic
+    end
+    return t
 end
 
 ----------------------
@@ -23,13 +28,13 @@ end
 
 function Module:MqttSubscribe()
     if self.mqtt then
-        self.mqtt:Subscribe(string.format("%s/+/+/set", GetHomieBaseTopic()), self)
+        self.mqtt:Subscribe(GetHomieBaseTopic("+/+/set"), self)
     end
 end
 
 function Module:OnAppStart()
     self.app_started = true
-    if self.ready_state_reached then
+    if self.ready_reached then
         self:SendReady()
     end
     self:MqttSubscribe()
@@ -42,7 +47,7 @@ function Module:OnMqttConnected(event, mqtt)
     end
 
     self.mqtt = mqtt
-    self.ready_state_reached = nil
+    self.ready_reached = nil
 
     if Event then
         self:PublishBaseInfo()
@@ -64,44 +69,45 @@ function Module:OnReady()
 end
 
 function Module:SendReady()
-    self:Publish("/$nodes", table.concat(self.nodes, ","))
+    self:Publish("$nodes", table.concat(self.nodes, ","))
     self:SetState("ready")
 
-    self.ready_state_reached = true
+    self.ready_reached = true
     self.nodes=nil
     self:MqttSubscribe()
 end
 
 function Module:PublishBaseInfo()
-    self:Publish("/$homie", "3.0.0")
+    self:Publish("$homie", "3.0.0")
 
     self:SetState("init")
 
-    self:Publish("/$name", wifi.sta.gethostname())
-    self:Publish("/$localip", wifi.sta.getip() or "")
-    self:Publish("/$mac", wifi.sta.getmac() or "")
+    local sta = wifi.sta
+    self:Publish("$name", sta.gethostname())
+    self:Publish("$localip", sta.getip() or "")
+    self:Publish("$mac", sta.getmac() or "")
 
-    self:Publish("/$implementation", "FairyNode")
-    self:Publish("/$fw/name", "FairyNode")
-    self:Publish("/$fw/FairyNode/mode", "esp8266")
-    self:Publish("/$fw/FairyNode/version", "0.0.8")
+    self:Publish("$implementation", "FairyNode")
+    self:Publish("$fw/name", "FairyNode")
+    self:Publish("$fw/FairyNode/mode", "esp8266")
+    self:Publish("$fw/FairyNode/version", "0.0.8")
 
     for k,v in pairs(require "fairy-node-info") do
-        self:Publish("/$fw/FairyNode/" .. k, v)
+        self:Publish("$fw/FairyNode/" .. k, v)
     end
     package.loaded["fairy-node-info"] = nil
 
     local lfs_timestamp = require("lfs-timestamp")
-    self:Publish("/$fw/FairyNode/lfs/timestamp", lfs_timestamp.timestamp)
-    self:Publish("/$fw/FairyNode/lfs/hash", lfs_timestamp.hash)
+    self:Publish("$fw/FairyNode/lfs/timestamp", lfs_timestamp.timestamp)
+    self:Publish("$fw/FairyNode/lfs/hash", lfs_timestamp.hash)
 
     local root_success, root_timestamp = pcall(require, "root-timestamp")
     if not root_success or type(root_timestamp) ~= "table"  then
         root_timestamp = { timestamp = 0, hash = "" }
     end
     package.loaded["root-timestamp"]=nil
-    self:Publish("/$fw/FairyNode/root/timestamp", root_timestamp.timestamp)
-    self:Publish("/$fw/FairyNode/root/hash", root_timestamp.hash)
+    self:Publish("$fw/FairyNode/root/timestamp", root_timestamp.timestamp)
+    self:Publish("$fw/FairyNode/root/hash", root_timestamp.hash)
 
     local config_timestamp
     if file.exists("config_hash.cfg") then
@@ -112,39 +118,39 @@ function Module:PublishBaseInfo()
     else
         config_timestamp = { timestamp = 0, hash = "" }
     end
-    self:Publish("/$fw/FairyNode/config/timestamp", config_timestamp.timestamp)
-    self:Publish("/$fw/FairyNode/config/hash", config_timestamp.hash)
+    self:Publish("$fw/FairyNode/config/timestamp", config_timestamp.timestamp)
+    self:Publish("$fw/FairyNode/config/hash", config_timestamp.hash)
 end
 
 function Module:PublishExtendedInfo()
     -- print("HOMIE: Publishing info")
-
-    local hw_info = node.info("hw")
-    self:Publish("/$hw/chip_id", string.format("%06X", hw_info.chip_id))
-    self:Publish("/$hw/flash_id", string.format("%x", hw_info.flash_id))
-    self:Publish("/$hw/flash_size", hw_info.flash_size)
-    self:Publish("/$hw/flash_mode", hw_info.flash_mode)
-    self:Publish("/$hw/flash_speed", hw_info.flash_speed)
+    local info = node.info
+    local hw_info = info("hw")
+    self:Publish("$hw/chip_id", string.format("%06X", hw_info.chip_id))
+    self:Publish("$hw/flash_id", string.format("%x", hw_info.flash_id))
+    self:Publish("$hw/flash_size", hw_info.flash_size)
+    self:Publish("$hw/flash_mode", hw_info.flash_mode)
+    self:Publish("$hw/flash_speed", hw_info.flash_speed)
     hw_info=nil
 
-    local sw_version = node.info("sw_version")
-    self:Publish("/$fw/NodeMcu/version", string.format("%d.%d.%d", sw_version.node_version_major, sw_version.node_version_minor, sw_version.node_version_revision))
-    self:Publish("/$fw/NodeMcu/git_branch", sw_version.git_branch)
-    self:Publish("/$fw/NodeMcu/git_commit_id", sw_version.git_commit_id)
-    self:Publish("/$fw/NodeMcu/git_release", sw_version.git_release)
-    self:Publish("/$fw/NodeMcu/git_commit_dts", sw_version.git_commit_dts)
+    local sw_version = info("sw_version")
+    self:Publish("$fw/NodeMcu/version", string.format("%d.%d.%d", sw_version.node_version_major, sw_version.node_version_minor, sw_version.node_version_revision))
+    self:Publish("$fw/NodeMcu/git_branch", sw_version.git_branch)
+    self:Publish("$fw/NodeMcu/git_commit_id", sw_version.git_commit_id)
+    self:Publish("$fw/NodeMcu/git_release", sw_version.git_release)
+    self:Publish("$fw/NodeMcu/git_commit_dts", sw_version.git_commit_dts)
     sw_version=nil
 
-    local build_config = node.info("build_config")
-    self:Publish("/$fw/NodeMcu/ssl", build_config.ssl)
-    self:Publish("/$fw/NodeMcu/lfs_size", build_config.lfs_size)
-    self:Publish("/$fw/NodeMcu/modules", build_config.modules)
-    self:Publish("/$fw/NodeMcu/number_type", build_config.number_type)
+    local build_config = info("build_config")
+    self:Publish("$fw/NodeMcu/ssl", build_config.ssl)
+    self:Publish("$fw/NodeMcu/lfs_size", build_config.lfs_size)
+    self:Publish("$fw/NodeMcu/modules", build_config.modules)
+    self:Publish("$fw/NodeMcu/number_type", build_config.number_type)
     build_config=nil
 
-    local lfs = node.info("lfs")
-    self:Publish("/$fw/FairyNode/lfs/size", lfs.lfs_size)
-    self:Publish("/$fw/FairyNode/lfs/used", lfs.lfs_used)
+    local lfs = info("lfs")
+    self:Publish("$fw/FairyNode/lfs/size", lfs.lfs_size)
+    self:Publish("$fw/FairyNode/lfs/used", lfs.lfs_used)
     lfs=nil
 end
 
@@ -173,7 +179,7 @@ function Module:AddNode(node_name, node)
 
         -- print(string.format("HOMIE: %s.%s", node_name or "?", prop_name or "?"))
         if values.handler then
-            local mqtt = self.mqtt
+            -- local mqtt = self.mqtt
             local handler = values.handler
 
             local full_node_name = string.format("%s.%s", node_name, prop_name)
@@ -204,15 +210,15 @@ function Module:AddNode(node_name, node)
 end
 
 function Module:PublishNodePropertyValue(node, property, value)
-    return self:Publish(string.format("/%s/%s", node, property), value)
+    return self:Publish(string.format("%s/%s", node, property), value)
 end
 
 function Module:PublishNodeProperty(node, property, sub_topic, payload)
-    return self:Publish(string.format("/%s/%s/%s", node, property, sub_topic), payload)
+    return self:Publish(string.format("%s/%s/%s", node, property, sub_topic), payload)
 end
 
 function Module:PublishNode(node, sub_topic, payload)
-    return self:Publish(string.format("/%s/%s", node, sub_topic), payload)
+    return self:Publish(string.format("%s/%s", node, sub_topic), payload)
 end
 
 function Module:Publish(sub_topic, payload)
@@ -220,7 +226,7 @@ function Module:Publish(sub_topic, payload)
         print("HOMIE: not connected, cannot publish: " .. sub_topic)
         return
     end
-    local topic = GetHomieBaseTopic() .. sub_topic
+    local topic = GetHomieBaseTopic(sub_topic)
     local retain = true
     self.mqtt:Publish(topic, payload, retain)
 end
@@ -238,7 +244,7 @@ function Module:OnMqttMessage(topic, payload)
 end
 
 function Module:SetState(state)
-    return self:Publish("/$state", state)
+    return self:Publish("$state", state)
 end
 
 Module.EventHandlers = {

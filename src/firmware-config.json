@@ -48,6 +48,9 @@
         ],
         "config": []
     },
+    "image": {
+        "lfs_size": 131072
+    },
     "modules": {
         "uart": [],
         "led": [],

@@ -28,10 +28,10 @@ function Sensor:Readout(event, sensors)
     if status == dht.OK then
         if SetError then
             SetError("DHT", nil)
-        end            
+        end
         self.node:SetValue("temperature", temp)
         self.node:SetValue("humidity", humi)
-        sensors.dht = { 
+        sensors.dht = {
             temperature = temp,
             humidity = humi,
         }

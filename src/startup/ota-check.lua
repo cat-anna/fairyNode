@@ -25,7 +25,7 @@ local function LoadTimestamps()
         r.config = require("sys-config").JSON("config_hash.cfg")
     end
 
-    print("OTA: My timestamps: ", sjson.encode(r))
+    -- print("OTA: My timestamps: ", sjson.encode(r))
     return r
 end
 

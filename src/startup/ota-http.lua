@@ -10,9 +10,11 @@ function DownloadItemMt:GenerateRequest()
         "User-Agent: ESP8266 fairyNode",
         "Accept: application/octet-stream",
         "Accept-Encoding: identity",
-        -- "Host: " .. self.handler.host .. ":" .. tostring(self.handler.port),
+        "Host: " .. self.handler.host .. ":" .. tostring(self.handler.port),
         "Connection: close",
     }
+
+    print("OTA-HTTP: ", t[1])
 
     -- self.data.action = nil
     -- self.data.request = nil
