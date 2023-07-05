@@ -2,9 +2,7 @@
 
 package.path = package.path .. ";/usr/lib/lua/?.lua;/usr/lib/lua/?/init.lua"
 
-local copas = require "copas"
 local path = require "pl.path"
-local lapp = require 'pl.lapp'
 require("uuid").seed()
 
 local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
@@ -16,13 +14,19 @@ require "lib/ext"
 require("lib/logger"):Init()
 require "lib/setup-alternatives"
 
-local args = lapp [[
+local args = require ('pl.lapp') [[
 FairyNode server entry
-    -d,--debug             Enter debug mode
-    -v,--verbose           Print more logs
-    --config      (string) Select configs to load, use ',' as separator
-    <packages...> (string) Packages to load
+    --argfile     (optional string) Load args from script
+    -d,--debug                      Enter debug mode
+    -v,--verbose                    Print more logs
+    --config      (optional string) Select configs to load, use ',' as separator
+    <packages...> (optional string) Packages to load
 ]]
+if args.argfile then
+    args = dofile(args.argfile)
+else
+    args.config = args.config:split(",")
+end
 
 local config_handler = require "lib/config-handler"
 
@@ -38,13 +42,15 @@ config_handler:SetBaseConfig{
 config_handler:SetCommandLineArgs{
     debug = args.debug,
     verbose = args.verbose,
-    ["loader.config.list"] = args.config:split(","),
+    ["loader.config.list"] = args.config,
     ["loader.package.list"] = args.packages,
 }
+
+args = nil
 
 require("lib/loader-package"):Init()
 require("lib/loader-module"):Init()
 require("lib/loader-class"):Init()
 require("lib/logger"):Start()
 
-copas.loop()
+require("copas").loop()

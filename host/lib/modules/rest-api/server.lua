@@ -33,6 +33,7 @@ local CONFIG_KEY_REST_LOG_ENABLE = "rest.log.enable"
 local CONFIG_KEY_REST_ENDPOINT_LIST = "rest.endpoint.list"
 local CONFIG_KEY_REST_ENDPOINT_PATHS = "rest.endpoint.paths"
 local CONFIG_KEY_REST_PORT = "rest.port"
+local CONFIG_KEY_REST_HOST = "rest.host"
 local CONFIG_KEY_MODULE_PATHS = "loader.module.paths"
 
 -------------------------------------------------------------------------------
@@ -45,7 +46,9 @@ RestServer.__deps = {
 RestServer.__config = {
     [CONFIG_KEY_REST_ENDPOINT_LIST] = { mode = "merge", type = "string-table", default = { } },
     [CONFIG_KEY_REST_ENDPOINT_PATHS] = { mode = "merge", type = "string-table", default = { } },
+    
     [CONFIG_KEY_REST_PORT] = { type = "integer", default = 8000 },
+    [CONFIG_KEY_REST_HOST] = { type = "string", default = "0.0.0.0" },
 
     [CONFIG_KEY_MODULE_PATHS] = { mode = "merge", type = "string-table", default = { } },
 }
@@ -109,14 +112,16 @@ end
 function RestServer:InitServer()
     copas.sleep(0.1)
     local port = self.config[CONFIG_KEY_REST_PORT]
+    local host = self.config[CONFIG_KEY_REST_HOST]
     local server = restserver:new()
     self.server = server
     server:port(port)
+    server:host(host)
     server:response_headers({
         ["Access-Control-Allow-Origin"] = "*"
     })
     self:LoadEndpoints()
-    printf(self, "Starting server initialized on port %d", port)
+    printf(self, "Starting server initialized on port %s:%d", host, port)
 end
 
 
