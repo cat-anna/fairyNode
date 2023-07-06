@@ -1,3 +1,4 @@
+local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------------
 
@@ -64,6 +65,10 @@ function HomieBaseDevice:GetNodesSummary()
     end
 
     return r
+end
+
+function HomieBaseDevice:GetNodeIds()
+    return tablex.keys(self.nodes)
 end
 
 -------------------------------------------------------------------------------------

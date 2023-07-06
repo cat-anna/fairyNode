@@ -194,12 +194,12 @@ function MqttClient:OnMqttMessage(backend, message)
     end
 
     local entry = self.cache[topic]
-    if entry.message then
-        local entry_message = entry.message
-        if entry_message.payload == payload then
-            return
-        end
-    end
+    -- if entry.message then
+    --     local entry_message = entry.message
+    --     if entry_message.payload == payload then
+    --         return
+    --     end
+    -- end
 
     entry.message = message
 

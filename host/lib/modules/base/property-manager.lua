@@ -205,9 +205,17 @@ function PropertyManager:ReleaseProperty(prop)
     warning(self, "not implemented")
 
     local global_id = prop:GetGlobalId()
+    
     self.values_by_id[global_id] = nil
     self.properties_by_id[global_id] = nil
+
     self.local_sensors[global_id] = nil
+    self.local_properties[global_id] = nil
+end
+
+function PropertyManager:ReleaseObject(object)
+    warning(self, "not implemented")
+    self:ReleaseProperty(object)
 end
 
 -------------------------------------------------------------------------------

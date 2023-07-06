@@ -46,7 +46,7 @@ RestServer.__deps = {
 RestServer.__config = {
     [CONFIG_KEY_REST_ENDPOINT_LIST] = { mode = "merge", type = "string-table", default = { } },
     [CONFIG_KEY_REST_ENDPOINT_PATHS] = { mode = "merge", type = "string-table", default = { } },
-    
+
     [CONFIG_KEY_REST_PORT] = { type = "integer", default = 8000 },
     [CONFIG_KEY_REST_HOST] = { type = "string", default = "0.0.0.0" },
 

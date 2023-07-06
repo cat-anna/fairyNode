@@ -1,4 +1,5 @@
 local loader_class = require "lib/loader-class"
+local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------------
 
@@ -41,6 +42,22 @@ function HomieBaseNode:AddProperty(opt)
     self.properties[id] = prop
 
     return prop
+end
+
+function HomieBaseNode:DeleteProperty(property_id)
+    local prop = self.properties[property_id]
+
+    self.properties[property_id] = nil
+
+    if prop then
+        prop:Finalize()
+    end
+
+    return prop
+end
+
+function HomieBaseNode:GetPropertyIds()
+    return tablex.keys(self.properties)
 end
 
 -------------------------------------------------------------------------------------

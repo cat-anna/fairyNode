@@ -44,30 +44,42 @@ function HomieRemoteNode:HandleNodeProperties(topic, payload)
     end
 
     local prop_list = payload:split(",")
-    -- local node_name = topic:match("/([^/]+)/$properties$")
+    local existing_props = self:GetPropertyIds()
+    local any_change = false
 
-    -- print(self,string.format("node (%s) properties (%d): %s", node_name, #props, payload))
     for _,prop_id in ipairs(prop_list) do
-    --     if not properties[prop_name] then
-    --         properties[prop_name] = self.server_storage:GetFromCache(self:GetPropertyId(node_name, prop_name)) or {}
-    --     end
-
-        local opt = {
-            id = prop_id,
-
-            class = self:GetPropertyClass(prop_id),
-        }
-
-        local prop = self:AddProperty(opt)
+        if not existing_props[prop_id] then
+            local opt = {
+                id = prop_id,
+                class = self:GetPropertyClass(prop_id),
+            }
+            
+            self:AddProperty(opt)
+            any_change = true
+        end
+        
+        existing_props[prop_id] = nil
     end
 
-    self.remote_property = self.property_manager:RegisterRemoteProperty{
-        owner = self,
-        remote_name = self.controller:GetName(),
-        name = self:GetName(),
-        id = self:GetId(),
-        values = self.properties,
-    }
+    for _,prop_id in ipairs(existing_props) do
+        any_change = true
+        self:DeleteProperty(prop_id)
+    end
+
+    if any_change then
+        if self.remote_property then
+            self.remote_property:Finalize()
+            self.remote_property = nil
+        end
+
+        self.remote_property = self.property_manager:RegisterRemoteProperty{
+            owner = self,
+            remote_name = self.controller:GetName(),
+            name = self:GetName(),
+            id = self:GetId(),
+            values = self.properties,
+        }
+    end
 end
 
 function HomieRemoteNode:HandleNodeName(topic, payload)

@@ -26,6 +26,12 @@ function PropertyBaseObject:Tag()
     return self.global_id or PropertyBaseObject.super.Tag(self)
 end
 
+function PropertyBaseObject:Finalize()
+    if self.property_manager then
+        self.property_manager:ReleaseObject(self)
+    end
+end
+
 -------------------------------------------------------------------------------------
 
 function PropertyBaseObject:IsPersistent()
