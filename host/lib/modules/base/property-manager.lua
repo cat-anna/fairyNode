@@ -19,10 +19,6 @@ local PROPERTY_TYPE_REMOTE = "remote"
 local PROPERTY_MODE_SENSOR = "sensor"
 local PROPERTY_MODE_PASSIVE = "passive"
 
-local CONFIG_KEY_SENSOR_FAST_INTERVAL =   "module.property.sensor.interval.fast"
-local CONFIG_KEY_SENSOR_SLOW_INTERVAL =   "module.property.sensor.interval.slow"
--- local CONFIG_KEY_PROPERTY_SKIP_AGE =   "module.property.history.skip.age"
-
 -------------------------------------------------------------------------------
 
 local PropertyManager = {}
@@ -31,10 +27,6 @@ PropertyManager.__deps = {
     mongo_connection = "mongo/mongo-connection",
 }
 PropertyManager.__config = {
-    [CONFIG_KEY_SENSOR_FAST_INTERVAL] =   { type = "integer", default = 5 * 60 },
-    [CONFIG_KEY_SENSOR_SLOW_INTERVAL] =   { type = "integer", default = 30 * 60 },
-
-    -- [CONFIG_KEY_PROPERTY_SKIP_AGE] =   { type = "integer", default = 60*60 },
 }
 
 -------------------------------------------------------------------------------
@@ -50,6 +42,8 @@ function PropertyManager:BeforeReload()
 end
 
 function PropertyManager:Init()
+    self.listeners = table.weak_values()
+
     self.properties_by_id = { }
     self.values_by_id = { }
 
@@ -69,26 +63,16 @@ function PropertyManager:PostInit()
 end
 
 function PropertyManager:StartModule()
-    local intervals = {
-        Fast = self.config[CONFIG_KEY_SENSOR_FAST_INTERVAL],
-        Slow = self.config[CONFIG_KEY_SENSOR_SLOW_INTERVAL],
-    }
+end
 
-    self.tasks = { }
-    for k,v in pairs(intervals) do
-        local func_name = string.format("DoSensorReadout%s", k)
-        self.tasks[k] = scheduler:CreateTask(
-            self,
-            string.format("Sensor update %s", k:lower()),
-            v,
-            function (owner, task) --
-                owner[func_name](owner, task)
-            end
-        )
-    end
+-------------------------------------------------------------------------------
 
-    self.started = true
-    self:DoSensorReadout()
+function PropertyManager:AttachListener(target)
+    self.listeners[target.uuid] = target
+end
+
+function PropertyManager:DetachListener(target)
+    self.listeners[target.uuid] = nil
 end
 
 -------------------------------------------------------------------------------
@@ -194,23 +178,27 @@ function PropertyManager:RegisterProperty(opt)
         })
     end
 
-    if object:IsSensor() then
-        scheduler.CallLater(function() object:Readout() end)
+    for _,v in pairs(self.listeners) do
+        v:PropertyCreated(object)
     end
 
     return object
 end
 
-function PropertyManager:ReleaseProperty(prop)
+function PropertyManager:ReleaseProperty(object)
     warning(self, "not implemented")
 
-    local global_id = prop:GetGlobalId()
-    
+    local global_id = object:GetGlobalId()
+
     self.values_by_id[global_id] = nil
     self.properties_by_id[global_id] = nil
 
     self.local_sensors[global_id] = nil
     self.local_properties[global_id] = nil
+
+    for _,v in pairs(self.listeners) do
+        v:PropertyReleased(object)
+    end
 end
 
 function PropertyManager:ReleaseObject(object)
@@ -261,26 +249,6 @@ function PropertyManager:GetValueDatabase(value)
 end
 
 -------------------------------------------------------------------------------
-
-function PropertyManager:DoSensorReadout()
-    for _,v in pairs(self.local_sensors) do
-        scheduler.Push(function() v:Readout() end)
-    end
-end
-
-function PropertyManager:DoSensorReadoutSlow()
-    for _,v in pairs(self.local_sensors) do
-        scheduler.Push(function() v:ReadoutSlow() end)
-        -- v:ReadoutSlow()
-    end
-end
-
-function PropertyManager:DoSensorReadoutFast()
-    for _,v in pairs(self.local_sensors) do
-        scheduler.Push(function() v:ReadoutFast() end)
-        -- v:ReadoutFast()
-    end
-end
 
 -------------------------------------------------------------------------------
 

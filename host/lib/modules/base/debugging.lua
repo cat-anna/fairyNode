@@ -15,10 +15,6 @@ Debugging.__name = "Debugging"
 
 -------------------------------------------------------------------------------------
 
-function Debugging:Tag()
-    return "Debugging"
-end
-
 function Debugging:BeforeReload()
 end
 
@@ -50,7 +46,7 @@ function Debugging:CollectDebugStats()
         function(name, module)
             if module.GetStatistics then
                 local stats = module:GetStatistics()
-                l:WriteObject(module:Tag(), stats)
+                l:WriteObject(ExtractObjectTag(module), stats)
             end
         end)
 end

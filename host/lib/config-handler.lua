@@ -65,15 +65,35 @@ end
 
 -------------------------------------------------------------------------------
 
+function ConfigHandler:HasConfigs(wanted_configs)
+    if not wanted_configs then
+        return true
+    end
+
+    if wanted_configs.__config then
+        wanted_configs = wanted_configs.__config
+    end
+
+    for key,query_args in pairs(wanted_configs or { }) do
+        local v,f = self:QueryConfigItem(key, query_args)
+        if not f then
+            return false
+        end
+    end
+    return true
+end
+
 function ConfigHandler:Query(wanted_configs)
     local r = { }
 
     for key,query_args in pairs(self.__default_config) do
-        r[key] = self:QueryConfigItem(key, query_args)
+        local v,f = self:QueryConfigItem(key, query_args)
+        r[key] = v
     end
 
     for key,query_args in pairs(wanted_configs or { }) do
-        r[key] = self:QueryConfigItem(key, query_args)
+        local v,f = self:QueryConfigItem(key, query_args)
+        r[key] = v
     end
 
     return r
@@ -83,6 +103,7 @@ function ConfigHandler:QueryConfigItem(config_item, query_args)
     query_args = query_args or {}
     local merge = query_args.mode == "merge"
     local v = query_args.default
+    local found = false
 
     if merge then
         assert(type(v) == "table")
@@ -91,6 +112,7 @@ function ConfigHandler:QueryConfigItem(config_item, query_args)
     for _,layer in ipairs(self.config_layers) do
         local lv = layer.config_items[config_item]
         if lv ~= nil then
+            found = true
             if merge then
                 v = table.merge(v, lv)
             else
@@ -99,7 +121,11 @@ function ConfigHandler:QueryConfigItem(config_item, query_args)
         end
     end
 
-    return v
+    if (not found) and query_args.required then
+        return nil, false
+    end
+
+    return v, found
 end
 
 -------------------------------------------------------------------------------

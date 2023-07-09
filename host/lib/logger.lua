@@ -47,6 +47,8 @@ function LoggerObject:Tag()
     return string.format("LOGGER(%s)", self.name)
 end
 
+-------------------------------------------------------------------------------
+
 function LoggerObject:WriteCsv(t)
     local f = self.file
     if not f then

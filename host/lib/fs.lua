@@ -1,5 +1,6 @@
 local lfs = require "lfs"
 local path = require "pl.path"
+local dir = require "pl.dir"
 
 local M = {}
 
@@ -32,6 +33,22 @@ function M.FindScriptByPathList(name, ...)
             end
         end
     end
+end
+
+function M.FindMatchingScriptsByPathList(pattern, ...)
+    local r = { }
+    for _,base_path_list in ipairs({...}) do
+        for _,base_path in ipairs(base_path_list) do
+            if path.isdir(base_path) then
+                base_path = path.normpath(path.abspath(base_path))
+                for _,v in ipairs(dir.getallfiles(base_path, pattern)) do
+                    local p = v:sub(base_path:len()+2):sub(1, -5)
+                    table.insert(r, p)
+                end
+            end
+        end
+    end
+    return r
 end
 
 function M.CountFilesInFolder(folder)

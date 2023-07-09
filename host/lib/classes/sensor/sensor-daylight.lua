@@ -1,22 +1,22 @@
-local sun_pos = require "lib/sun_pos"
+local sun_pos = require "lib/tools/sun-position"
 
 -------------------------------------------------------------------------------
 
-local CONFIG_KEY_LATITUDE = "server.location.latitude"
-local CONFIG_KEY_LONGITUDE = "server.location.longitude"
+local CONFIG_KEY_LATITUDE = "location.latitude"
+local CONFIG_KEY_LONGITUDE = "location.longitude"
 
 -------------------------------------------------------------------------------
 
 local DaylightSensor = {}
-DaylightSensor.__base = "base/property/local-property"
+DaylightSensor.__base = "base/property/local-sensor"
+DaylightSensor.__name = "DaylightSensor"
+DaylightSensor.__type = "class"
 DaylightSensor.__config = {
-    [CONFIG_KEY_LATITUDE] = { type = "float", default = 0 },
-    [CONFIG_KEY_LONGITUDE] = { type = "float", default = 0 },
+    [CONFIG_KEY_LATITUDE] = { type = "float", required = true },
+    [CONFIG_KEY_LONGITUDE] = { type = "float", required = true },
 }
 
-function DaylightSensor:Tag()
-    return "DaylightSensor"
-end
+-------------------------------------------------------------------------------
 
 function DaylightSensor:ReadoutSlow()
     local config = self.config
@@ -42,18 +42,8 @@ end
 
 -------------------------------------------------------------------------------
 
-local Daylight = {}
-
-function Daylight:Tag()
-    return "Daylight"
-end
-
-function Daylight:InitProperties(manager)
-    manager:RegisterSensor{
-        owner = self,
-
-        class = DaylightSensor,
-
+function DaylightSensor.ProbeSensor(sensor_manager)
+    local sensor = {
         name = "Daylight",
         id = "daylight",
         values = {
@@ -68,8 +58,10 @@ function Daylight:InitProperties(manager)
             moon_azimuth = { datatype = "float", name = "Moon azimuth", },
         }
     }
+
+    return sensor
 end
 
 -------------------------------------------------------------------------------
 
-return Daylight
+return DaylightSensor

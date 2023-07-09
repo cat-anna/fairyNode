@@ -40,24 +40,6 @@ end
 
 -------------------------------------------------------------------------------------
 
-function LocalProperty:Readout()
-    -- print(self, "LocalProperty:Readout")
-    self:ReadoutSlow()
-    self:ReadoutFast()
-end
-
-function LocalProperty:ReadoutSlow()
-    -- print(self, "LocalProperty:ReadoutSlow")
-    -- nothing
-end
-
-function LocalProperty:ReadoutFast()
-    -- print(self, "LocalProperty:ReadoutFast")
-    -- nothing
-end
-
--------------------------------------------------------------------------------------
-
 function LocalProperty:UpdateValue(id, updated_value, timestamp)
     local value_object = self.values[id]
     assert(value_object)

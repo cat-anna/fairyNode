@@ -15,6 +15,7 @@ local CONFIG_KEY_MODULE_PATHS = "loader.module.paths"
 local ClassLoader = {}
 ClassLoader.__index = ClassLoader
 ClassLoader.__stats = true
+ClassLoader.__name = "ClassLoader"
 ClassLoader.__config = {
     [CONFIG_KEY_MODULE_PATHS] = { mode = "merge", type = "string-table", default = { } },
     [CONFIG_KEY_CLASS_PATHS] = { mode = "merge", type = "string-table", default = { } },
@@ -33,16 +34,16 @@ function ClassLoader:FindClassFile(class_name)
     return fn
 end
 
+function ClassLoader:FindClasses(class_name_pattern)
+    return fs.FindMatchingScriptsByPathList(class_name_pattern, self.config[CONFIG_KEY_CLASS_PATHS])
+ end
+
 -------------------------------------------------------------------------------
 
 function ClassLoader:Update()
     for _,class in pairs(self.loaded_classes) do
         self:ReloadClass(class)
     end
-end
-
-function ClassLoader:Tag()
-    return "ClassLoader"
 end
 
 -------------------------------------------------------------------------------
@@ -209,7 +210,11 @@ function ClassLoader:CreateObject(class_name, object_arg)
     assert(class ~= nil)
     assert(not class.interface)
     local obj = self:InitObject(class, class_name, object_arg)
-    printf("CLASS: Create %s name:%s", class.name, tostring(obj))
+
+    if self.verbose then
+        printf("CLASS: Crete %s name:%s", class.name, ExtractObjectTag(obj))
+    end
+
     return obj
 end
 
@@ -229,6 +234,8 @@ function ClassLoader:Init()
     self.loaded_classes = table.weak()
     self.watchers = table.weak()
     self.config = config_handler:Query(self.__config)
+
+    self.verbose = self.config.debug
 
     if self.config.debug then
         self.update_thread = copas.addthread(function()

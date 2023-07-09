@@ -264,18 +264,23 @@ function ExtractObjectTag(object)
     if tag then
         return tag
     end
-    local g = object.Tag
-    if g then
-        tag = g(object)
-    end
-    if not tag then
-        if object.__class_name then
-            tag = object.__class_name
-        else
-            tag = object.__name
+
+    local proc = {
+        function() if object.Tag then return object:Tag() end end,
+        function() return object.__class_name end,
+        function() return object.__name end,
+        function() return object.uuid end,
+        function() return tostring(object) end,
+        function() return "<?>" end,
+    }
+
+    for _,f in ipairs(proc) do
+        tag = f()
+        if tag then
+            break
         end
     end
-    object.__log_tag = tag or object.uuid or "?"
+    object.__log_tag = tag
     return tag
 end
 

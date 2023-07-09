@@ -31,8 +31,10 @@ end
 local DatatypeParser = {
     boolean = { to_homie = FormatBoolean, from_homie = toboolean },
     string = { to_homie = tostring, from_homie = tostring },
-    float = { to_homie = FormatFloat, from_homie = tonumber },
+    
     integer = { to_homie = FormatInteger, from_homie = tointeger },
+
+    float = { to_homie = FormatFloat, from_homie = tonumber },
     number = { to_homie = FormatFloat, from_homie = tonumber },
 }
 
