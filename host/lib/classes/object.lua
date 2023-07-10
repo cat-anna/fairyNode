@@ -4,7 +4,7 @@ local scheduler = require "lib/scheduler"
 
 local Object = { }
 Object.__index = Object
-Object.__class_name = "Object"
+Object.__name = "Object"
 Object.__type = "interface"
 
 -------------------------------------------------------------------------------------
@@ -16,7 +16,7 @@ function Object:PostInit()
 end
 
 function Object:Tag()
-    return string.format("%s(%s)", self.__class_name, self.uuid)
+    return string.format("%s(%s)", self.__name, self.uuid)
 end
 
 -------------------------------------------------------------------------------------

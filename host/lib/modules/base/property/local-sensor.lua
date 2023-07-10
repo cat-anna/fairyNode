@@ -2,7 +2,7 @@
 local LocalSensor = { }
 LocalSensor.__base = "base/property/local-property"
 LocalSensor.__type = "class"
-LocalSensor.__class_name = "LocalSensor"
+LocalSensor.__name = "LocalSensor"
 
 -------------------------------------------------------------------------------------
 

@@ -3,7 +3,7 @@ local scheduler = require "lib/scheduler"
 -------------------------------------------------------------------------------------
 
 local HomieObjectBase = {}
-HomieObjectBase.__class_name = "HomieObjectBase"
+HomieObjectBase.__name = "HomieObjectBase"
 HomieObjectBase.__type = "interface"
 HomieObjectBase.__deps = {
     mqtt = "mqtt/mqtt-client",
@@ -38,7 +38,7 @@ function HomieObjectBase:Tag()
     if not self.global_id then
         self:UpdateGlobalId()
     end
-    return string.format("%s(%s)", self.__class_name, self:GetGlobalId())
+    return string.format("%s(%s)", self.__name, self:GetGlobalId())
 end
 
 function HomieObjectBase:UpdateGlobalId()

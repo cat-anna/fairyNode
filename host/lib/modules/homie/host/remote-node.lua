@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------------
 
 local HomieRemoteNode = {}
-HomieRemoteNode.__class_name = "HomieRemoteNode"
+HomieRemoteNode.__name = "HomieRemoteNode"
 HomieRemoteNode.__base = "homie/common/base-node"
 HomieRemoteNode.__type = "class"
 HomieRemoteNode.__deps = {
@@ -53,11 +53,11 @@ function HomieRemoteNode:HandleNodeProperties(topic, payload)
                 id = prop_id,
                 class = self:GetPropertyClass(prop_id),
             }
-            
+
             self:AddProperty(opt)
             any_change = true
         end
-        
+
         existing_props[prop_id] = nil
     end
 

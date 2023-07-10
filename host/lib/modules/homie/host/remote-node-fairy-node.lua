@@ -2,7 +2,7 @@
 -------------------------------------------------------------------------------------
 
 local FairyNodeDeviceNode = {}
-FairyNodeDeviceNode.__class_name = "FairyNodeDeviceNode"
+FairyNodeDeviceNode.__name = "FairyNodeDeviceNode"
 FairyNodeDeviceNode.__type = "class"
 FairyNodeDeviceNode.__base = "homie/host/remote-node"
 

@@ -130,7 +130,7 @@ end
 -------------------------------------------------------------------------------------
 
 local SysInfoSensor = { }
-SysInfoSensor.__class_name = "SysInfoSensor"
+SysInfoSensor.__name = "SysInfoSensor"
 
 function SysInfoSensor:ReadoutFast()
     local system_uptime = LinuxProcUptime()

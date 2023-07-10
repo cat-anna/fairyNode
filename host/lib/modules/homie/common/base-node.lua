@@ -4,7 +4,7 @@ local tablex = require "pl.tablex"
 -------------------------------------------------------------------------------------
 
 local HomieBaseNode = {}
-HomieBaseNode.__class_name = "HomieBaseNode"
+HomieBaseNode.__name = "HomieBaseNode"
 HomieBaseNode.__base = "homie/common/base-object"
 HomieBaseNode.__type = "interface"
 -- HomieBaseNode.__deps = { }

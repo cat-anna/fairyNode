@@ -75,7 +75,7 @@ function ServiceStatus:GenerateClassesDiagram()
         local id = self.plantuml:NameToId(name)
 
         local opts = {
-            string.format("Name: %s", class_meta.metatable.__class_name or "?"),
+            string.format("Name: %s", class_meta.metatable.__name or "?"),
         }
 
         if not class_meta.interface then

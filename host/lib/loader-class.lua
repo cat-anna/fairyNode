@@ -87,7 +87,7 @@ function ClassLoader:ReloadClass(class)
     class.metatable = new_mt
     class.timestamp = att.modification
     class.type = new_mt.__type
-    if new_mt.__class_name ~= "Object" then
+    if new_mt.__name ~= "Object" then
         class.base = new_mt.__base or "object"
     end
 
@@ -196,7 +196,7 @@ function ClassLoader:CreateSubObject(overlay_mt, base_class_name, object_arg)
     local class = {
         metatable = overlay_mt,
         base = base_class_name,
-        name = overlay_mt.__class_name or uuid(),
+        name = overlay_mt.__name or uuid(),
     }
     self:UpdateBase(class)
 

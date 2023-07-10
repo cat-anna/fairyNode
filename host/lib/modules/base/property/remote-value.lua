@@ -3,7 +3,7 @@
 local RemoteValue = { }
 RemoteValue.__base = "base/property/base-value"
 RemoteValue.__type = "class"
-RemoteValue.__class_name = "RemoteValue"
+RemoteValue.__name = "RemoteValue"
 
 -------------------------------------------------------------------------------------
 

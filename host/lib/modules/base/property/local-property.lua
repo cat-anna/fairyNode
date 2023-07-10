@@ -2,7 +2,7 @@
 local LocalProperty = { }
 LocalProperty.__base = "base/property/base-property"
 LocalProperty.__type = "class"
-LocalProperty.__class_name = "LocalProperty"
+LocalProperty.__name = "LocalProperty"
 
 -------------------------------------------------------------------------------------
 

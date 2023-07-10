@@ -3,7 +3,7 @@ local tablex = require "pl.tablex"
 -------------------------------------------------------------------------------------
 
 local HomieClientLocalPropertyValue = {}
-HomieClientLocalPropertyValue.__class_name = "HomieClientLocalPropertyValue"
+HomieClientLocalPropertyValue.__name = "HomieClientLocalPropertyValue"
 HomieClientLocalPropertyValue.__type = "class"
 HomieClientLocalPropertyValue.__base = "homie/common/base-property"
 -- HomieClientLocalPropertyValue.__deps = { }

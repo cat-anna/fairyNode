@@ -3,7 +3,7 @@ local homie_common = require "lib/modules/homie/homie-common"
 -------------------------------------------------------------------------------------
 
 local HomieRemoteProperty = {}
-HomieRemoteProperty.__class_name = "HomieRemoteProperty"
+HomieRemoteProperty.__name = "HomieRemoteProperty"
 HomieRemoteProperty.__base = "homie/common/base-property"
 HomieRemoteProperty.__type = "class"
 -- HomieRemoteProperty.__deps = { }

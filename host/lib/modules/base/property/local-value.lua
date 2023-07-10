@@ -5,7 +5,7 @@
 local LocalValue = { }
 LocalValue.__base = "base/property/base-value"
 LocalValue.__type = "class"
-LocalValue.__class_name = "LocalValue"
+LocalValue.__name = "LocalValue"
 
 -------------------------------------------------------------------------------------
 

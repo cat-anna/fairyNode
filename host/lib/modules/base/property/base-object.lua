@@ -2,7 +2,7 @@
 
 local PropertyBaseObject = { }
 PropertyBaseObject.__type = "interface"
-PropertyBaseObject.__class_name = "PropertyBaseObject"
+PropertyBaseObject.__name = "PropertyBaseObject"
 
 -------------------------------------------------------------------------------------
 

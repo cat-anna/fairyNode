@@ -3,7 +3,7 @@
 local PropertySensorProxy = { }
 PropertySensorProxy.__base = "base/property/local-property"
 PropertySensorProxy.__type = "class"
-PropertySensorProxy.__class_name = "PropertySensorProxy"
+PropertySensorProxy.__name = "PropertySensorProxy"
 
 -------------------------------------------------------------------------------------
 

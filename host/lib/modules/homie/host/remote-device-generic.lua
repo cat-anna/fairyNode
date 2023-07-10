@@ -7,7 +7,7 @@ local loader_class = require "lib/loader-class"
 
 local HomieRemoteDevice = {}
 HomieRemoteDevice.__type = "class"
-HomieRemoteDevice.__class_name = "HomieRemoteDevice"
+HomieRemoteDevice.__name = "HomieRemoteDevice"
 HomieRemoteDevice.__base = "homie/common/base-device"
 HomieRemoteDevice.__config = { }
 HomieRemoteDevice.__deps = {

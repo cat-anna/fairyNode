@@ -3,7 +3,7 @@ local homie_common = require "lib/modules/homie/homie-common"
 -------------------------------------------------------------------------------------
 
 local HomieBaseProperty = {}
-HomieBaseProperty.__class_name = "HomieBaseProperty"
+HomieBaseProperty.__name = "HomieBaseProperty"
 HomieBaseProperty.__type = "interface"
 HomieBaseProperty.__base = "homie/common/base-object"
 -- HomieBaseProperty.__deps = { }

@@ -4,7 +4,7 @@
 local BaseValue = { }
 BaseValue.__base = "base/property/base-object"
 BaseValue.__type = "interface"
-BaseValue.__class_name = "BaseValue"
+BaseValue.__name = "BaseValue"
 
 -------------------------------------------------------------------------------------
 

@@ -10,7 +10,7 @@ local scheduler = require "lib/scheduler"
 local LuacBuilder = {}
 LuacBuilder.__index = LuacBuilder
 LuacBuilder.__type = "class"
-LuacBuilder.__class_name = "LuacBuilder"
+LuacBuilder.__name = "LuacBuilder"
 
 -------------------------------------------------------------------------------
 

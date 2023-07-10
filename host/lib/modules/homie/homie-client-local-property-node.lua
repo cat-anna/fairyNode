@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------------
 
 local HomieLocalProperty = {}
-HomieLocalProperty.__class_name = "HomieLocalProperty"
+HomieLocalProperty.__name = "HomieLocalProperty"
 HomieLocalProperty.__type = "class"
 HomieLocalProperty.__base = "homie/common/base-node"
 -- HomieLocalProperty.__deps = { }

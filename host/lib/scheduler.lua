@@ -16,6 +16,7 @@ local max = math.max
 local Scheduler = {}
 Scheduler.__index = Scheduler
 Scheduler.__stats = true
+Scheduler.__name = "Scheduler"
 
 function Scheduler.Push(func)
     copas.addthread(function()
@@ -187,7 +188,7 @@ function Scheduler:GetStatistics()
     for k,t in pairs(self.tasks) do
         local line = {
             -- t.uuid,
-            t.owner:Tag(), t.name, coroutine.status(t.timer.co),
+            ExtractObjectTag(t.owner), t.name, coroutine.status(t.timer.co),
             t.interval,
             t.run_count,
 
@@ -219,12 +220,6 @@ function Scheduler:GetStatistics()
 
     table.sort(r, function(a,b) return a[4] < b[4] end)
     return { header = header, data = r }
-end
-
--------------------------------------------------------------------------------
-
-function Scheduler:Tag()
-    return "Scheduler"
 end
 
 -------------------------------------------------------------------------------

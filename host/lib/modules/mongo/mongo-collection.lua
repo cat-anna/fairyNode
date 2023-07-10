@@ -6,7 +6,7 @@ local pretty = require "pl.pretty"
 
 local MongoCollection = { }
 MongoCollection.__type = "class"
-MongoCollection.__class_name = "MongoCollection"
+MongoCollection.__name = "MongoCollection"
 MongoCollection.__deps = { }
 
 -------------------------------------------------------------------------------------

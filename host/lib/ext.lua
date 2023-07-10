@@ -255,7 +255,6 @@ function table.setmt__gc(t, mt)
     return setmetatable(t, mt)
 end
 
-
 function ExtractObjectTag(object)
     if not object then
         return "<nil>"
@@ -267,7 +266,6 @@ function ExtractObjectTag(object)
 
     local proc = {
         function() if object.Tag then return object:Tag() end end,
-        function() return object.__class_name end,
         function() return object.__name end,
         function() return object.uuid end,
         function() return tostring(object) end,

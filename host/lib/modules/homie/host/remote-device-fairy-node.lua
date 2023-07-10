@@ -2,7 +2,7 @@
 -------------------------------------------------------------------------------------
 
 local FairyNodeRemoteDevice = {}
-FairyNodeRemoteDevice.__class_name = "FairyNodeRemoteDevice"
+FairyNodeRemoteDevice.__name = "FairyNodeRemoteDevice"
 FairyNodeRemoteDevice.__type = "class"
 FairyNodeRemoteDevice.__base = "homie/host/remote-device-generic"
 -- FairyNodeRemoteDevice.__deps = { }

@@ -4,7 +4,7 @@
 local RemoteProperty = { }
 RemoteProperty.__base = "base/property/base-property"
 RemoteProperty.__type = "class"
-RemoteProperty.__class_name = "RemoteProperty"
+RemoteProperty.__name = "RemoteProperty"
 
 -------------------------------------------------------------------------------------
 

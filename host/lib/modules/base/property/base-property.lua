@@ -6,7 +6,7 @@ local loader_class = require "lib/loader-class"
 local BaseProperty = { }
 BaseProperty.__base = "base/property/base-object"
 BaseProperty.__type = "interface"
-BaseProperty.__class_name = "BaseProperty"
+BaseProperty.__name = "BaseProperty"
 
 -------------------------------------------------------------------------------------
 

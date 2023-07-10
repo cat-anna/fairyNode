@@ -121,7 +121,7 @@ function RuleService:GenerateStateDiagramElements()
 
         local members = table.concat(desc, "\n")
         local formatted_value = FormatValue(value.value)
-        local mode = StateClassMapping[state.__class_name] or "entity"
+        local mode = StateClassMapping[state.__name] or "entity"
         local string_timestamp = ""
         if value.timestamp then
             string_timestamp = os.timestamp_to_string_short(value.timestamp)
@@ -238,7 +238,7 @@ function RuleService:GenerateStateDiagram()
 
         local members = table.concat(desc, "\n")
         local formatted_value = FormatValue(value.value)
-        local mode = StateClassMapping[state.__class_name] or "entity"
+        local mode = StateClassMapping[state.__name] or "entity"
         local string_timestamp = ""
         if value.timestamp then
             string_timestamp = os.timestamp_to_string_short(value.timestamp)

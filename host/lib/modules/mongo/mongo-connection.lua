@@ -11,7 +11,7 @@ local CONFIG_KEY_MONGO_CONNECTION =   "module.mongodb.connection"
 
 local MongoConnection = { }
 MongoConnection.__index = MongoConnection
-MongoConnection.__class_name = "MongoConnection"
+MongoConnection.__name = "MongoConnection"
 MongoConnection.__deps = {
     -- server_storage = "base/server-storage",
 }

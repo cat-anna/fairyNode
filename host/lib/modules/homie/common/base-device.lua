@@ -3,7 +3,7 @@ local tablex = require "pl.tablex"
 -------------------------------------------------------------------------------------
 
 local HomieBaseDevice = {}
-HomieBaseDevice.__class_name = "HomieBaseDevice"
+HomieBaseDevice.__name = "HomieBaseDevice"
 HomieBaseDevice.__type = "interface"
 HomieBaseDevice.__base = "homie/common/base-object"
 HomieBaseDevice.__deps = {
