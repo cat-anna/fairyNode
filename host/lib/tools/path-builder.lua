@@ -6,14 +6,15 @@ local function MakeBuilderMetatable(data)
         name = data.name,
         index = 0,
 
-        path = { },
-
         full_path_text = { data.name },
         full_path_nodes = { data.host, },
 
         path_getters = data.path_getters,
-        result_callback = data.result_callback,
         host = data.host,
+        context = data.context,
+
+        result_callback = data.result_callback,
+        error_callback = data.error_callback,
     }
 
     function builder_mt.__newindex(mock, name, v)
@@ -23,14 +24,22 @@ local function MakeBuilderMetatable(data)
     function builder_mt.__index(mock, name)
         local idx = builder_mt.index + 1
         builder_mt.index = idx
-        table.insert(builder_mt.path, name)
         table.insert(builder_mt.full_path_text, name)
 
         local getter = builder_mt.path_getters[idx]
-        local next = getter(name, builder_mt.full_path_nodes[#builder_mt.full_path_nodes])
+        local next = getter(
+            builder_mt.full_path_nodes[idx],
+            name
+        )
 
         if not next then
             local path = table.concat(builder_mt.full_path_text, ".")
+            if builder_mt.error_callback then
+                builder_mt.error_callback(
+                    builder_mt.context,
+                    "Path " .. path .. " does not exist"
+                )
+            end
             error("Path " .. path .. " does not exist")
         end
 
@@ -40,13 +49,14 @@ local function MakeBuilderMetatable(data)
             return mock
         else
             return builder_mt.result_callback({
-                path = table.concat(builder_mt.path, "."),
-
                 full_path = table.concat(builder_mt.full_path_text, "."),
+
+                full_path_text = builder_mt.full_path_text,
                 full_path_nodes = builder_mt.full_path_nodes,
 
                 name = builder_mt.name,
                 host = builder_mt.host,
+                context = builder_mt.context,
             })
         end
     end

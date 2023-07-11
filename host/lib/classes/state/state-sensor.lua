@@ -2,9 +2,8 @@
 -------------------------------------------------------------------------------------
 
 local StateSensor = {}
-StateSensor.__index = StateSensor
-StateSensor.__base = "rule/state-base"
-StateSensor.__class_name = "StateSensor"
+StateSensor.__base = "state/state-base"
+StateSensor.__name = "StateSensor"
 StateSensor.__type = "class"
 StateSensor.__deps =  { }
 
@@ -12,11 +11,14 @@ StateSensor.__deps =  { }
 
 function StateSensor:Init(config)
     self.super.Init(self, config)
-    self.sensor = table.weak {
-        instance = config.sensor,
-        node = config.sensor_node,
+
+    self.sensor = table.weak_values {
+        manager = config.path_nodes[1],
+        node = config.path_nodes[2],
+        instance = config.path_nodes[3],
     }
-    config.sensor:ObserveNode(self, config.sensor_node.id)
+
+    self.sensor.instance:Subscribe(self, self.SensorChanged)
 end
 
 function StateSensor:AddSourceDependency(dependant_state, source_id)
@@ -29,7 +31,7 @@ end
 
 function StateSensor:GetValue()
     if self.sensor.node then
-        local v, t = self.sensor.node:GetValue()
+        local v, t = self.sensor.instance:GetValue()
         if v == nil then
             return
         end
@@ -47,7 +49,7 @@ end
 -- function StateSensor:CalculateValue(dv)
 -- end
 
-function StateSensor:SensorNodeChanged(sensor, node)
+function StateSensor:SensorChanged(sensor)
     local cv = self:GetValue()
     if cv then
         self:CallSinkListeners(cv)
@@ -69,6 +71,31 @@ end
 function StateSensor:Status()
     local cv = self:GetValue()
     return cv ~= nil, cv
+end
+
+-------------------------------------------------------------------------------------
+
+function StateSensor.RegisterStateClass()
+    local reg = {
+        meta_operators = {},
+        state_prototypes = {},
+        state_accesors = {
+            Sensor = {
+                remotely_owned = true,
+
+                path_getters = {
+                    function (obj, t) return obj:GetSensor(t) end,
+                    function (obj, t) return obj:GetValue(t) end,
+                },
+                config = {
+                },
+
+                path_host_module = "base/sensor-manager",
+            }
+        }
+    }
+
+    return reg
 end
 
 -------------------------------------------------------------------------------------

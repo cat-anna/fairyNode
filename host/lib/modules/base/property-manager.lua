@@ -81,6 +81,10 @@ function PropertyManager:GetProperty(global_id)
     return self.properties_by_id[global_id]
 end
 
+function PropertyManager:GetLocalSensor(id)
+    return self.local_sensors[id]
+end
+
 function PropertyManager:GetValue(global_id)
     return self.values_by_id[global_id]
 end
@@ -151,7 +155,7 @@ function PropertyManager:RegisterProperty(opt)
     self.properties_by_id[gid] = object
 
     if object:IsSensor() then
-        self.local_sensors[gid] = object
+        self.local_sensors[opt.id] = object
     end
 
     if object:IsLocal() then
@@ -247,22 +251,6 @@ function PropertyManager:GetValueDatabase(value)
         return self.mongo_connection:GetCollection(db_id, "timestamp")
     end
 end
-
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
-
--- function PropertyManager:GetPathBuilder(result_callback)
---     return require("lib/path_builder").PathBuilderWrapper({
---         name = "Sensor",
---         host = self,
---         path_getters = {
---             function (t, obj) return obj.PropertyManager[t] end,
---             function (t, obj) return obj.node[t] end,
---         },
---         result_callback = result_callback,
---     })
--- end
 
 -------------------------------------------------------------------------------
 

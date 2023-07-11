@@ -7,7 +7,6 @@ local md5 = require "md5"
 local RuleService = {}
 RuleService.__index = RuleService
 RuleService.__deps = {
-    -- rule_script = "rule-script",
     rule_state = "rule/rule-state",
     plantuml = "util/plantuml"
 }
@@ -324,13 +323,14 @@ function RuleService:GetStateRuleStatus()
     return http.OK, result
 end
 
-function RuleService:GetStateRule() return http.OK,
-                                           self.rule_state:GetRuleText() end
+function RuleService:GetStateRule()
+    return http.OK, "" -- self.rule_state:GetRuleText() --TODO
+end
 
 function RuleService:SetStateRule(request)
     self.rule_state:SetRuleText(request)
-    local err_list = self.rule_state.errors
-    return http.OK, {result = #err_list == 0, errors = err_list}
+    local err_list = { } --self.rule_state.errors
+    return http.OK, { result = #err_list == 0, errors = err_list }
 end
 
 -------------------------------------------------------------------------------------

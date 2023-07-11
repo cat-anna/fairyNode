@@ -26,7 +26,6 @@ function Package.GetConfig(base_path)
         ["loader.class.paths"] = { path.normpath(base_path .. "/../lib/classes") },
         ["loader.config.paths"] = { path.normpath(base_path .. "/../configset/") },
 
-
         ["rest.endpoint.paths"] = { path.normpath(base_path .. "/../lib/rest/endpoint") },
         ["rest.endpoint.list"] = { },
 

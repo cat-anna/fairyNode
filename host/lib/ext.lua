@@ -22,7 +22,7 @@ if not table.unpack then
 end
 
 function string.formatEx(str, vars)
-    for k,v in pairs(vars) do
+    for k, v in pairs(vars) do
         str = str:gsub("{" .. k .. "}", v)
     end
     return str
@@ -31,9 +31,9 @@ end
 function string:split(sep)
     local sep, fields = sep or ":", {}
     local pattern = string.format("([^%s]+)", sep)
-    self:gsub(pattern, function(c) fields[#fields+1] = c end)
+    self:gsub(pattern, function(c) fields[#fields + 1] = c end)
     return fields
- end
+end
 
 function string:trim()
     return self:match("^%s*(.-)%s*$")
@@ -58,7 +58,7 @@ function SafeCall(f, ...)
         if error_reporter then
             copas.addthread(function()
                 local id = msg:match("([%w%d:%./%-_]+):")
-                error_reporter:OnError{
+                error_reporter:OnError {
                     id = id or "lua_error",
                     message = msg,
                     trace = debug.traceback()
@@ -71,8 +71,8 @@ function SafeCall(f, ...)
 end
 
 function table.merge(...)
-    local r = { }
-    for i=1,#arg do
+    local r = {}
+    for i = 1, #arg do
         local t = select(i, ...)
         for k, v in pairs(t or {}) do
             if type(k) == "number" then
@@ -91,8 +91,8 @@ function table.filter(t, functor)
     end
 
     local r = {}
-    for k,v in pairs(t) do
-        if functor(k,v) then
+    for k, v in pairs(t) do
+        if functor(k, v) then
             r[k] = v
         end
     end
@@ -102,7 +102,7 @@ end
 
 function table.keys(t)
     local r = {}
-    for k,_ in pairs(t or {}) do
+    for k, _ in pairs(t or {}) do
         table.insert(r, k)
     end
     return r
@@ -110,15 +110,15 @@ end
 
 function table.shallow_copy(t)
     local r = {}
-    for k,v in pairs(t or {}) do
-       r[k] = v
+    for k, v in pairs(t or {}) do
+        r[k] = v
     end
     return r
 end
 
 function table.append(src, v)
-    for _,v in ipairs(v or {}) do
-      src[#src+1] = v
+    for _, v in ipairs(v or {}) do
+        src[#src + 1] = v
     end
     return src
 end
@@ -136,19 +136,19 @@ function table.sorted_keys(t)
 end
 
 function table.weak_values(t)
-    return setmetatable(t or {}, { __mode="v" })
+    return setmetatable(t or {}, { __mode = "v" })
 end
 
 function table.weak_keys(t)
-    return setmetatable(t or {}, { __mode="k" })
+    return setmetatable(t or {}, { __mode = "k" })
 end
 
 function table.weak(t)
-    return setmetatable(t or {}, { __mode="vk" })
+    return setmetatable(t or {}, { __mode = "vk" })
 end
 
 function string.format_seconds(t)
-    local secs = t%60
+    local secs = t % 60
     t = floor(t / 60)
     local min = t % 60
     t = floor(t / 60)
@@ -160,19 +160,19 @@ function string.format_seconds(t)
     return table.concat(r, " ")
 end
 
-local quotepattern = '(['..("%^$().[]*+-?"):gsub("(.)", "%%%1")..'])'
+local quotepattern = '([' .. ("%^$().[]*+-?"):gsub("(.)", "%%%1") .. '])'
 string.escape = function(str)
     return str:gsub(quotepattern, "%%%1")
 end
 
 function string.fromhex(str)
-    return (str:gsub('..', function (cc)
+    return (str:gsub('..', function(cc)
         return string.char(tonumber(cc, 16))
     end))
 end
 
 function string.tohex(str)
-    return (str:gsub('.', function (c)
+    return (str:gsub('.', function(c)
         return string.format('%02X', string.byte(c))
     end))
 end
@@ -184,16 +184,16 @@ function table.encode_json_stable(data)
         ["string"] = function(v) return stringx.quote_string(v) end,
         ["boolean"] = function(v) return v and "true" or "false" end,
         ["table"] = function(v)
-            local t = { }
+            local t = {}
             if #v == 0 then
                 local keys = tablex.keys(v)
                 table.sort(keys)
-                for _,k in ipairs(keys) do
+                for _, k in ipairs(keys) do
                     table.insert(t, string.format([["%s":%s]], k, table.encode_json_stable(v[k])))
                 end
                 return "{" .. table.concat(t, ",") .. "}"
             else
-                for i=1,#v  do
+                for i = 1, #v do
                     t[i] = table.encode_json_stable(v[i])
                 end
                 return "[" .. table.concat(t, ",") .. "]"
@@ -272,7 +272,7 @@ function ExtractObjectTag(object)
         function() return "<?>" end,
     }
 
-    for _,f in ipairs(proc) do
+    for _, f in ipairs(proc) do
         tag = f()
         if tag then
             break
@@ -289,4 +289,21 @@ end
 
 function AbstractMethod()
     assert(false, "Abstract method called")
+end
+
+function table.class(name)
+    -- mt.__index = mt
+    local class_mt = { }
+    -- class_mt.__index = class_mt
+    class_mt.__name = name
+    class_mt.__type = "class"
+
+    local mt = { }
+    function mt.__call(this, ...)
+        local obj = setmetatable({}, { __index = class_mt })
+        obj:Init(...)
+        return obj
+    end
+
+    return setmetatable(class_mt, mt)
 end

@@ -2,25 +2,19 @@ local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------------
 
-local debug_mode = false
-
--------------------------------------------------------------------------------------
-
 local State = {}
 State.__index = State
 State.__type = "interface"
-State.__class_name = "StateBase"
+State.__name = "StateBase"
 State.__is_state_class = true
 
 -------------------------------------------------------------------------------------
 
 function State:Init(config)
-    debug_mode = self.config.debug
-
     self.global_id = config.global_id
-    self.class_id = config.class_id
     self.name = config.name
     self.group = config.group
+    self.environment = config.environment
 
     if type(config.description) ~= "table" then
         self.description = {config.description}
@@ -30,11 +24,32 @@ function State:Init(config)
 
     self.sink_dependencies = {}
     self.source_dependencies = {}
+    self.source_values = {}
+
     self.observers = table.weak()
     self:RetireValue()
 
     for k, v in pairs(config.source_dependencies or {}) do
-        self:AddSourceDependency(v, type(k) == "string" and k or nil)
+        local source_id = type(k) == "string" and k or nil
+        if type(v) == "table" then
+            if v.__is_state_class then
+                self:AddSourceDependency(v, source_id)
+            else
+                self:SetError("source_dependencies contain invalid state")
+            end
+            table.insert(self.source_values, table.weak_values {
+                mode = "state",
+                target = v,
+                source_id = source_id,
+                global_id = v:GetGlobalId(),
+            })
+        else
+            table.insert(self.source_values, table.weak_values {
+                mode = "constant",
+                source_id = "constant",
+                value = { v, os.timestamp() },
+            })
+        end
     end
     for _, v in ipairs(config.sink_dependencies or {}) do
         self:AddSinkDependency(v)
@@ -72,6 +87,10 @@ function State:GetGroup()
     return self.group
 end
 
+function State:GetGlobalId()
+    return self.global_id
+end
+
 -------------------------------------------------------------------------------------
 
 function State:GetDescription()
@@ -83,7 +102,9 @@ function State:GetName()
 end
 
 function State:IsReady()
-    return self.current_value ~= nil
+    local r = self.current_value ~= nil
+    print(self, 'ready = ', r)
+    return r
 end
 
 function State:Tag()
@@ -119,7 +140,7 @@ function State:SetCurrentValue(cv)
         return self.current_value
     end
 
-    if debug_mode then
+    if self.config.debug then
         print(self, "Value changed to " .. tostring(cv.value))
     end
     self.current_value = cv
@@ -173,22 +194,31 @@ function State:HasSourceDependencies()
 end
 
 function State:GetSourceValues()
-    local dependant_values = {}
-    for id, dep in pairs(self.source_dependencies) do
-        if (not dep.target) or (not dep.target:IsReady()) then
-            print(self, "Dependency " .. id .. " is not yet ready")
-            return
+    local current_values = {}
+
+    for _, dep in ipairs(self.source_values) do
+
+        local value
+        if dep.mode == "state" then
+            if (not dep.target) or (not dep.target:IsReady()) then
+                self:SetError("Dependency %s is not yet ready", dep.global_id)
+                return
+            end
+            value = dep.target:GetValue()
+            if value == nil then
+                self:SetError("Dependency %s has no value", dep.global_id)
+                return
+            end
+        elseif dep.mode == "constant" then
+            value = dep.value
         end
-        local value = dep.target:GetValue()
-        if value == nil then
-            print(self, "Dependency " .. id .. " has no value")
-            return
-        end
+
         value = tablex.copy(value)
         value.source_id = dep.source_id
-        table.insert(dependant_values, value)
+        table.insert(current_values, value)
     end
-    return dependant_values
+
+    return current_values
 end
 
 -------------------------------------------------------------------------------------
@@ -201,7 +231,7 @@ function State:AddSinkDependency(listener, virtual)
         virtual = virtual
     }
 
-    if self:IsReady() and not virtual then
+    if self:IsReady() and (not virtual) then
         SafeCall(function() listener:SourceChanged(self, self:GetValue()) end)
     end
 end
@@ -209,9 +239,9 @@ end
 function State:CallSinkListeners(current_value)
     for id, dep in pairs(self.sink_dependencies) do
         if not dep.target then
-            print(self, "Dependency " .. id .. " is expired")
+            self:SetError("Dependency %s is expired", id)
         elseif dep.virtual then
-            print(self, "Dependency " .. id .. " is virtual")
+            self:SetError("Dependency %s is virtual", id)
         else
             dep.target:SourceChanged(self, current_value)
         end
@@ -228,7 +258,9 @@ function State:HasSinkDependencies()
 end
 
 function State:SourceChanged(source, source_value)
-    self:Update()
+    if self:IsReady() then
+        self:Update()
+    end
 end
 
 -------------------------------------------------------------------------------------
@@ -245,9 +277,9 @@ end
 
 -------------------------------------------------------------------------------------
 
-function State:SetError(...)
-    --TODO
-    printf(self, ...)
+function State:SetError(fmt, ...)
+    local msg = string.format(fmt, ...)
+    self.environment:ReportRuleError(self, msg, "", false)
 end
 
 function State:GetDependencyList(list)

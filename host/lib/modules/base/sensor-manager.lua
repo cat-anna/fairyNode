@@ -44,6 +44,7 @@ end
 
 function SensorManager:Init()
     self.sensors = { }
+    self.sensors_by_name = { }
 end
 
 function SensorManager:PostInit()
@@ -54,6 +55,12 @@ function SensorManager:StartModule()
     self:LoadSensors()
     self:StartTimers()
     self:DoSensorReadout()
+end
+
+-------------------------------------------------------------------------------
+
+function SensorManager:GetSensor(id)
+    return self.sensors_by_name[id]
 end
 
 -------------------------------------------------------------------------------
@@ -98,19 +105,16 @@ end
 -------------------------------------------------------------------------------
 
 function SensorManager:PropertyCreated(object)
-    self.sensors[object:GetGlobalId()] = object
-
     if object:IsSensor() then
+        self.sensors[object:GetGlobalId()] = object
+        self.sensors_by_name[object:GetId()] = object
         scheduler.CallLater(function() object:Readout() end)
     end
-
-    -- if opt.proxy and opt.class == nil then
-    --     opt.class = "base/property/sensor-proxy"
-    -- end
 end
 
 function SensorManager:PropertyReleased(object)
     self.sensors[object:GetGlobalId()] = nil
+    self.sensors_by_name[object:GetId()] = nil
 end
 
 -------------------------------------------------------------------------------
