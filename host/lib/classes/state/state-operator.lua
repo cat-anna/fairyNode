@@ -1,4 +1,5 @@
 local pretty = require "pl.pretty"
+local class = require "lib/class"
 
 -------------------------------------------------------------------------------------
 
@@ -20,8 +21,6 @@ local function DoSum(...)
     return r
 end
 
--------------------------------------------------------------------------------------
-
 local function OperatorAnd(calee, values)
     for i = 1, #values do
         if not values[i].value then
@@ -40,74 +39,76 @@ local function OperatorOr(calee, values)
     return { result = false }
 end
 
--------------------------------------------------------------------------------------
-
-local LogicalFunction = table.class("LogicalFunction")
-
-function LogicalFunction:Init(func)
-    -- self.func = func
-    -- assert(type(func) == "string")
-end
-
-function LogicalFunction:GetResultType()
-    return "float"
-end
-
-function LogicalFunction:Execute(alee, values)
-    -- local raw = { }
-    -- for _, v in ipairs(values) do
-    --     table.insert(raw, v.value)
-    -- end
-    -- return {
-    --     result = self.func(table.unpack(raw))
-    -- }
-end
-
-local function MakeNumericOperator(op)
-    return {
-        result_type = "boolean",
-        name = function(calee)
-            return string.format("X %s %s", op, tostring(calee.range.threshold))
-        end,
-        handler = load(string.format([[
-return function(calee, values)
-    return { result = values[1].value %s calee.range.threshold }
-end
-]], op), string.format("Operator %s function", op))()
-    }
+local function OperatorNot(calee, values)
+    assert(#values == 1)
+    return { result = not (values[1].value) }
 end
 
 -------------------------------------------------------------------------------------
 
-local FunctionOperator = table.class("FunctionOperator")
+local BaseOperator = class.Class("BaseOperator")
 
-function FunctionOperator:Init(name, func)
-    self.name = name
-    self.func = func
-    assert(type(func) == "function")
-end
 
-function FunctionOperator:GetResultType()
-    return "float"
-end
-
-function FunctionOperator:GetDescription(args)
+function BaseOperator:GetDescription(args)
     if #args == 1 then
-        return string.format("%s{ %s }", self.name, table.concat(args, ""))
+        return string.format("%s( %s )", self.name, table.concat(args, ""))
     else
-        return string.format("%s{\\n\\t%s\\n}", self.name, table.concat(args, ",\\n\\t"))
+        return string.format("%s(\\n\\t%s\\n)", self.name, table.concat(args, ",\\n\\t"))
     end
 end
 
-function FunctionOperator:Execute(calee, values)
+function BaseOperator:Execute(calee, values)
+    return self.func(calee, values)
+end
+
+-------------------------------------------------------------------------------------
+
+local ProxyFunction = BaseOperator:SubClass("ProxyFunction")
+
+-------------------------------------------------------------------------------------
+
+local SimpleOperator = BaseOperator:SubClass("SimpleOperator")
+
+function SimpleOperator:Execute(calee, values)
     local raw = { }
-    for i, v in ipairs(values) do
+    for _, v in ipairs(values) do
         table.insert(raw, v.value)
     end
     return {
         result = self.func(table.unpack(raw))
     }
 end
+
+-------------------------------------------------------------------------------------
+
+local BinaryOperator = BaseOperator:SubClass("BinaryOperator")
+
+function BinaryOperator:Init()
+    self.arg_min = 2
+    self.arg_max = 2
+
+    local func_name = string.format("Operator %s function", self.operator)
+    local func_code = string.format([[
+return function(calee, values)
+    assert(#values == 2)
+    return { result = values[1].value %s values[2].value }
+end
+]], self.operator)
+
+    local load_result, err_msg = load(func_code, func_name)
+    if not load_result then
+        error("Internal error! load failed with message: " .. err_msg)
+    end
+
+    local call_success, call_result = pcall(load_result)
+    if not call_success then
+        error("Internal error! pcall failed with message: " .. call_result)
+    end
+
+    self.func = call_result
+end
+
+
 
 -------------------------------------------------------------------------------------
 
@@ -128,33 +129,34 @@ end
 
 -------------------------------------------------------------------------------------
 
+-- local function MakeNumericOperator(op)
+--     return {
+--         result_type = "boolean",
+--         name = function(calee)
+--             return string.format("X %s %s", op, tostring(calee.range.threshold))
+--         end,
+--     }
+-- end
+
 StateOperator.OperatorFunctors = {
-    -- ["and"] = {
-    --     result_type = "boolean",
-    --     handler = OperatorAnd,
-    -- },
-    -- ["or"] = {
-    --     result_type = "boolean",
-    --     handler = OperatorOr,
-    -- },
-    -- ["not"] = {
-    --     result_type = "boolean",
-    --     handler = function(calee, values)
-    --         return { result = not values[1].value }
-    --     end
-    -- },
+    ["Not"] = ProxyFunction{name = "Not", func = OperatorAnd, lua_metafunc = nil, result_type = "boolean"},
+    ["And"] = ProxyFunction{name = "And", func = OperatorAnd, lua_metafunc = nil, result_type = "boolean"},
+    ["Or"]  = ProxyFunction{name = "Or",  func = OperatorOr,  lua_metafunc = nil, result_type = "boolean"},
 
-    -- ["=="] = MakeNumericOperator("=="),
-    -- ["<"] = MakeNumericOperator("<"),
-    -- ["<="] = MakeNumericOperator("<="),
-    -- [">"] = MakeNumericOperator(">"),
-    -- [">="] = MakeNumericOperator(">="),
-
-    ["max"] = FunctionOperator("max", math.max),
-    ["min"] = FunctionOperator("min", math.min),
-    ["sum"] = FunctionOperator("sum", DoSum),
+    ["Max"] = SimpleOperator{name = "Max", func = math.max, lua_metafunc = nil,     result_type = "float"},
+    ["Min"] = SimpleOperator{name = "Min", func = math.min, lua_metafunc = nil,     result_type = "float"},
+    ["Sum"] = SimpleOperator{name = "Sum", func = DoSum,    lua_metafunc = "__add", result_type = "float"},
     -- ["mul"] = FunctionOperator("mul", DoMul),
 
+    ["NotEqual"]     = BinaryOperator{name = "Equal",        lua_metafunc = nil,        operator = "~="},
+    ["Equal"]        = BinaryOperator{name = "NotEqual",     lua_metafunc = "__eq",     operator = "=="},
+    ["Lesser"]       = BinaryOperator{name = "Lesser",       lua_metafunc = "__lt",     operator = "<" },
+    ["LesserEqual"]  = BinaryOperator{name = "LesserEqual",  lua_metafunc = "__le",     operator = "<="},
+    ["Greater"]      = BinaryOperator{name = "Greater",      lua_metafunc = nil,        operator = ">" },
+    ["GreaterEqual"] = BinaryOperator{name = "GreaterEqual", lua_metafunc = nil,        operator = ">="},
+    ["Concat"]       = BinaryOperator{name = "Concat",       lua_metafunc = "__concat", operator = ".."},
+
+    -- ["Range"] = MakeRangeOperator(env),
     -- ["range"] = {
     --     result_type = "boolean",
     --     name = function(calee)
@@ -176,7 +178,7 @@ StateOperator.OperatorFunctors = {
 }
 
 function StateOperator:LocallyOwned()
-    return true, self.operator_func:GetResultType()
+    return true, self.operator_func.result_type
 end
 
 function StateOperator:CalculateValue(dependant_values)
@@ -203,101 +205,54 @@ end
 
 -------------------------------------------------------------------------------------
 
--- local function MakeRangeOperator(env)
---     return function(data)
---         if #data ~= 3 then
---             env.error("Range operator requires three arguments")
---             return
---         end
---         if not IsState(env, data[1]) then
---             env.error("Range operator requires state as first argument")
---             return
---         end
---         return MakeStateRule {
---             class = StateClassMapping.StateOperator,
---             operator = "range",
---             source_dependencies = {data[1]},
---             range = {min = tonumber(data[2]), max = tonumber(data[3])}
---         }
---     end
--- end
-
 function StateOperator.RegisterStateClass()
-    local function make(operator, arg_min, arg_max)
-        return {
-            args = {
-                min = arg_min or 2,
-                max = arg_max or 10,
-            },
-            config = {
-                operator = operator
-            },
-            remotely_owned = false,
-        }
-    end
-
     local state_prototypes = { }
-
     for k,v in pairs(StateOperator.OperatorFunctors) do
-        state_prototypes[string.firstToUpper(k)] = {
+        state_prototypes[k] = {
             remotely_owned = false,
             config = {
                 operator = k
             },
             args = {
-                min = v.arg_min or 2,
+                min = v.arg_min or 1,
                 max = v.arg_max or 10,
             },
         }
     end
 
-    local reg = {
+    return {
         meta_operators = {
+    -- __call - Treat a table like a function. When a table is followed by parenthesis such as "myTable( 'foo' )" and the metatable has a __call key pointing to a function, that function is invoked (passing the table as the first argument, followed by any specified arguments) and the return value is returned.
+
+    -- ''If both operands are tables, the left table is checked before the right table for the presence of an __add metaevent.
+
     -- __unm - Unary minus. When writing "-myTable", if the metatable has a __unm key pointing to a function, that function is invoked (passing the table), and the return value used as the value of "-myTable".
     -- __add - Addition. When writing "myTable + object" or "object + myTable", if myTable's metatable has an __add key pointing to a function, that function is invoked (passing the left and right operands in order) and the return value used.
-    -- ''If both operands are tables, the left table is checked before the right table for the presence of an __add metaevent.
     -- __sub - Subtraction. Invoked similar to addition, using the '-' operator.
     -- __mul - Multiplication. Invoked similar to addition, using the '*' operator.
     -- __div - Division. Invoked similar to addition, using the '/' operator.
     -- __idiv - (Lua 5.3) Floor division (division with rounding down to nearest integer). '//' operator.
     -- __mod - Modulo. Invoked similar to addition, using the '%' operator.
     -- __pow - Involution. Invoked similar to addition, using the '^' operator.
-    -- __concat - Concatenation. Invoked similar to addition, using the '..' operator.
+
     -- __band - (Lua 5.3) the bitwise AND (&) operation.
     -- __bor - (Lua 5.3) the bitwise OR (|) operation.
     -- __bxor - (Lua 5.3) the bitwise exclusive OR (binary ^) operation.
     -- __bnot - (Lua 5.3) the bitwise NOT (unary ~) operation.
     -- __shl - (Lua 5.3) the bitwise left shift (<<) operation.
     -- __shr - (Lua 5.3) the bitwise right shift (>>) operation.
-    -- __call - Treat a table like a function. When a table is followed by parenthesis such as "myTable( 'foo' )" and the metatable has a __call key pointing to a function, that function is invoked (passing the table as the first argument, followed by any specified arguments) and the return value is returned.
+
+    -- __concat - Concatenation. Invoked similar to addition, using the '..' operator.
+
     -- __eq - Check for equality. This method is invoked when "myTable1 == myTable2" is evaluated, but only if both tables have the exact same metamethod for __eq.
     -- __lt - Check for less-than. Similar to equality, using the '<' operator. Greater-than is evaluated by reversing the order of the operands passed to the __lt function.
     -- __le - Check for less-than-or-equal. Similar to equality, using the '<=' operator. Greater-than-or-equal is evaluated by reversing the order of the operands passed to the __le function.
+
         },
 
         state_prototypes = state_prototypes,
-        -- {
-            -- Or = make("or", 1),
-            -- And = make("and", 1),
-            -- Not = make("not", 1, 1),
-
-            -- Equal = MakeNumericOperator(env, "=="),
-            -- Lesser = MakeNumericOperator(env, "<"),
-            -- LesserEqual = MakeNumericOperator(env, "<="),
-            -- Greater = MakeNumericOperator(env, ">"),
-            -- GreaterEqual = MakeNumericOperator(env, ">="),
-
-            -- Max = make("max"),
-            -- Min = make("min"),
-            -- Sum = make("sum"),
-            -- Mul = make("mul"),
-
-            -- Range = MakeRangeOperator(env),
-        -- },
         state_accesors = { }
     }
-
-    return reg
 end
 
 -------------------------------------------------------------------------------------

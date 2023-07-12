@@ -11,15 +11,14 @@ local RuleStateEnv = {}
 RuleStateEnv.__name = "RuleStateEnv"
 RuleStateEnv.__type = "class"
 RuleStateEnv.__deps = {
-    -- device_tree = "homie/device-tree",
     -- datetime_utils = "util/datetime-utils",
 }
 -- RuleStateEnv.__config = { }
 
 -------------------------------------------------------------------------------------
 
-function RuleStateEnv:IsAnyStatePending()
-    return self.pending_states ~= nil
+function RuleStateEnv:IsReady()
+    return self.pending_states == nil
 end
 
 function RuleStateEnv:GetStateIds()
@@ -29,6 +28,7 @@ end
 function RuleStateEnv:GetLocalStateIds()
     return tablex.keys(self.local_states)
 end
+
 -------------------------------------------------------------------------------------
 
 function RuleStateEnv:Init(config)
@@ -41,42 +41,19 @@ function RuleStateEnv:Init(config)
 
     self.meta_objects = { }
 
-    self.current_group = "test"
-
     self:InitErrorHandling()
     self:InitEnvBase()
+    self:InitGroups()
     self:InitStateEnvObject()
     self:FindAndInitStateClasses()
 
-    -- local env = self.script_env
 
-    -- local state_prototype = object.state_prototype
-
-    -- env.Group = function(name)
-    --     name = tostring(name):trim()
-    --     if not name or name == "" then
-    --         object.group = object.default_group
-    --     else
-    --         object.group = name
-    --     end
-    -- end
-
-    -- env.DefaultGroup = function(name)
-    --     name = tostring(name):trim()
-    --     if not name or name == "" then
-    --         object.default_group = "default"
-    --     else
-    --         object.default_group = name
-    --     end
-    -- end
-
-    -- state_prototype.Homie = self.device_tree:GetPropertyPath(WrapCall(self, self.ImportHomieState, object))
+    self:AddTask("State rule update", 10, self.Update)
 
     -- state_prototype.AddState = WrapCall(self, self.AddState, object)
     -- state_prototype.Source = WrapCall(env, AddSource)
     -- state_prototype.Sink = WrapCall(env, AddSink)
 
-    -- state_prototype.TimeSchedule = MakeTimeSchedule(env)
     -- state_prototype.BooleanGenerator = MakeBooleanGenerator(env)
     -- state_prototype.Mapping = MakeMapping(env)
     -- state_prototype.IntegerMapping = MakeIntegerMapping(env)
@@ -123,22 +100,17 @@ local function PrepareStatePrototype(operator_object, args)
 end
 
 local function PathBuilderCompletionCb(result)
-    -- full_path = result.full_path
-    local full_path_text = result.full_path_text
-    local nodes = result.full_path_nodes
-    -- name = result.name
-    -- host = result.host
-
     local context = result.context
     local environment = context.environment
-
-    table.remove(full_path_text, 1)
-    local local_id = table.concat(full_path_text, ".")
     local global_id = result.full_path
 
     if environment.states_by_id[global_id] then
         return environment.states_by_id[global_id]
     end
+
+    local full_path_text = result.full_path_text
+    table.remove(full_path_text, 1)
+    local local_id = table.concat(full_path_text, ".")
 
     local state_proto = {
         global_id = global_id,
@@ -192,7 +164,7 @@ function RuleStateEnv:ReportRuleError(rule_object, message, trace_level, continu
 
     table.insert(self.errors, err_info)
 
-    print(self, "Rule error:", message, "\n", trace)
+    print(rule_object or self, "Rule error:", message, "\n", trace)
 
     if not continue_execution then
         error("State script error")
@@ -284,7 +256,12 @@ function RuleStateEnv:InitStateEnvObject()
     --     end
     end
     function StateMt.__index(t, name)
-        AbstractMethod()
+        local state = self.local_states[name]
+        if state then
+            return state
+        end
+        local msg = string.format("State '%s' does not exists", name)
+        self:ReportRuleError(nil, msg, 1, false)
     end
 
     self:RegisterMetaFunction(StateMt)
@@ -305,7 +282,32 @@ function RuleStateEnv:FindAndInitStateClasses()
     end
 end
 
+function RuleStateEnv:InitGroups()
+    self.current_group = "default"
+
+    -- TODO
+
+    -- env.Group = function(name)
+    --     name = tostring(name):trim()
+    --     if not name or name == "" then
+    --         object.group = object.default_group
+    --     else
+    --         object.group = name
+    --     end
+    -- end
+
+    -- env.DefaultGroup = function(name)
+    --     name = tostring(name):trim()
+    --     if not name or name == "" then
+    --         object.default_group = "default"
+    --     else
+    --         object.default_group = name
+    --     end
+    -- end
+end
+
 -------------------------------------------------------------------------------------
+
 
 function RuleStateEnv:LoadStateClass(class_name, class_config)
     if class_config.meta_operators then
@@ -372,11 +374,6 @@ function RuleStateEnv:CreateState(state_proto)
         state_info.config or { }
     )
 
-    -- local prefix = "State"
-    -- if operator_object.remotely_owned then
-    --     prefix = operator_object.prefix
-    -- end
-
     local global_id
     if state_proto.global_id then
         global_id = state_proto.global_id
@@ -400,7 +397,7 @@ function RuleStateEnv:CreateState(state_proto)
     self.states_by_id[global_id] = state
 
     if not state_info.remotely_owned then
-        self.local_states[state_proto.name] = state
+        self.local_states[state_proto.id] = state
     end
 
     if not self.pending_states then
@@ -414,6 +411,9 @@ end
 -------------------------------------------------------------------------------------
 
 function RuleStateEnv:ExecuteScript(script_text, chunk_name)
+    -- reset group
+    self.current_group = "default"
+
     chunk_name = chunk_name or "unnamed"
     local script, err_msg = load(script_text, chunk_name, "bt", self.script_env)
     if (not script) or err_msg then
@@ -422,8 +422,6 @@ function RuleStateEnv:ExecuteScript(script_text, chunk_name)
         return
     end
 
-    -- setfenv(script, )
-
     local success, mt_errmgs = pcall(script)
     if (not success) then
         local msg = string.format("The '%s' script chunk failed to execute", chunk_name)
@@ -431,35 +429,42 @@ function RuleStateEnv:ExecuteScript(script_text, chunk_name)
         return
     end
 
+    self:Update()
+
     return true
 end
 
 -------------------------------------------------------------------------------------
 
+function RuleStateEnv:Update()
+    if self.pending_states then
+        local remain_pending
+        for _,v in pairs(self.pending_states) do
+            v:Update()
+            if not v:IsReady() then
+                printf(self, "State %s is still pending", v:GetGlobalId())
+                remain_pending = remain_pending or { }
+                table.insert(remain_pending, v)
+            else
+                printf(self, "State %s became ready", v:GetGlobalId())
+            end
+        end
+        self.pending_states = remain_pending
+    else
+        for k,v in pairs(self.states_by_id) do
+            v:OnTimer()
+        end
+    end
+end
+
+-------------------------------------------------------------------------------------
+
 -- local StateClassMapping = {
---     StateHomie = "rule/state-homie",
---     StateTime = "rule/state-time",
 --     StateFunction = "rule/state-function",
 --     StateMovingAvg = "rule/state-avg-moving",
 --     StateMapping = "rule/state-mapping",
 --     StateChangeGenerator = "rule/state-change-generator",
 -- }
-
--------------------------------------------------------------------------------------
-
--- local StateRuleMt = {
---     __class = "StateRule"
---     -- __newindex = ...
--- }
--- StateRuleMt.__index = StateRuleMt
-
--- local function MakeStateRule(t)
---     return setmetatable(t or {}, StateRuleMt)  --
--- end
-
--- local function IsStateRule(t)
---     return type(t) == "table" and t.__class == StateRuleMt.__class
--- end
 
 -------------------------------------------------------------------------------------
 
@@ -469,31 +474,7 @@ end
 
 -------------------------------------------------------------------------------------
 
--- local function WrapCall(object, func, argument)
---     return function(...) return func(object, argument, ...) end
--- end
 --[[
-
--------------------------------------------------------------------------------------
-
-local function MakeTimeSchedule(env)
-    return function(data)
-        if #data ~= 2 then
-            env.error("TimeSchedule operator requires two arguments")
-            return
-        end
-        return MakeStateRule {
-            class = StateClassMapping.StateTime,
-            range = {from = tonumber(data[1]), to = tonumber(data[2])}
-        }
-    end
-end
-
-function RuleState:RuleError(rule, error_key, message)
-    print(string.format("RULE-STATE: ERROR: %s -> %s", error_key, message))
-end
-
--------------------------------------------------------------------------------------
 
 local function MakeBooleanGenerator(env)
     return function(data)
@@ -531,17 +512,17 @@ local function MakeMapping(env)
 end
 
 local function MakeStringMapping(env)
-    -- return function(data)
-    --     if #data ~= 2 then
-    --         env.error("Boolean operator requires three arguments")
-    --     end
-    --     return MakeStateRule{
-    --         class = StateClassMapping.StateMapping,
-    --         mapping_mode = "string",
-    --         source_dependencies = {data[1]},
-    --         mapping = data[2],
-    --     }
-    -- end
+    return function(data)
+        if #data ~= 2 then
+            env.error("Boolean operator requires three arguments")
+        end
+        return MakeStateRule{
+            class = StateClassMapping.StateMapping,
+            mapping_mode = "string",
+            source_dependencies = {data[1]},
+            mapping = data[2],
+        }
+    end
 end
 
 local function MakeBooleanMapping(env)
@@ -627,78 +608,58 @@ local function MakeFunction(env)
     end
 end
 
+-------------------------------------------------------------------------------------
+
+local function ValidateMapping(env, state_def)
+    if not state_def.mapping then return end
+
+    local key_types_in_map = {}
+    local value_types_in_map = {}
+
+    for key, value in pairs(state_def.mapping) do
+        key_types_in_map[type(key)] = true
+        local v_type = type(value)
+        value_types_in_map[v_type] = true
+        if v_type == "table" then
+            env.error("Mapping to table is not allowed")
+            return
+        end
+    end
+
+    key_types_in_map = tablex.keys(key_types_in_map)
+    value_types_in_map = tablex.keys(value_types_in_map)
+
+    if #key_types_in_map ~= 1 then
+        env.error("multiple types used as keys for mapping")
+        return
+    end
+
+    if #value_types_in_map == 1 then
+        state_def.result_type = value_types_in_map[1]
+        return
+    end
+
+    env.error("WARNING: Inconsistent result types used for mapping")
+end
+
+-------------------------------------------------------------------------------------
+
+local function AddSink(env, _, source, sink, virtual)
+    if not IsState(env, source) then
+        env.error("Source is not a state")
+        return
+    end
+    if not IsState(env, source) then
+        env.error("Sink is not a state")
+        return
+    end
+    if virtual == nil then
+        virtual = env.debug_mode
+    end
+    source:AddSinkDependency(sink, virtual)
+end
+
+-------------------------------------------------------------------------------------
 --]]
--------------------------------------------------------------------------------------
-
--- local function ValidateMapping(env, state_def)
---     if not state_def.mapping then return end
-
---     local key_types_in_map = {}
---     local value_types_in_map = {}
-
---     for key, value in pairs(state_def.mapping) do
---         key_types_in_map[type(key)] = true
---         local v_type = type(value)
---         value_types_in_map[v_type] = true
---         if v_type == "table" then
---             env.error("Mapping to table is not allowed")
---             return
---         end
---     end
-
---     key_types_in_map = tablex.keys(key_types_in_map)
---     value_types_in_map = tablex.keys(value_types_in_map)
-
---     if #key_types_in_map ~= 1 then
---         env.error("multiple types used as keys for mapping")
---         return
---     end
-
---     if #value_types_in_map == 1 then
---         state_def.result_type = value_types_in_map[1]
---         return
---     end
-
---     env.error("WARNING: Inconsistent result types used for mapping")
--- end
-
--------------------------------------------------------------------------------------
-
--- local function AddSink(env, _, source, sink, virtual)
---     if not IsState(env, source) then
---         env.error("Source is not a state")
---         return
---     end
---     if not IsState(env, source) then
---         env.error("Sink is not a state")
---         return
---     end
---     if virtual == nil then
---         virtual = env.debug_mode
---     end
---     source:AddSinkDependency(sink, virtual)
--- end
-
--------------------------------------------------------------------------------------
-
--- function RuleStateEnv:ImportHomieState(env_object, property_path, homie_property, homie_device)
---     local homie_id = string.format("%s.%s.%s", property_path.device, property_path.node, property_path.property)
---     local global_id = string.format("Homie.%s", homie_id)
---     if not env_object.states[global_id] then
---         env_object.states[global_id] = self.class:CreateObject(StateClassMapping.StateHomie, {
---             class = StateClassMapping.StateHomie,
---             name = homie_id,
---             global_id = global_id,
---           xxx  class_id = homie_id,
---             property_instance = homie_property,
---             property_path = homie_id,
---             device = homie_device,
---             group = env_object.group,
---         })
---     end
---     return env_object.states[global_id]
--- end
-
--------------------------------------------------------------------------------------
 
 return RuleStateEnv

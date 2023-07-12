@@ -66,4 +66,20 @@ end
 
 -------------------------------------------------------------------------------------
 
+function Object:AddTask(name, interval, func)
+    self.tasks = self.tasks or { }
+
+    if self.tasks[name] then
+        self.tasks[name]:Stop()
+        self.tasks[name] = nil
+    end
+
+    local task = scheduler:CreateTask(self, name, interval, function (owner, task) func(owner, task) end)
+    self.tasks[name] = task
+
+    return task
+end
+
+-------------------------------------------------------------------------------------
+
 return Object

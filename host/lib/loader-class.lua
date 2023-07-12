@@ -126,7 +126,7 @@ function ClassLoader:InitClass(class_name)
     local file = self:FindClassFile(class_name)
     assert(file)
 
-    printf("CLASS: Loading class %s", class_name)
+    -- printf("CLASS: Loading class %s", class_name)
 
     local class = {
         name = class_name,
@@ -201,7 +201,9 @@ function ClassLoader:CreateSubObject(overlay_mt, base_class_name, object_arg)
     self:UpdateBase(class)
 
     local obj = self:InitObject(class, class.name, object_arg)
-    printf("CLASS: Create sub from %s: %s:%s", base_class_name, class.name, tostring(obj))
+    if self.verbose then
+        printf("CLASS: Create sub from %s: %s:%s", base_class_name, class.name, tostring(obj))
+    end
     return obj
 end
 
@@ -212,7 +214,7 @@ function ClassLoader:CreateObject(class_name, object_arg)
     local obj = self:InitObject(class, class_name, object_arg)
 
     if self.verbose then
-        printf("CLASS: Crete %s name:%s", class.name, ExtractObjectTag(obj))
+        printf("CLASS: Create %s name:%s", class.name, ExtractObjectTag(obj))
     end
 
     return obj

@@ -31,14 +31,6 @@ end
 
 function RuleState:StartModule()
     print(self, "Starting state rule engine")
-
-    -- self.rule_tick_task = scheduler:CreateTask(
-    --     self,
-    --     "State rule tick",
-    --     10,
-    --     function (owner, task) owner:HandleRuleTick() end
-    -- )
-
     self:InitRuleEnv()
 end
 
@@ -47,33 +39,6 @@ function RuleState:IsReady()
         -- self.engine_started
     return false
 end
-
--------------------------------------------------------------------------------------
-
--- function RuleState:CheckUpdateQueue()
-    -- if #self.pending_states > 0 then
-    --     local t = {}
-    --     for _,v in ipairs(self.pending_states) do
-    --         v:Update()
-    --         if not v:IsReady() then
-    --             print(self, "State " .. v.global_id .. " is not yet ready")
-    --             table.insert(t, v)
-    --         else
-    --             print(self, "State " .. v.global_id .. " became ready")
-    --         end
-    --     end
-    --     self.pending_states = t
-    --     if #t == 0 then
-    --         print(self, "All states became ready")
-    --         -- self:InitHomieNode()
-    --     end
-    -- else
-    --     if self.update_task then
-    --         self.update_task:Stop()
-    --         self.update_task = nil
-    --     end
-    -- end
--- end
 
 -------------------------------------------------------------------------------------
 
@@ -137,7 +102,7 @@ function RuleState:SetRuleText(rule_text)
    self.rule_env:ExecuteScript(rule_text)
 
    -- self:SaveRule(rule_text)
-    -- self:ReloadRule()
+   -- self:ReloadRule()
 end
 
 function RuleState:GetRuleText()
@@ -232,16 +197,6 @@ end
 --         name = "State rules",
 --         properties = self.homie_props
 --     })
--- end
-
--------------------------------------------------------------------------------------
-
--- function RuleState:HandleRuleTick()
-    -- if self:IsReady() then
-    --     for k,v in pairs(self.states_by_id) do
-    --         v:OnTimer()
-    --     end
-    -- end
 -- end
 
 -------------------------------------------------------------------------------------

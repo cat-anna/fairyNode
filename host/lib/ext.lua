@@ -288,26 +288,11 @@ function NotImplemented(txt)
 end
 
 function AbstractMethod()
-    assert(false, "Abstract method called")
-end
-
-function table.class(name)
-    -- mt.__index = mt
-    local class_mt = { }
-    -- class_mt.__index = class_mt
-    class_mt.__name = name
-    class_mt.__type = "class"
-
-    local mt = { }
-    function mt.__call(this, ...)
-        local obj = setmetatable({}, { __index = class_mt })
-        obj:Init(...)
-        return obj
-    end
-
-    return setmetatable(class_mt, mt)
+    error("Abstract method called! " .. debug.traceback())
 end
 
 function string.firstToUpper(str)
     return (str:gsub("^%l", string.upper))
 end
+
+
