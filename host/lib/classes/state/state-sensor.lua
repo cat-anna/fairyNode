@@ -76,7 +76,7 @@ end
 -------------------------------------------------------------------------------------
 
 function StateSensor.RegisterStateClass()
-    local reg = {
+    return {
         meta_operators = {},
         state_prototypes = {},
         state_accesors = {
@@ -94,8 +94,6 @@ function StateSensor.RegisterStateClass()
             }
         }
     }
-
-    return reg
 end
 
 -------------------------------------------------------------------------------------

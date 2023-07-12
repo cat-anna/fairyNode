@@ -110,7 +110,7 @@ function StateHomie.RegisterStateClass()
     if not loader_module:GetModule("homie/homie-host") then
         return
     end
-    local reg = {
+    return {
         meta_operators = {},
         state_prototypes = {},
         state_accesors = {
@@ -129,8 +129,6 @@ function StateHomie.RegisterStateClass()
             }
         }
     }
-
-    return reg
 end
 
 -------------------------------------------------------------------------------------

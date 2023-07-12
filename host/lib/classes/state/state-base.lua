@@ -18,6 +18,8 @@ function State:Init(config)
     self.group = config.group
     self.environment = config.environment
 
+    assert(self.global_id)
+
     if type(config.description) ~= "table" then
         self.description = { config.description }
     else
@@ -34,19 +36,19 @@ function State:Init(config)
     for k, v in pairs(config.source_dependencies or {}) do
         if type(v) == "table" then
             if v.__is_state_class then
-                self:AddSourceDependency(v, source_id)
+                self:AddSourceDependency(v)
             else
                 self:SetError("source_dependencies contain invalid state")
             end
             table.insert(self.source_values, table.weak_values {
                 mode = "state",
                 target = v,
-                source_id = v:GetGlobalId(),
+                global_id = v:GetGlobalId(),
             })
         else
             table.insert(self.source_values, {
                 mode = "constant",
-                source_id = "constant",
+                global_id = "constant",
                 value = { value = v, timestamp = os.timestamp() },
             })
         end
@@ -68,7 +70,7 @@ end
 --------------------------------------------------------------------------
 
 function State:OnTimer()
-    -- self:Update()
+    self:Update()
 end
 
 function State:LocallyOwned()
@@ -127,9 +129,6 @@ function State:SetValue(v)
 end
 
 function State:GetValue()
-    if not self.current_value then
-        self:Update()
-    end
     return self.current_value
 end
 
@@ -171,13 +170,13 @@ end
 
 -------------------------------------------------------------------------------------
 
-function State:AddSourceDependency(dependant_state, source_id)
+function State:AddSourceDependency(dependant_state)
     print(self, "Added dependency " .. dependant_state.global_id ..
         " to " .. self.global_id)
 
     self.source_dependencies[dependant_state.global_id] = table.weak_values {
         target = dependant_state,
-        source_id = source_id,
+        global_id = dependant_state.global_id,
     }
     dependant_state:AddSinkDependency(self, nil)
 
@@ -217,7 +216,7 @@ function State:GetSourceValues()
         end
 
         value = tablex.copy(value)
-        value.source_id = dep.source_id
+        value.global_id = dep.global_id
         table.insert(current_values, value)
     end
 
@@ -249,7 +248,8 @@ function State:AddSinkDependency(listener, virtual)
 
     self.sink_dependencies[listener.global_id] = table.weak_values {
         target = listener,
-        virtual = virtual
+        virtual = virtual,
+        global_id = listener.global_id,
     }
 
     if self:IsReady() and (not virtual) then
