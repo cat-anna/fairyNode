@@ -71,6 +71,10 @@ function HomieBaseDevice:GetNodeIds()
     return tablex.keys(self.nodes)
 end
 
+function HomieBaseDevice:GetNode(name)
+    return self.nodes[name]
+end
+
 -------------------------------------------------------------------------------------
 
 function HomieBaseDevice:Restart()

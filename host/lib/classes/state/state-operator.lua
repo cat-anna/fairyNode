@@ -81,7 +81,8 @@ end
 
 local FunctionOperator = table.class("FunctionOperator")
 
-function FunctionOperator:Init(func)
+function FunctionOperator:Init(name, func)
+    self.name = name
     self.func = func
     assert(type(func) == "function")
 end
@@ -90,9 +91,17 @@ function FunctionOperator:GetResultType()
     return "float"
 end
 
+function FunctionOperator:GetDescription(args)
+    if #args == 1 then
+        return string.format("%s{ %s }", self.name, table.concat(args, ""))
+    else
+        return string.format("%s{\\n\\t%s\\n}", self.name, table.concat(args, ",\\n\\t"))
+    end
+end
+
 function FunctionOperator:Execute(calee, values)
     local raw = { }
-    for _, v in ipairs(values) do
+    for i, v in ipairs(values) do
         table.insert(raw, v.value)
     end
     return {
@@ -115,7 +124,6 @@ function StateOperator:Init(config)
     self.range = config.range
 
     self.operator_func = self.OperatorFunctors[config.operator]
-    print("StateOperator", config.operator, self.operator_func)
 end
 
 -------------------------------------------------------------------------------------
@@ -142,9 +150,10 @@ StateOperator.OperatorFunctors = {
     -- [">"] = MakeNumericOperator(">"),
     -- [">="] = MakeNumericOperator(">="),
 
-    ["max"] = FunctionOperator(math.max),
-    ["min"] = FunctionOperator(math.min),
-    -- ["sum"] = MakeFunctionOperator(DoSum),
+    ["max"] = FunctionOperator("max", math.max),
+    ["min"] = FunctionOperator("min", math.min),
+    ["sum"] = FunctionOperator("sum", DoSum),
+    -- ["mul"] = FunctionOperator("mul", DoMul),
 
     -- ["range"] = {
     --     result_type = "boolean",
@@ -184,16 +193,12 @@ end
 function StateOperator:GetDescription()
     local r = self.super.GetDescription(self)
     table.insert(r, "function: " .. self:GetFunctionDescription())
-    -- table.insert(r, "operator: " .. self.operator)
     return r
 end
 
 function StateOperator:GetFunctionDescription()
-    -- local operator_func = self.operator_func or { }
-    -- if operator_func.name then
-    --     return operator_func.name(self)
-    -- end
-    return self.operator
+    local args = self:DescribeSourceValues()
+    return self.operator_func:GetDescription(args)
 end
 
 -------------------------------------------------------------------------------------
@@ -231,6 +236,21 @@ function StateOperator.RegisterStateClass()
         }
     end
 
+    local state_prototypes = { }
+
+    for k,v in pairs(StateOperator.OperatorFunctors) do
+        state_prototypes[string.firstToUpper(k)] = {
+            remotely_owned = false,
+            config = {
+                operator = k
+            },
+            args = {
+                min = v.arg_min or 2,
+                max = v.arg_max or 10,
+            },
+        }
+    end
+
     local reg = {
         meta_operators = {
     -- __unm - Unary minus. When writing "-myTable", if the metatable has a __unm key pointing to a function, that function is invoked (passing the table), and the return value used as the value of "-myTable".
@@ -255,7 +275,8 @@ function StateOperator.RegisterStateClass()
     -- __le - Check for less-than-or-equal. Similar to equality, using the '<=' operator. Greater-than-or-equal is evaluated by reversing the order of the operands passed to the __le function.
         },
 
-        state_prototypes = {
+        state_prototypes = state_prototypes,
+        -- {
             -- Or = make("or", 1),
             -- And = make("and", 1),
             -- Not = make("not", 1, 1),
@@ -266,12 +287,13 @@ function StateOperator.RegisterStateClass()
             -- Greater = MakeNumericOperator(env, ">"),
             -- GreaterEqual = MakeNumericOperator(env, ">="),
 
-            Max = make("max"),
-            Min = make("min"),
+            -- Max = make("max"),
+            -- Min = make("min"),
+            -- Sum = make("sum"),
+            -- Mul = make("mul"),
 
-            -- Sum = MakeMathFunction(env, "sum"),
             -- Range = MakeRangeOperator(env),
-        },
+        -- },
         state_accesors = { }
     }
 

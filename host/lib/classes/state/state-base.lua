@@ -11,13 +11,15 @@ State.__is_state_class = true
 -------------------------------------------------------------------------------------
 
 function State:Init(config)
+    self.id = config.id
     self.global_id = config.global_id
+    self.local_id = config.local_id
     self.name = config.name
     self.group = config.group
     self.environment = config.environment
 
     if type(config.description) ~= "table" then
-        self.description = {config.description}
+        self.description = { config.description }
     else
         self.description = config.description
     end
@@ -30,7 +32,6 @@ function State:Init(config)
     self:RetireValue()
 
     for k, v in pairs(config.source_dependencies or {}) do
-        local source_id = type(k) == "string" and k or nil
         if type(v) == "table" then
             if v.__is_state_class then
                 self:AddSourceDependency(v, source_id)
@@ -40,14 +41,13 @@ function State:Init(config)
             table.insert(self.source_values, table.weak_values {
                 mode = "state",
                 target = v,
-                source_id = source_id,
-                global_id = v:GetGlobalId(),
+                source_id = v:GetGlobalId(),
             })
         else
-            table.insert(self.source_values, table.weak_values {
+            table.insert(self.source_values, {
                 mode = "constant",
                 source_id = "constant",
-                value = { v, os.timestamp() },
+                value = { value = v, timestamp = os.timestamp() },
             })
         end
     end
@@ -91,6 +91,10 @@ function State:GetGlobalId()
     return self.global_id
 end
 
+function State:GetId()
+    return self.id or self.name
+end
+
 -------------------------------------------------------------------------------------
 
 function State:GetDescription()
@@ -102,9 +106,7 @@ function State:GetName()
 end
 
 function State:IsReady()
-    local r = self.current_value ~= nil
-    print(self, 'ready = ', r)
-    return r
+    return self.current_value ~= nil
 end
 
 function State:Tag()
@@ -171,7 +173,7 @@ end
 
 function State:AddSourceDependency(dependant_state, source_id)
     print(self, "Added dependency " .. dependant_state.global_id ..
-              " to " .. self.global_id)
+        " to " .. self.global_id)
 
     self.source_dependencies[dependant_state.global_id] = table.weak_values {
         target = dependant_state,
@@ -197,7 +199,6 @@ function State:GetSourceValues()
     local current_values = {}
 
     for _, dep in ipairs(self.source_values) do
-
         local value
         if dep.mode == "state" then
             if (not dep.target) or (not dep.target:IsReady()) then
@@ -211,6 +212,8 @@ function State:GetSourceValues()
             end
         elseif dep.mode == "constant" then
             value = dep.value
+        else
+            assert(false) --TODO
         end
 
         value = tablex.copy(value)
@@ -219,6 +222,24 @@ function State:GetSourceValues()
     end
 
     return current_values
+end
+
+function State:DescribeSourceValues()
+    local r = {}
+
+    for _, dep in ipairs(self.source_values) do
+        if dep.mode == "state" then
+            if (not dep.target) or (not dep.target:IsReady()) then
+                table.insert(r, "?")
+            else
+                table.insert(r, dep.target:GetId())
+            end
+        elseif dep.mode == "constant" then
+            table.insert(r, dep.value.value)
+        end
+    end
+
+    return r
 end
 
 -------------------------------------------------------------------------------------
@@ -270,7 +291,7 @@ function State:AddObserver(target)
 end
 
 function State:CallObservers(current_value)
-    for _,v in pairs(self.observers) do
+    for _, v in pairs(self.observers) do
         v:StateRuleValueChanged(self, current_value)
     end
 end

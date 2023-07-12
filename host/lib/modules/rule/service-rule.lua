@@ -1,5 +1,6 @@
 local http = require "lib/http-code"
 local tablex = require "pl.tablex"
+local stringx = require "pl.stringx"
 local md5 = require "md5"
 
 -------------------------------------------------------------------------------------
@@ -108,7 +109,10 @@ function RuleService:GenerateStateDiagramElements()
 
         local state_style_text = "#" .. table.concat(state_style, ";")
 
-        local desc = state:GetDescription() or { }
+        local desc = {
+            -- print((myString:gsub("\\([nt])", {n="\n", t="\t"})))
+            table.concat(state:GetDescription() or { }, "\\\\\\n")
+        }
 
         local group = state:GetGroup()
         if group and group ~= "" then
@@ -225,7 +229,9 @@ function RuleService:GenerateStateDiagram()
 
         local state_style_text = "#" .. table.concat(state_style, ";")
 
-        local desc = state:GetDescription() or { }
+        local desc = {
+            table.concat(state:GetDescription() or { }, "\\\\n")
+        }
 
         local group = state:GetGroup()
         if group and group ~= "" then

@@ -10,7 +10,7 @@ local CONFIG_KEY_HOMIE_NAME = "module.homie-client.name"
 ------------------------------------------------------------------------------
 
 local HomieHost = {}
-HomieHost.__index = HomieHost
+HomieHost__name = "HomieHost"
 HomieHost.__deps = {
     mqtt = "mqtt/mqtt-client",
     homie_common = "homie/homie-common",
@@ -20,10 +20,6 @@ HomieHost.__config = {
 }
 
 ------------------------------------------------------------------------------
-
-function HomieHost:Tag()
-    return "HomieHost"
-end
 
 function HomieHost:BeforeReload()
     self.mqtt:StopWatching(self)
@@ -199,7 +195,7 @@ end
 ------------------------------------------------------------------------------
 
 HomieHost.EventTable = {
-    ["homie.device.delete.start"] = HomieHost.OnDeviceDeleteStart,
+    -- ["homie.device.delete.start"] = HomieHost.OnDeviceDeleteStart,
     ["homie.device.delete.finished"] = HomieHost.OnDeviceDeleteFinished,
 }
 

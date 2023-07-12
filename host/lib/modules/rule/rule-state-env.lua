@@ -107,7 +107,7 @@ local function PrepareStatePrototype(operator_object, args)
     local argc = #args
     local arg_config = operator_object.args
 
-    if (arg_config.min < argc) or (argc > arg_config.max) then
+    if (arg_config.min > argc) or (argc > arg_config.max) then
         local msg = string.format("Invalid argument count %d (%d->%d)", argc, arg_config.min, arg_config.max)
         environment:ReportRuleError(nil, msg, 2, false)
         return nil
@@ -136,18 +136,19 @@ local function PathBuilderCompletionCb(result)
     local local_id = table.concat(full_path_text, ".")
     local global_id = result.full_path
 
-    print("TEST", global_id, environment.states_by_id[global_id], #nodes)
-
     if environment.states_by_id[global_id] then
         return environment.states_by_id[global_id]
     end
 
     local state_proto = {
         global_id = global_id,
+        local_id = local_id,
         state_info = context,
         name = local_id, -- TODO
+        id = full_path_text[#full_path_text],
         config = {
-            path_nodes = tablex.copy(result.full_path_nodes)
+            path_nodes = tablex.copy(result.full_path_nodes),
+            -- full_path = global_id,
         }
     }
     return environment:CreateState(state_proto)
@@ -262,6 +263,7 @@ function RuleStateEnv:InitStateEnvObject()
             if value_mt.__is_state_prototype then
                 value_mt.__is_state_prototype = nil
                 value_mt.name = name
+                value_mt.id = name
                 self:CreateState(value_mt)
                 return
             end
@@ -383,7 +385,9 @@ function RuleStateEnv:CreateState(state_proto)
     end
 
     state_config.name = state_proto.name
+    state_config.id = state_proto.id
     state_config.global_id = global_id
+    state_config.local_id = state_proto.local_id or state_proto.id
     state_config.group = self.current_group
     state_config.environment = self
 

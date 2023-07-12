@@ -60,6 +60,9 @@ function HomieBaseNode:GetPropertyIds()
     return tablex.keys(self.properties)
 end
 
+function HomieBaseNode:GetProperty(name)
+    return self.properties[name]
+end
 -------------------------------------------------------------------------------------
 
 function HomieBaseNode:IsReady()

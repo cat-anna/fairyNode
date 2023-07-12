@@ -1,31 +1,33 @@
+local loader_module = require "lib/loader-module"
 
 -------------------------------------------------------------------------------------
 
 local StateHomie = {}
-StateHomie.__index = StateHomie
-StateHomie.__base = "rule/state-base"
-StateHomie.__class_name = "StateHomie"
+StateHomie.__base = "state/state-base"
+StateHomie.__name = "StateHomie"
 StateHomie.__type = "class"
-StateHomie.__deps =  {
-    homie_host = "homie/homie-host",
-}
+StateHomie.__deps =  { }
 
 -------------------------------------------------------------------------------------
 
 function StateHomie:Init(config)
     self.super.Init(self, config)
-    self.device = table.weak {
-        instance = config.device,
-        property = config.property_instance,
+
+    self.device = table.weak_values {
+        manager = config.path_nodes[1],
+        device = config.path_nodes[2],
+        node = config.path_nodes[3],
+        property = config.path_nodes[4],
     }
-    self.property_path = config.property_path
+
+    self.property_path = config.local_id
 
     self:Update()
 end
 
 function StateHomie:GetName()
     if self.device.property then
-        return self.device.property.name
+        return self.device.property:GetName()
     end
     return self.global_id
 end
@@ -63,7 +65,7 @@ end
 
 function StateHomie:Update()
     if not self.device.property then
-        self.device.property = self.homie_host:FindProperty(self.property_path)
+        self.device.property = self.device.manager:FindProperty(self.property_path)
         if not self.device.property then
             self:SetError("Failed to find homie node '%s'", self.property_path)
         end
@@ -71,15 +73,14 @@ function StateHomie:Update()
     end
 
     if (not self.subscribed) and self.device.property then
-        self.device.property:Subscribe(self)
+        if self.device.property:Subscribe(self, self.PropertyChanged) then
+            self:PropertyChanged(self.device.property)
+        end
     end
 end
 
-function StateHomie:PropertyStateChanged(property, value, timestamp)
-    self.subscribed = value ~= nil
-    if not self.subscribed then
-        return
-    end
+function StateHomie:PropertyChanged(property)
+    self.subscribed = true
 
     self.settable = property:IsSettable()
 
@@ -89,6 +90,7 @@ function StateHomie:PropertyStateChanged(property, value, timestamp)
             self.device.property:SetValue(wv.value, wv.timestamp)
         end
     else
+        local value, timestamp = property:GetValue()
         self:SetCurrentValue(self:WrapCurrentValue(value, timestamp))
     end
 end
@@ -99,7 +101,36 @@ function StateHomie:SourceChanged(source, source_value)
 end
 
 function StateHomie:IsReady()
-    return self.subscribed and (self:GetValue() ~= nil)
+    return self.subscribed and (self.device.property ~= nil)
+end
+
+-------------------------------------------------------------------------------------
+
+function StateHomie.RegisterStateClass()
+    if not loader_module:GetModule("homie/homie-host") then
+        return
+    end
+    local reg = {
+        meta_operators = {},
+        state_prototypes = {},
+        state_accesors = {
+            Homie = {
+                remotely_owned = true,
+
+                path_getters = {
+                    function (obj, t) return obj:GetDevice(t) end,
+                    function (obj, t) return obj:GetNode(t) end,
+                    function (obj, t) return obj:GetProperty(t) end,
+                },
+                config = {
+                },
+
+                path_host_module = "homie/homie-host",
+            }
+        }
+    }
+
+    return reg
 end
 
 -------------------------------------------------------------------------------------

@@ -307,3 +307,7 @@ function table.class(name)
 
     return setmetatable(class_mt, mt)
 end
+
+function string.firstToUpper(str)
+    return (str:gsub("^%l", string.upper))
+end
