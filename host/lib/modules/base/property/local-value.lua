@@ -15,7 +15,7 @@ function LocalValue:Init(config)
     self.datatype = config.datatype
     self.unit = config.unit
     self.value = config.value
-    self.timestamp = config.timestamp or 0
+    self.timestamp = config.timestamp
 end
 
 -- function LocalValue:PostInit()
@@ -43,7 +43,7 @@ end
 
 function LocalValue:Update(updated_value, timestamp)
     timestamp = timestamp or os.timestamp()
-    if (self.value == updated_value) and (timestamp - self.timestamp < 60 * 60) then
+    if (self.value == updated_value) and (timestamp - (self.timestamp or 0) < 60 * 60) then
         return false
     end
 

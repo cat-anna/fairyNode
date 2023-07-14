@@ -8,34 +8,46 @@ LocalProperty.__name = "LocalProperty"
 
 function LocalProperty:Init(config)
     LocalProperty.super.Init(self, config)
-    self:InitProperties(config.values)
+    self:ResetValues(config.values)
 end
 
 function LocalProperty:PostInit()
     LocalProperty.super.PostInit(self)
-    self.ready = true
+    if self.ready == nil then
+        self.ready = true
+    end
 end
 
 -------------------------------------------------------------------------------------
 
-function LocalProperty:InitProperties(new_values)
+function LocalProperty:ResetValues(new_values)
+    self:DeleteAllValues()
     for id,new_value in pairs(new_values or {}) do
-        local opt = {
-            name = new_value.name,
-
-            datatype = new_value.datatype,
-            unit = new_value.unit,
-            value = new_value.value,
-            timestamp = new_value.timestamp,
-
-            id = id,
-            global_id = string.format("%s.%s", self.global_id, id),
-
-            class = "base/property/local-value",
-        }
-
-        self:AddValue(opt)
+        new_value.id = new_value.id or id
+        self:AddValue(new_value)
     end
+    self:SetReady()
+end
+
+-------------------------------------------------------------------------------------
+
+function LocalProperty:AddValue(new_value)
+    new_value.global_id = string.format("%s.%s", self.global_id, new_value.id)
+    new_value.class = new_value.class or "base/property/local-value"
+
+    LocalProperty.super.AddValue(self, new_value)
+end
+
+function LocalProperty:DeleteAllValues()
+    self.ready = false
+    self.values = { }
+    -- TODO
+    self:CallSubscribers()
+end
+
+function LocalProperty:SetReady()
+    self.ready = true
+    self:CallSubscribers()
 end
 
 -------------------------------------------------------------------------------------
@@ -52,10 +64,6 @@ function LocalProperty:UpdateValues(all)
     for k,v in pairs(all) do
         local r = self:UpdateValue(k, v, timestamp)
         any = any or r
-    end
-
-    if any then
-        self:CallSubscribers()
     end
 end
 

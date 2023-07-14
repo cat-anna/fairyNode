@@ -12,6 +12,7 @@ function PropertyBaseObject:Init(config)
     self.global_id = config.global_id
     self.id = config.id
     self.name = config.name
+    self.ready = config.ready
 
     self.property_manager = config.property_manager
     self.owner = config.owner

@@ -26,7 +26,11 @@ function StateSensor:AddSourceDependency(dependant_state, source_id)
 end
 
 function StateSensor:LocallyOwned()
-    return false, (self.sensor.node and self.sensor.node.datatype)
+    return false
+end
+
+function StateSensor:GetDatatype()
+    return (self.sensor.node and self.sensor.node.datatype)
 end
 
 function StateSensor:GetValue()

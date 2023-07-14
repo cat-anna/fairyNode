@@ -17,7 +17,9 @@ end
 
 function RemoteProperty:PostInit()
     RemoteProperty.super.PostInit(self)
-    self.ready = true
+    if self.ready == nil then
+        self.ready = true
+    end
 end
 
 -------------------------------------------------------------------------------------

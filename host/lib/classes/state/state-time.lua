@@ -16,7 +16,11 @@ end
 -------------------------------------------------------------------------------------
 
 function StateTime:LocallyOwned()
-    return true, "boolean"
+    return true
+end
+
+function StateTime:GetDatatype()
+    return "boolean"
 end
 
 function StateTime:GetName()

@@ -14,6 +14,7 @@ HomieBaseNode.__type = "interface"
 function HomieBaseNode:Init(config)
     HomieBaseNode.super.Init(self, config)
     self.properties = { }
+    self.ready = true
 end
 
 function HomieBaseNode:PostInit()
@@ -44,6 +45,15 @@ function HomieBaseNode:AddProperty(opt)
     return prop
 end
 
+function HomieBaseNode:Reset()
+    self.ready = false
+    for _,v in ipairs(self:GetPropertyIds()) do
+        self:DeleteProperty(v)
+    end
+
+    self.controller:OnNodeReset(self)
+end
+
 function HomieBaseNode:DeleteProperty(property_id)
     local prop = self.properties[property_id]
 
@@ -71,7 +81,7 @@ function HomieBaseNode:IsReady()
             return false
         end
     end
-    return true
+    return self.ready
 end
 
 -------------------------------------------------------------------------------------

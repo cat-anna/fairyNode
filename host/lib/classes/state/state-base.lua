@@ -77,6 +77,14 @@ function State:LocallyOwned()
     return false
 end
 
+function State:GetDatatype()
+    return nil
+end
+
+function State:GetUnit()
+    return nil
+end
+
 function State:IsSettable()
     return false
 end

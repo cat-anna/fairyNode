@@ -181,6 +181,10 @@ function StateOperator:LocallyOwned()
     return true, self.operator_func.result_type
 end
 
+function StateOperator:GetDatatype()
+    return self.operator_func.result_type
+end
+
 function StateOperator:CalculateValue(dependant_values)
     local operator_func = self.operator_func
 

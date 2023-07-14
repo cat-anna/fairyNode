@@ -16,11 +16,6 @@ end
 
 -------------------------------------------------------------------------------
 
--- local NodeObject = {}
--- local PropertyMT = {}
-
--------------------------------------------------------------------------------
---
 local CONFIG_KEY_HOMIE_NAME = "module.homie-client.name"
 
 -------------------------------------------------------------------------------
@@ -49,10 +44,6 @@ local ClientStates = {
 }
 
 -------------------------------------------------------------------------------
-
-function HomieClient:Tag()
-    return "HomieClient"
-end
 
 function HomieClient:BeforeReload()
 end
@@ -136,7 +127,7 @@ function HomieClient:OnMqttDisconnected()
 end
 
 function HomieClient:ResetState()
-    if self.app_started then
+    if self.app_started and self:GetState() ~= ClientStates.goto_init then
         print(self, "Resetting protocol state")
         self:EnterState(ClientStates.goto_init)
     end
@@ -283,6 +274,11 @@ function HomieClient:GetNodesSummary()
     return r
 end
 
+function HomieClient:OnNodeReset(opt)
+    printf(self, "Node changed: %s", opt:GetGlobalId())
+    self:ResetState()
+end
+
 -------------------------------------------------------------------------------
 
 function HomieClient:PushMessage(q, topic, payload)
@@ -324,8 +320,8 @@ function HomieClient:CreateSmTask()
     if not self.sm_task then
         self.sm_task = scheduler:CreateTask(
             self,
-            "Startup",
-            10,
+            "Homie client startup",
+            1,
             function (owner, task) owner:ProcessStateMachine() end
         )
     end
@@ -356,10 +352,6 @@ function HomieClient:HandleInitState()
 end
 
 function HomieClient:HandleNodeWaitForReady(state_data)
-    if (os.gettime() - state_data.enter_time < 10) then
-        return
-    end
-
     local all_ready, pending = self:AreNodesReady()
 
     if not all_ready then
@@ -385,7 +377,8 @@ end
 -------------------------------------------------------------------------------
 
 HomieClient.StateMachineHandlers = {
-    [ClientStates.unknown] = { },
+    [ClientStates.unknown] = {
+    },
     [ClientStates.goto_init] = {
         enter = HomieClient.CreateSmTask,
         process = HomieClient.PrepareForInit,
@@ -420,6 +413,12 @@ function HomieClient:ProcessStateMachine()
     local pending_state = self.pending_state or current_state
     self.pending_state = nil
 
+    if self.state_data and self.state_data.enter_time then
+        if ((os.gettime() - self.state_data.enter_time) < 1) then
+            return
+        end
+    end
+
     local function call(func)
         if func then
             return func(self, self.state_data)
@@ -429,13 +428,8 @@ function HomieClient:ProcessStateMachine()
     if self.config.verbose then
         printf(self, "Current state %s", current_state)
     end
+
     local current_handler = self.StateMachineHandlers[current_state]
-    -- if current_handler.init_node then
-        -- self.event_bus:PushEvent({
-        --     event = string.format("homie-client.init_node", pending_state),
-        --     client = self,
-        -- })
-    -- end
     if pending_state == current_state then
         call(current_handler.process)
         return

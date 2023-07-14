@@ -25,8 +25,16 @@ function RuleStateEnv:GetStateIds()
     return tablex.keys(self.states_by_id)
 end
 
+function RuleStateEnv:GetState(id)
+    return self.states_by_id[id]
+end
+
 function RuleStateEnv:GetLocalStateIds()
     return tablex.keys(self.local_states)
+end
+
+function RuleStateEnv:GetLocalState(id)
+    return self.local_states[id]
 end
 
 -------------------------------------------------------------------------------------

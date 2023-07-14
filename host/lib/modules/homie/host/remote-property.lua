@@ -91,7 +91,10 @@ function HomieRemoteProperty:HandlePropertyConfigValue(topic, payload)
     end
 
     self[config_name] = payload
-    -- print(self, string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
+
+    if self.config.verbose then
+        print(self, string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
+    end
 end
 
 function HomieRemoteProperty:HandlePropertyValue(topic, payload, receive_timestamp)
@@ -118,7 +121,7 @@ function HomieRemoteProperty:HandlePropertyValue(topic, payload, receive_timesta
         end
     end
 
-    if self.config.debug then
+    if self.config.verbose then
         print(self, string.format("node %s.%s = %s -> %s", node_name, prop_name, self.raw_value or "", payload or ""))
     end
 

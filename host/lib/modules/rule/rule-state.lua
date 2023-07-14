@@ -98,8 +98,12 @@ end
 -- end
 
 function RuleState:SetRuleText(rule_text)
+
    self:InitRuleEnv()
+
    self.rule_env:ExecuteScript(rule_text)
+
+   self:ResetProperty()
 
    -- self:SaveRule(rule_text)
    -- self:ReloadRule()
@@ -147,7 +151,47 @@ end
 
 -------------------------------------------------------------------------------------
 
--- function RuleState:InitHomieNode(client)
+function RuleState:InitProperties(manager)
+    self.property_object = manager:RegisterLocalProperty{
+        owner = self,
+        ready = true,
+        name = "State rules",
+        id = "state_rules",
+        values = { },
+    }
+end
+
+function RuleState:ResetProperty()
+    if not self.property_object then
+        return
+    end
+
+    local state_protos = { }
+    for _,state_id in ipairs(self.rule_env:GetLocalStateIds()) do
+        local state = self.rule_env:GetLocalState(state_id)
+        state_protos[state_id] = {
+            class = "rule/rule-state-local-value-proxy",
+            target_state = state,
+            id = state_id,
+        }
+    end
+
+    self.property_object:ResetValues(state_protos)
+
+    -- self.sysinfo_sensor = manager:RegisterSensor{
+    --         errors = { name = "Active errors", datatype = "string" },
+
+    --         system_uptime = { name = "System uptime", datatype = "float", unit = "s" },
+    --         uptime = { name = "Server uptime", datatype = "float", unit = "s" },
+
+    --         system_load = { name = "System load", datatype = "float" },
+    --         system_memory = { name = "Free system memory", datatype = "float", unit = "MiB" },
+
+    --         lua_mem_usage = { name = "Lua vm memory usage", datatype = "float", unit = "MiB" },
+    --         process_memory = { name = "Process memory usage", datatype = "float", unit = "MiB" },
+    --         process_cpu_usage = { name = "Process cpu usage", datatype = "float", unit = "%" },
+    -- }
+
 --     if client then
 --         self.homie_client = client
 --     end
@@ -197,7 +241,7 @@ end
 --         name = "State rules",
 --         properties = self.homie_props
 --     })
--- end
+end
 
 -------------------------------------------------------------------------------------
 

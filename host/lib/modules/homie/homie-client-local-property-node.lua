@@ -17,7 +17,8 @@ function HomieLocalProperty:Init(config)
     self.local_property = config.local_property
     assert(self.local_property:IsLocal())
 
-    self:SetupHomieProperties()
+    self:ResetHomieProperties()
+    self.local_property:Subscribe(self, self.OnPropertyUpdate)
 end
 
 -------------------------------------------------------------------------------------
@@ -32,19 +33,30 @@ end
 
 -------------------------------------------------------------------------------------
 
-function HomieLocalProperty:SetupHomieProperties()
-    for _,value_key in ipairs(self.local_property:ValueKeys()) do
-        local local_value = self.local_property:GetValue(value_key)
-        assert(local_value ~= nil)
+function HomieLocalProperty:OnPropertyUpdate()
+    self:Reset()
+    self:ResetHomieProperties()
+end
 
-        local opt = {
-            -- local_property = self.local_property,
-            -- settable = false,
+-------------------------------------------------------------------------------------
 
-            local_value = local_value,
-            class = "homie/homie-client-local-property-value"
-        }
-        self:AddProperty(opt)
+function HomieLocalProperty:ResetHomieProperties()
+    if self.local_property:IsReady() then
+
+        for _,value_key in ipairs(self.local_property:ValueKeys()) do
+            local local_value = self.local_property:GetValue(value_key)
+            assert(local_value ~= nil)
+
+            local opt = {
+                -- local_property = self.local_property,
+                -- settable = false,
+
+                local_value = local_value,
+                class = "homie/homie-client-local-property-value"
+            }
+            self:AddProperty(opt)
+        end
+        self.ready = true
     end
 end
 

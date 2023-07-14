@@ -72,6 +72,19 @@ function Task:Stop()
     self.scheduler:CancelTask(self)
 end
 
+function Task:SetInterval(interval)
+    self.timer:cancel()
+    local opts = {
+        name = self.name,
+        recurring = interval > 0,
+        delay = interval,
+        initial_delay = interval,
+        params = self,
+        callback = Task.Tick,
+    }
+    self.timer = copas_timer.new(opts)
+end
+
 function Task.Tick(timer_obj, task)
     task.run_count = task.run_count + 1
     task.last_runtime = gettime()

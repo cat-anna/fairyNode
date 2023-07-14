@@ -100,7 +100,7 @@ function EventBus:OnObjectCreated(class_name, object)
 end
 
 function EventBus:PushEvent(event_info)
-    if self.config.debug and (not event_info.silent) then
+    if self.config.verbose then
         print(self, "Push event " .. event_info.event)
     end
     event_info.uuid = uuid()
@@ -117,7 +117,7 @@ end
 function EventBus:ProcessEvent(event_info)
     local start = gettime()
 
-    if self.config.debug and (not event_info.silent) then
+    if self.config.verbose then
         print(self, "Processing event " .. event_info.event)
     end
 

@@ -71,7 +71,9 @@ function ClassLoader:ReloadClass(class)
         return
     end
 
-    printf("CLASS: Reloading class %s", class.name)
+    if class.timestamp ~= 0 or self.verbose then
+        printf("CLASS: Reloading class %s", class.name)
+    end
 
     local new_mt = dofile(class.file)
     new_mt.__type = new_mt.__type or "class"
@@ -237,7 +239,7 @@ function ClassLoader:Init()
     self.watchers = table.weak()
     self.config = config_handler:Query(self.__config)
 
-    self.verbose = self.config.debug
+    self.verbose = self.config.verbose
 
     if self.config.debug then
         self.update_thread = copas.addthread(function()

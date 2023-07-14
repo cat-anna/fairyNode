@@ -27,7 +27,7 @@ function HomieBaseProperty:PostInit()
 end
 
 function HomieBaseProperty:Finalize()
-    self.super.Finalize(self)
+    HomieBaseProperty.super.Finalize(self)
 end
 
 -------------------------------------------------------------------------------------
