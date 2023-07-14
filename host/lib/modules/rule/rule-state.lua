@@ -11,7 +11,6 @@ local loader_class = require "lib/loader-class"
 local RuleState = {}
 RuleState.__name = "RuleState"
 RuleState.__deps = {
-    -- event_bus = "base/event-bus",
     server_storage = "base/server-storage",
 }
 
@@ -24,20 +23,15 @@ function RuleState:BeforeReload()
 end
 
 function RuleState:AfterReload()
-    -- if self.engine_started then
-        -- self:ReloadRule()
-    -- end
 end
 
 function RuleState:StartModule()
     print(self, "Starting state rule engine")
-    self:InitRuleEnv()
+    self:ReloadAllScripts()
 end
 
 function RuleState:IsReady()
-    -- return
-        -- self.engine_started
-    return false
+    return self.rule_env and self.rule_env:IsReady()
 end
 
 -------------------------------------------------------------------------------------
@@ -49,75 +43,67 @@ function RuleState:GetStates()
     return self.rule_env.states_by_id
 end
 
-function RuleState:GetRuleScriptId()
-    return string.format("rule.state.lua")
+function RuleState:GetRuleScriptId(script_name)
+    return string.format("rule.state.%s.lua", script_name)
 end
 
-function RuleState:GetRuleConfigId()
-    return string.format("rule.state.json")
-end
-
-function RuleState:InitRuleEnv()
-    print(self, "Creating state rule environment")
+function RuleState:ResetRuleEnv()
+    print(self, "Resetting state rule environment")
 
     if self.rule_env then
-        -- self.rule_env:Shutdown()
-        -- self.rule_env = nil
+        self.rule_env:Shutdown()
+        self.rule_env = nil
+        collectgarbage()
     end
+
+    self:ResetProperty()
 
     local init_config = {
         owner = self,
     }
     self.rule_env = loader_class:CreateObject("rule/rule-state-env", init_config)
-
-    -- local rule_load_script_content = self.server_storage:GetFromStorage(self:GetRuleScriptId())
-    -- if not rule_load_script_content then
-    --     rule_load_script_content = ""
-    -- end
-
-    -- local rule = {
-    --     text = rule_load_script_content,
-    --     instance = {},
-    --     metatable = {},
-    -- }
-
-    -- self:LoadScript(rule)
 end
 
--- function RuleState:LoadScript(rule)
-    -- if not self.update_task then
-    --     self.update_task = scheduler:CreateTask(
-    --         self,
-    --         "update",
-    --         10,
-    --         function (owner, task) owner:CheckUpdateQueue() end
-    --     )
-    -- end
-    -- self.rule = rule
-    -- self:InitHomieNode()
--- end
+function RuleState:ReloadAllScripts()
+    self:ResetRuleEnv()
 
-function RuleState:SetRuleText(rule_text)
+    local all_scripts = self:GetAllScriptNames()
 
-   self:InitRuleEnv()
-
-   self.rule_env:ExecuteScript(rule_text)
-
-   self:ResetProperty()
-
-   -- self:SaveRule(rule_text)
-   -- self:ReloadRule()
-end
-
-function RuleState:GetRuleText()
-    if not self.rule then
-        return nil
+    for _,script_name in ipairs(all_scripts) do
+        local script_text = self.server_storage:GetFromStorage(self:GetRuleScriptId(script_name))
+        if script_text then
+            self.rule_env:ExecuteScript(script_text, script_name)
+        end
     end
-    return self.rule.text
+
+    self:ReloadProperty()
 end
 
-function RuleState:SaveRule(rule_text)
-    -- self.server_storage:WriteStorage(self:GetRuleScriptId(), rule_text)
+-------------------------------------------------------------------------------------
+
+function RuleState:GetRuleText(script_name)
+    script_name = "default"
+    return self:LoadRule(script_name)
+end
+
+function RuleState:SetRuleScript(script_text, script_name)
+    script_name = "default"
+    self:SaveRule(script_text, script_name)
+    self:ReloadAllScripts()
+end
+
+-------------------------------------------------------------------------------------
+
+function RuleState:SaveRule(script_text, script_name)
+    self.server_storage:WriteStorage(self:GetRuleScriptId(script_name), script_text)
+end
+
+function RuleState:LoadRule(script_name)
+    return self.server_storage:GetFromStorage(self:GetRuleScriptId(script_name))
+end
+
+function RuleState:GetAllScriptNames()
+    return { "default" } -- TODO
 end
 
 -------------------------------------------------------------------------------------
@@ -143,14 +129,6 @@ end
 
 -------------------------------------------------------------------------------------
 
--- function RuleState:StateRuleValueChanged(state, current_value)
-    -- if self.homie_node then
-    --     self.homie_props[state.homie_property_id]:SetValue(current_value.value, current_value.timestamp)
-    -- end
--- end
-
--------------------------------------------------------------------------------------
-
 function RuleState:InitProperties(manager)
     self.property_object = manager:RegisterLocalProperty{
         owner = self,
@@ -162,6 +140,14 @@ function RuleState:InitProperties(manager)
 end
 
 function RuleState:ResetProperty()
+    if not self.property_object then
+        return
+    end
+    self.property_object:DeleteAllValues()
+end
+
+function RuleState:ReloadProperty()
+    self:ResetProperty()
     if not self.property_object then
         return
     end
@@ -177,28 +163,6 @@ function RuleState:ResetProperty()
     end
 
     self.property_object:ResetValues(state_protos)
-
-    -- self.sysinfo_sensor = manager:RegisterSensor{
-    --         errors = { name = "Active errors", datatype = "string" },
-
-    --         system_uptime = { name = "System uptime", datatype = "float", unit = "s" },
-    --         uptime = { name = "Server uptime", datatype = "float", unit = "s" },
-
-    --         system_load = { name = "System load", datatype = "float" },
-    --         system_memory = { name = "Free system memory", datatype = "float", unit = "MiB" },
-
-    --         lua_mem_usage = { name = "Lua vm memory usage", datatype = "float", unit = "MiB" },
-    --         process_memory = { name = "Process memory usage", datatype = "float", unit = "MiB" },
-    --         process_cpu_usage = { name = "Process cpu usage", datatype = "float", unit = "%" },
-    -- }
-
---     if client then
---         self.homie_client = client
---     end
-
---     if not self.homie_client then
---         return
---     end
 
 --     local ready = self:IsReady()
 --     local state_hash = ""
@@ -234,18 +198,7 @@ function RuleState:ResetProperty()
 --             end
 --         end
 --     end
-
---     self.homie_node = self.homie_client:AddNode("rule_state", {
---         hash = state_hash,
---         ready = ready,
---         name = "State rules",
---         properties = self.homie_props
---     })
 end
-
--------------------------------------------------------------------------------------
-
--- RuleState.EventTable = { }
 
 -------------------------------------------------------------------------------------
 

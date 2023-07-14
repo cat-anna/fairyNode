@@ -334,7 +334,7 @@ function RuleService:GetStateRule()
 end
 
 function RuleService:SetStateRule(request)
-    self.rule_state:SetRuleText(request)
+    self.rule_state:SetRuleScript(request)
     local err_list = { } --self.rule_state.errors
     return http.OK, { result = #err_list == 0, errors = err_list }
 end

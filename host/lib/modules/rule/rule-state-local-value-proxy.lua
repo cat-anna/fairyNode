@@ -42,9 +42,11 @@ end
 
 function RuleStateLocalValueProxy:GetValue()
     local state = self.target.state
-    if state then
+    if state and state:IsReady() then
         local r = state:GetValue()
-        return r.value, r.timestamp
+        if r then
+            return r.value, r.timestamp
+        end
     end
 end
 

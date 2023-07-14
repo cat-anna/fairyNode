@@ -71,6 +71,9 @@ function RuleStateEnv:Init(config)
     -- state_prototype.Function = MakeFunction(env)
 end
 
+function RuleStateEnv:Shutdown()
+end
+
 -------------------------------------------------------------------------------------
 
 local function PrepareStatePrototype(operator_object, args)
@@ -316,7 +319,6 @@ end
 
 -------------------------------------------------------------------------------------
 
-
 function RuleStateEnv:LoadStateClass(class_name, class_config)
     if class_config.meta_operators then
         -- TODO
@@ -418,21 +420,21 @@ end
 
 -------------------------------------------------------------------------------------
 
-function RuleStateEnv:ExecuteScript(script_text, chunk_name)
+function RuleStateEnv:ExecuteScript(script_text, script_name)
     -- reset group
     self.current_group = "default"
 
-    chunk_name = chunk_name or "unnamed"
-    local script, err_msg = load(script_text, chunk_name, "bt", self.script_env)
+    script_name = script_name or "unnamed"
+    local script, err_msg = load(script_text, script_name, "bt", self.script_env)
     if (not script) or err_msg then
-        local msg = string.format("The '%s' script chunk failed to compile", chunk_name)
+        local msg = string.format("The '%s' script chunk failed to compile", script_name)
         self:ReportRuleError(nil, msg, err_msg, true)
         return
     end
 
     local success, mt_errmgs = pcall(script)
     if (not success) then
-        local msg = string.format("The '%s' script chunk failed to execute", chunk_name)
+        local msg = string.format("The '%s' script chunk failed to execute", script_name)
         self:ReportRuleError(nil, msg, mt_errmgs, true)
         return
     end

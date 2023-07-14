@@ -39,10 +39,12 @@ function LocalProperty:AddValue(new_value)
 end
 
 function LocalProperty:DeleteAllValues()
-    self.ready = false
-    self.values = { }
     -- TODO
-    self:CallSubscribers()
+    self.values = { }
+    if self.ready then
+        self.ready = false
+        self:CallSubscribers()
+    end
 end
 
 function LocalProperty:SetReady()

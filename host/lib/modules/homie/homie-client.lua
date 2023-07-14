@@ -317,14 +317,17 @@ end
 -------------------------------------------------------------------------------
 
 function HomieClient:CreateSmTask()
-    if not self.sm_task then
-        self.sm_task = scheduler:CreateTask(
-            self,
-            "Homie client startup",
-            1,
-            function (owner, task) owner:ProcessStateMachine() end
-        )
+    if self.sm_task then
+        self.sm_task:Stop()
+        self.sm_task = nil
     end
+
+    self.sm_task = scheduler:CreateTask(
+        self,
+        "Homie client startup",
+        1,
+        function (owner, task) owner:ProcessStateMachine() end
+    )
 end
 
 function HomieClient:PrepareForInit()
