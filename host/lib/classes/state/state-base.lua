@@ -18,6 +18,11 @@ function State:Init(config)
     self.group = config.group
     self.environment = config.environment
 
+    self.datatype = config.datatype
+    self.unit = config.unit
+    self.value = config.value
+    self.locally_owned = config.locally_owned
+
     assert(self.global_id)
 
     if type(config.description) ~= "table" then
@@ -74,15 +79,15 @@ function State:OnTimer()
 end
 
 function State:LocallyOwned()
-    return false
+    return self.locally_owned
 end
 
 function State:GetDatatype()
-    return nil
+    return self.datatype
 end
 
 function State:GetUnit()
-    return nil
+    return self.unit
 end
 
 function State:IsSettable()
@@ -145,7 +150,7 @@ function State:SetCurrentValue(cv)
         self:RetireValue()
         return
     end
-    if self.current_value and self.current_value.value == cv.value then
+    if self.current_value and (self.current_value.value == cv.value) then
         return self.current_value
     end
 

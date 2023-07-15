@@ -4,8 +4,8 @@ local tablex = require "pl.tablex"
 
 local StateMovingAvg = {}
 StateMovingAvg.__index = StateMovingAvg
-StateMovingAvg.__class_name = "StateMovingAvg"
-StateMovingAvg.__base = "rule/state-base"
+StateMovingAvg.__name = "StateMovingAvg"
+StateMovingAvg.__base = "state/state-base"
 StateMovingAvg.__type = "class"
 StateMovingAvg.__deps = {
     server_storage = "base/server-storage",
@@ -27,7 +27,7 @@ end
 
 function StateMovingAvg:CacheId()
     if not self.cache_id then
-        self.cache_id = string.format("%s-%s", self.__class_name, self.global_id)
+        self.cache_id = string.format("%s-%s", self.__name, self.global_id)
     end
     return self.cache_id
 end
@@ -39,7 +39,11 @@ end
 -------------------------------------------------------------------------------------
 
 function StateMovingAvg:LocallyOwned()
-    return true, "float"
+    return true
+end
+
+function StateMovingAvg:GetDatatype()
+    return "float"
 end
 
 function StateMovingAvg:GetDescription()

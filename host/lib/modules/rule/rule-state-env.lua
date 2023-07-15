@@ -62,12 +62,10 @@ function RuleStateEnv:Init(config)
     -- state_prototype.Source = WrapCall(env, AddSource)
     -- state_prototype.Sink = WrapCall(env, AddSink)
 
-    -- state_prototype.BooleanGenerator = MakeBooleanGenerator(env)
     -- state_prototype.Mapping = MakeMapping(env)
     -- state_prototype.IntegerMapping = MakeIntegerMapping(env)
     -- state_prototype.BooleanMapping = MakeBooleanMapping(env)
     -- state_prototype.StringMapping = MakeStringMapping(env)
-    -- state_prototype.MovingAvg = MakeMovingAvg(env)
     -- state_prototype.Function = MakeFunction(env)
 end
 
@@ -469,15 +467,6 @@ end
 
 -------------------------------------------------------------------------------------
 
--- local StateClassMapping = {
---     StateFunction = "rule/state-function",
---     StateMovingAvg = "rule/state-avg-moving",
---     StateMapping = "rule/state-mapping",
---     StateChangeGenerator = "rule/state-change-generator",
--- }
-
--------------------------------------------------------------------------------------
-
 -- local function IsState(env, state)
 --     return type(state) == "table" and state.__is_state_class
 -- end
@@ -485,27 +474,6 @@ end
 -------------------------------------------------------------------------------------
 
 --[[
-
-local function MakeBooleanGenerator(env)
-    return function(data)
-        if #data > 2 then
-            env.error("BooleanGenerator operator accepts up to two arguments")
-            return
-        end
-        local interval = tonumber(data[1])
-        if interval == nil then
-            env.error("BooleanGenerator requires number as first argument")
-            return
-        end
-        return MakeStateRule {
-            class = StateClassMapping.StateChangeGenerator,
-            interval = interval,
-            value = data[2]
-        }
-    end
-end
-
--------------------------------------------------------------------------------------
 
 local function MakeMapping(env)
     return function(data)
@@ -559,26 +527,6 @@ local function MakeIntegerMapping(env)
     --     range = {from = tonumber(data[1]), to = tonumber(data[2])}
     -- }
     -- end
-end
-
--------------------------------------------------------------------------------------
-
-local function MakeMovingAvg(env)
-    return function(data)
-        if not IsState(env, data[1]) then
-            env.error("MovingAvg operator state as first argument")
-            return
-        end
-        if type(data.period) ~= "number" then
-            env.error("MovingAvg operator requires numeric 'period' argument")
-            return
-        end
-        return MakeStateRule {
-            source_dependencies = {data[1]},
-            class = StateClassMapping.StateMovingAvg,
-            period = data.period
-        }
-    end
 end
 
 -------------------------------------------------------------------------------------
