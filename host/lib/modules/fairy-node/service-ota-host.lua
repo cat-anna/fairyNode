@@ -11,30 +11,31 @@ local tablex = require "pl.tablex"
 
 local function sha256(data)
     local sha2 = require "lib/sha2"
-    return "sha256:" .. sha2.sha256(data):lower()
+    return sha2.sha256(data):lower()
 end
 
 -------------------------------------------------------------------------------
 
-local ServiceOta = {}
-ServiceOta.__index = ServiceOta
-ServiceOta.__type = "module"
-ServiceOta.__deps = {
-    ota_host = "fairy-node/ota-host"
-    -- project=
-}
+local CONFIG_KEY_REST_PUBLIC = "rest.public.adress"
 
 -------------------------------------------------------------------------------
 
-function ServiceOta:Tag() return "ServiceOta" end
+local ServiceOta = {}
+ServiceOta.__type = "module"
+ServiceOta.__name = "ServiceOta"
+ServiceOta.__deps = {
+    firmware_host = "fairy-node/ota-host",
+    homie_host ="homie/homie-host",
+}
+ServiceOta.__config = {
+    [CONFIG_KEY_REST_PUBLIC] = { type = "string", required = true }
+}
 
 -------------------------------------------------------------------------------
 
 function ServiceOta:BeforeReload() end
 
-function ServiceOta:AfterReload()
-    self.homie_host = loader_module:GetModule("homie/homie-host")
-end
+function ServiceOta:AfterReload() end
 
 function ServiceOta:Init()
     self.pending_uploads = {}
@@ -42,21 +43,9 @@ end
 
 -------------------------------------------------------------------------------
 
-function ServiceOta:CheckUploadRequests()
-    --TODO this is needs to be checked periodically
-    while
-        #self.pending_uploads > 0 and
-        (os.timestamp() - self.pending_uploads[1].receive_timestamp > 30 or #self.pending_uploads > 16) do
-        local r = table.remove(self.pending_uploads, 1)
-        print(self, "Dropping upload request", r.key)
-    end
-end
-
--------------------------------------------------------------------------------
-
 function ServiceOta:GetDeviceFirmwareProperties(device_id)
-    local result = { }
     if self.homie_host then
+        local result = { }
         local homie_dev = self.homie_host:FindDeviceByHardwareId(device_id)
         if homie_dev then
             -- local fw = homie_dev:GetFirmwareStatus()
@@ -65,220 +54,203 @@ function ServiceOta:GetDeviceFirmwareProperties(device_id)
         else
             printf(self, "Failed to find homie device %s", device_id)
         end
+        return result
     else
         printf(self, "No homie host")
     end
-    return result
-end
-
---[[
-fw/FairyNode/root/hash
-fw/FairyNode/lfs/hash
-fw/FairyNode/config/hash
---]]
-
-function ServiceOta:GetDeviceCurrentFirmware(device_id)
-    local result = { }
-    if self.homie_host then
-        local homie_dev = self.homie_host:FindDeviceByHardwareId(device_id)
-        if homie_dev then
-            result.lfs = homie_dev:GetInfoValue("fw/FairyNode/lfs/hash")
-            result.root = homie_dev:GetInfoValue("fw/FairyNode/root/hash")
-            result.config = homie_dev:GetInfoValue("fw/FairyNode/config/hash")
-        end
-    end
-    return result
 end
 
 -------------------------------------------------------------------------------
 
-function ServiceOta:PrepareImageUpload(body, device_id)
-    device_id = device_id:upper()
+function ServiceOta:CheckUploadRequests()
+    local now = os.timestamp()
+    --TODO this is should to be checked periodically
+    for _,key in ipairs(tablex.keys(self.pending_uploads)) do
+        local request = self.pending_uploads[key]
+        if now - request.receive_timestamp > 30 then
+            self.pending_uploads[key] = nil
+        end
+    end
+end
+
+function ServiceOta:RequestImageUpload(body)
+    if #tablex.keys(self.pending_uploads) > 16 then
+        print(self, "Upload rejected, too many concurrent uploads")
+        return http.TooManyRequests, {}
+    end
+
+    local image_hash = body.hash
+
+    if self.firmware_host:ImageExists(body.timestamp.hash) then
+        print(self, "Image with key", body.timestamp.hash, "already exists")
+        return http.Conflict, { }
+    end
+
     local upload_request = {
         request = body,
-        device_id = device_id,
         receive_timestamp = os.timestamp(),
         key = uuid(),
     }
 
-    print(self, "Got upload request for device ", device_id, " -> ", upload_request.key)
-    table.insert(self.pending_uploads, upload_request)
+    print(self, "Got upload request for image", image_hash, "->", upload_request.key)
+
+    self.pending_uploads[upload_request.key] = upload_request
     self:CheckUploadRequests()
     return http.OK, {
         key =  upload_request.key
     }
 end
 
-function ServiceOta:UploadImage(payload, device_id, key)
-    device_id = device_id:upper()
-    print(self, "UploadImage", device_id, key, "size="..tostring(#payload))
+function ServiceOta:UploadImage(payload, key)
     self:CheckUploadRequests()
+    print(self, "UploadImage", key, "size=" .. tostring(#payload))
 
-    local upload_request
-    for i=1,#self.pending_uploads do
-        if self.pending_uploads[i].key == key then
-            upload_request = table.remove(self.pending_uploads, i)
-            break
-        end
-    end
+    local upload_request = self.pending_uploads[key]
+    self.pending_uploads[key] = nil
 
     if not upload_request then
         print(self, "No upload request with key", key)
         return http.NotFound
     end
 
-    if upload_request.device_id ~= device_id then
-        print(self, "Device id mismatch")
-        return http.BadRequest
-    end
-
     local request = upload_request.request
-
     local payload_hash = sha256(payload)
-    if request.payload_hash ~= payload_hash then
-        print(self, "Payload hash mismatch")
+    if request.hash ~= payload_hash then
+        print(self, "Payload hash mismatch", request.hash, "vs", payload_hash)
         return http.BadRequest
     end
 
     print(self, "Payload accepted")
 
-    local r = self.ota_host:UploadNewImage(device_id, request, payload)
+    local r = self.firmware_host:UploadNewImage(request, payload)
     if r then
         return http.OK, {
-            [request.image] = request.timestamp
+            timestamp = request.timestamp,
+            hash = payload_hash,
         }
+    end
+
+    return http.InternalServerError
+end
+
+-------------------------------------------------------------------------------
+
+function ServiceOta:HandleDeviceOTAUpdateRequest(request, device_id)
+    device_id = device_id:upper()
+
+    local device_status = {
+        failsafe = request.failsafe,
+        fairyNode = request.fairyNode,
+    }
+    local ota_info = self.firmware_host:DeviceOtaRequest(device_id, device_status)
+
+    if not ota_info then
+        return http.ServiceUnavailable, { }
+    end
+
+    local urls = { }
+    local any = false
+    local base = self.config[CONFIG_KEY_REST_PUBLIC]
+    assert(base)
+
+    for k,v in pairs(ota_info.files or { }) do
+        urls[k] = base .. "/files/storage/" .. v
+        any = true
+    end
+
+    if any then
+        return http.OK, urls
+    end
+
+    return http.NotModified, { }
+end
+
+function ServiceOta:CommitFirmwareSet(request, device_id)
+    device_id = device_id:upper()
+    local r = self.firmware_host:AddFirmwareCommit(device_id, request)
+    if r then
+        return http.OK, r
     end
 
     return http.BadRequest
 end
 
-function ServiceOta:CheckUpdate(request, device_id)
-    device_id = device_id:upper()
-    local firmware = self.ota_host:GetDeviceStatus(device_id)
-
-    if not firmware then
-        return http.BadRequest
-    end
-
-    local needsFullUpdate = false
-    if request.failsafe then
-        -- needsFullUpdate = true
-        print(self:Tag() .. ": " .. device_id .. " is in FAILSAFE")
-    end
-
-    local r = self.ota_host:GetDeviceStatus(device_id)
-
-    local test_update = function(what)
-        local remote, latest = request.fairyNode[what], firmware[what]
-
-        local r = false
-        if remote then
-            if remote.hash then
-                r = remote.hash:upper() ~= latest.hash:upper()
-                print(
-                    self:Tag() .. ": " .. device_id .. " : " .. remote.hash:upper() ..
-                        " vs " .. latest.hash:upper())
-            else
-                r = not remote.timestamp or remote.timestamp ~= latest.timestamp
-                print(self:Tag() .. ": " .. device_id .. " : " ..
-                          tostring(remote.timestamp) .. " vs " ..
-                          tostring(latest.timestamp))
-            end
-        else
-            print(self:Tag() .. ": " .. device_id .. " : TARGET DOES NOT HAVE FIRMWARE")
-            r = true
-        end
-
-        if r then
-            print(self:Tag() .. ": " .. device_id .. " needs " .. what .. " update")
-        end
-        return r
-    end
-
-    local lfs_update = test_update("lfs")
-    local root_update = test_update("root")
-    local config_update = test_update("config")
-
-    local result = {
-        lfs = needsFullUpdate or lfs_update,
-        root = needsFullUpdate or root_update,
-        config = needsFullUpdate or config_update
-    }
-
-    return http.OK, result
-end
-
-function ServiceOta:CommitFwSet(request, device_id)
-    local r = self.ota_host:AddFirmwareCommit(device_id, request)
-    if r then
-        return http.OK, r
-    end
-
-    return http.BadRequest, {}
-end
-
 function ServiceOta:GetFirmwareStatus(request, device_id)
     device_id = device_id:upper()
-    local firmware = self.ota_host:GetDeviceStatus(device_id)
+
+    local active_firmware, current_firmware = self.firmware_host:GeDeviceFirmwareCommitInfo(device_id)
+
+    local function clean_commit(c)
+        return {
+            components = c.components,
+            boot_successful = c.boot_successful,
+            timestamp = c.timestamp,
+        }
+    end
 
     local response = {
-        firmware = firmware,
+        firmware = {
+            current = clean_commit(current_firmware),
+            active =  clean_commit(active_firmware),
+        },
         nodeMcu = self:GetDeviceFirmwareProperties(device_id),
     }
 
     return http.OK, response
 end
 
-function ServiceOta:GetFirmwareImage(request, device_id, image_id, image_hash)
-    local data = self.ota_host:GetFirmwareImage(device_id:upper(), image_id:lower(), image_hash:lower())
-    if not data then
-        return http.BadRequest
-    end
-    return http.OK, data
-end
-
-function ServiceOta:ListOtaDevices(request)
-    local dev_list = self.ota_host:GetOtaDevices()
-
+function ServiceOta:ListDevices(request)
     local r = { }
-    for i,v in ipairs(dev_list or { }) do
-        r[v] = true
+    for i,v in ipairs(self.firmware_host:GetOtaDevices()) do
+        r[v:upper()] = true
     end
 
     if self.homie_host then
         for i,v in ipairs(self.homie_host:GetDeviceList()) do
             local dev = self.homie_host:GetDevice(v)
-            local cid = dev:GetChipId()
-            if cid then
-                r[cid:upper()] = true
-            end
+            print(dev, "test", dev.__name)
+            -- if dev:IsFairyNodeDevice() then
+                local cid = dev:GetHardwareId()
+                if cid then
+                    r[cid:upper()] = true
+                end
+            -- end
         end
     end
 
-    return http.OK, (tablex.keys(r))
+    return http.OK, tablex.keys(r)
 end
 
-function ServiceOta:TriggerStorageCheck()
-    self.ota_host:CheckDatabase()
+function ServiceOta:CheckDatabase()
+    self.firmware_host:CheckDatabaseAsync()
     return http.OK, { }
+end
+
+function ServiceOta:PurgeDatabase()
+    return http.NotImplemented, { }
 end
 
 -------------------------------------------------------------------------------
 
 function ServiceOta:GetDeviceFirmwareCommits(request, device_id)
-    local ota_host = self.ota_host
-    local db = ota_host:LoadDatabase()
-    local device = ota_host:GetDeviceById(db, device_id)
+    local commit_entries = self.firmware_host:GetDeviceCommits(device_id)
+    table.sort(commit_entries, function(a,b) return a.timestamp < b.timestamp end)
 
-    if not device then
-        return http.BadRequest, {}
+    local commits = { }
+    for _,v in ipairs(commit_entries) do
+        table.insert(commits, {
+            key = v.key,
+            timestamp = v.timestamp,
+            components = v.components,
+            active = v.active,
+        })
     end
 
-    local fw = device.firmware
+    local device = self.firmware_host:GetDeviceDatabase():FetchOne({ key = device_id, }) or { }
+
     return http.OK, {
-        order = fw.order,
-        commits = fw.commits,
-        active = fw.active,
+        commits = commits,
+        active = device.active_firmware,
     }
 end
 
@@ -286,8 +258,7 @@ function ServiceOta:DeviceFirmwareCommitActivate(request, device_id, commit_id)
     device_id = device_id:upper()
     commit_id = commit_id:lower()
 
-
-    if not self.ota_host:ActiveDeviceCommit(device_id, commit_id) then
+    if not self.firmware_host:ActiveDeviceCommit(device_id, commit_id) then
         return http.Forbidden, false
     end
 
@@ -298,11 +269,10 @@ function ServiceOta:DeviceFirmwareCommitDelete(request, device_id, commit_id)
     device_id = device_id:upper()
     commit_id = commit_id:lower()
 
-    if not self.ota_host:DeleteDeviceCommit(device_id, commit_id) then
+    if not self.firmware_host:DeleteDeviceCommit(device_id, commit_id) then
         return http.Forbidden, false
     end
 
-    self.ota_host:CheckDatabase()
     return http.OK, true
 end
 
@@ -310,9 +280,9 @@ end
 
 -- LEGACY --
 
-function ServiceOta:GetImage(request, device_id, image_id)
+function ServiceOta:GetImage(request, device_id, component_id)
     device_id = device_id:upper()
-    image_id = image_id:lower()
+    component_id = component_id:lower()
 
     local mapping = {
         lfs_image = "lfs",
@@ -320,11 +290,37 @@ function ServiceOta:GetImage(request, device_id, image_id)
         config_image = "config",
     }
 
-    if mapping[image_id] then
-        image_id = mapping[image_id]
+    if mapping[component_id] then
+        component_id = mapping[component_id]
     end
 
-    return self:GetFirmwareImage("", device_id, image_id, "latest")
+    local data = self.firmware_host:GetActiveFirmwareImageFileData(device_id:upper(), component_id:lower())
+    if data then
+        return http.OK, data
+    end
+
+    return http.BadRequest
+end
+
+function ServiceOta:CheckUpdate(request, device_id)
+    device_id = device_id:upper()
+
+    local device_status = {
+        failsafe = request.failsafe,
+        fairyNode = request.fairyNode,
+    }
+    local ota_info = self.firmware_host:DeviceOtaRequest(device_id, device_status)
+
+    if not ota_info then
+        return http.ServiceUnavailable, { }
+    end
+
+    ota_info.files = ota_info.files or { }
+    local result = { }
+    for k,v in pairs(self.firmware_host.OTA_COMPONENT_FILE) do
+        result[k] = ota_info.files[v] ~= nil
+    end
+    return http.OK, result
 end
 
 -------------------------------------------------------------------------------

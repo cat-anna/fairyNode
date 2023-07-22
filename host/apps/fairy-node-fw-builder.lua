@@ -23,6 +23,7 @@ function Package.GetConfig(base_path)
         ["logger.enable"] = true,
 
         ["firmware.source.path"] = path.normpath(base_path .. "/../../src"),
+        ["project.source.path"] = {  path.normpath(base_path .. "/../../projects"), }
     }
 end
 

@@ -156,7 +156,9 @@ function ModuleLoader:UpdateModule(module)
     end
 
     module.needs_reload = true
-    printf(self, "Reloading module: %s", module.name)
+    if self.config.verbose then
+        printf(self, "Reloading module: %s", module.name)
+    end
 
     self:UpdateModuleAlias(module)
 

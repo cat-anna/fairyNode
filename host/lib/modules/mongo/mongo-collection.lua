@@ -4,6 +4,16 @@ local pretty = require "pl.pretty"
 
 -------------------------------------------------------------------------------------
 
+local function CheckQuerry(q)
+    if q._id then
+        return { _id = q._id }
+    end
+
+    return q
+end
+
+-------------------------------------------------------------------------------------
+
 local MongoCollection = { }
 MongoCollection.__type = "class"
 MongoCollection.__name = "MongoCollection"
@@ -29,6 +39,20 @@ end
 --     local id = self:CollectionId(collection)
 --     self.server_storage:WriteObjectToStorage(id, data)
 -- end
+
+function MongoCollection:DeleteOne(condition)
+    local success, err_msg = self.collection_handle:removeOne(CheckQuerry(condition))
+    if not success then
+        print(self, "DeleteOne: ", success, err_msg)
+    end
+end
+
+function MongoCollection:UpdateOne(condition, data)
+    local success, err_msg = self.collection_handle:updateOne(CheckQuerry(condition), { ["$set"] = data })
+    if not success then
+        print(self, "Update: ", success, err_msg)
+    end
+end
 
 function MongoCollection:Insert(data)
     local success, err_msg = self.collection_handle:insertOne(data)
@@ -67,6 +91,24 @@ function MongoCollection:Replace(condition, data)
     print(self, "Replace: ", success, err_msg)
 end
 
+function MongoCollection:Count(query)
+    local result, err_msg = self.collection_handle:count(query or {})
+
+    if err_msg then
+        print(self, "Count: ", err_msg)
+    end
+    return result or 0
+end
+
+function MongoCollection:FetchOne(query)
+    local result, result_err_msg = self.collection_handle:findOne(query or {})
+    if result_err_msg then
+        print(self, "FetchOne: ", result_err_msg)
+    end
+    if result then
+        return result:value()
+    end
+end
 
 function MongoCollection:FetchAll(query)
     local cursor = self.collection_handle:find(query or {})

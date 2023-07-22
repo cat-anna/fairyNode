@@ -61,20 +61,29 @@ mv luac.cross "${TARGET_NAME}"
 ]]):format(self.nodemcu_firmware_path, commit_hash, result_file_name)
 
     local lpty = require "lpty"
-    pty = lpty.new()
-    pty:startproc("flock", ".luac.build", "bash", "-c", script)
+    local pty = lpty.new({use_path=true})
+    pty:startproc("/usr/bin/flock", "/tmp/luac.build.lock", "/bin/sh", "-c", script)
+
+    local output = { }
 
     while pty:hasproc() do
-        local line = pty:readline(false, 0)
-        if line and self.verbose then
-            print("LuacBuilder: build: " .. line)
+        local line = pty:readline(false, 0.1)
+        if line then -- and self.verbose then
+            table.insert(output, "LuacBuilder: build: " .. line)
         else
-            -- coroutine.yield()
+            copas.sleep(0.1)
+        end
+    end
+
+    local function dump_output()
+        for _,v in ipairs(output) do
+            print(self, v)
         end
     end
 
     local reason, code = pty:exitstatus()
     if reason ~= "exit" and code ~= 0 then
+        dump_output()
         print(string.format("LuacBuilder: luac build failed: %s-%d", reason, code))
         return
     end
@@ -84,6 +93,8 @@ mv luac.cross "${TARGET_NAME}"
         print("LuacBuilder: luac build succeeded")
         return output_luac
     end
+
+    dump_output()
     print("LuacBuilder: luac build failed")
 end
 

@@ -388,7 +388,9 @@ function MqttClient:CallWatchers(watchers, message)
     end
 
     for _,v in ipairs(expired) do
-        print(self, "Watcher expired", v)
+        if self.config.verbose then
+            print(self, "Watcher expired", v)
+        end
         watchers[v] = nil
     end
 end

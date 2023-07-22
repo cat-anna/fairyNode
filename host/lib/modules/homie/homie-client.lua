@@ -461,9 +461,13 @@ end
 --     HomieLocalDevice.super.StopDevice(self)
 -- end
 
+function HomieClient:IsFairyNodeDevice()
+    return false --TODO
+end
+
 function HomieClient:GetHardwareId()
     -- print(self, "Get hardware id is not supported")
-    return self:GetId()
+    -- return self:GetId()
 end
 
 -------------------------------------------------------------------------------

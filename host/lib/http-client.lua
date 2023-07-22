@@ -45,7 +45,7 @@ local function make_json_request_func(method)
 
         local r, c =  self:Request(copy)
         if r then
-            return json.decode(r)
+            return json.decode(r), c
         else
             return nil, c
         end
@@ -93,10 +93,10 @@ function HttpClient:ProcessRequest(arg)
         response, err = copas_http.request(url)
     end
     print(string.format("Response(%s %s): code=%s size=%d", arg.method, arg.url, tostring(err), response:len()))
-    if err ~= 200 then
-        print("Failed to query " .. url .. " code " .. tostring(err))
-        print(response)
-    end
+    -- if err ~= 200 then
+    --     print("Failed to query " .. url .. " code " .. tostring(err))
+    --     print(response)
+    -- end
     if arg.callback then
         arg.callback(response, err)
     else

@@ -6,6 +6,7 @@ local json = require "dkjson"
 -- local scheduler = require "lib/scheduler"
 local loader_class = require "lib/loader-class"
 local copas = require "copas"
+local http = require "lib/http-code"
 
 -------------------------------------------------------------------------------------
 
@@ -71,39 +72,48 @@ end
 -------------------------------------------------------------------------------------
 
 function FirmwareBuilderApp:CheckOtaStorage()
-    self.host_client:GetJson("ota/storage/check")
+    assert(false)
+    -- self.host_client:GetJson("ota/storage/check")
 end
 
 function FirmwareBuilderApp:QueryDeviceStatus(device_id)
-    return self.host_client:GetJson(string.format("ota/device/%s/status", device_id:upper()))
+    return self.host_client:GetJson(string.format("firmware/device/%s/status", device_id:upper()))
 end
 
 function FirmwareBuilderApp:GetOtaDevices()
-    return self.host_client:GetJson("ota/list") or { }
+    return self.host_client:GetJson("firmware/device") or { }
 end
 
 function FirmwareBuilderApp:UploadImage(request)
-    local url_base = string.format("ota/device/%s", request.device_id:upper())
-    local prepare = self.host_client:PostJson(url_base .. "/update/prepare", {
+    local prepare, prep_code = self.host_client:PostJson("firmware/image/upload/request", {
         image = request.image,
         timestamp = request.timestamp,
-        payload_hash = request.payload_hash,
-        payload_size = #request.payload,
+        hash = request.payload_hash,
+        size = #request.payload,
         compiler_id = request.compiler_id,
     })
 
+    if prep_code == http.Conflict then
+        print(self, "Upload rejected, image already exists")
+        return true
+    end
+
+    if not prepare then
+        return false
+    end
+
     local req, req_code = self.host_client:Post({
-        url = url_base .. "/update/upload/" .. prepare.key,
+        url = "firmware/image/upload/content/" .. prepare.key,
         body = request.payload,
         mime_type = "text/plain",
     })
 
-    return req_code == 200
+    return req_code == http.OK
 end
 
 function FirmwareBuilderApp:CommitFwSet(dev_id, fw_set)
-    local url_base = string.format("ota/device/%s", dev_id:upper())
-    local req = self.host_client:PostJson(url_base .. "/update/commit", {
+    local url_base = string.format("firmware/device/%s", dev_id:upper())
+    local req = self.host_client:PostJson(url_base .. "/commit", {
         device_id = dev_id,
         set = fw_set,
         timestamp = os.timestamp(),
@@ -114,7 +124,7 @@ end
 
 function FirmwareBuilderApp:PrepareCompiler(worker, dev_info, device_id)
     local config = self.config[CONFIG_KEY_CONFIG]
-    local git_commit_id = dev_info.nodeMcu.git_commit_id
+    local git_commit_id = (dev_info.nodeMcu or {}).git_commit_id
     if not git_commit_id then
         return
     end

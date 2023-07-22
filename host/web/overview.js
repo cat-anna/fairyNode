@@ -696,13 +696,9 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
     var header = GetOrCreateDiv("HEADER_" + node_id, node_id, "DeviceNodeHeader")
     header.html("Software list")
 
-    if (entries.order == null) {
-        return
-    }
-
-    for (var i = 0; i < entries.order.length; i++) {
-        let key = entries.order[i]
-        var value = entries.commits[key]
+    for (var i = 0; i < entries.commits.length; i++) {
+        var value = entries.commits[i]
+        let key = entries.commits[i].key
         var prop_id = key.replace(":", "_") + "_" + node_id
 
         GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
@@ -732,7 +728,7 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
             "class": 'OtaTriggerButton',
             html: 'Activate',
             click: function () {
-                QueryPostWithConfirm("/ota/device/" + hardware_id + "/commit/" + key + "/activate", {})
+                QueryPostWithConfirm("/firmware/device/" + hardware_id + "/commit/" + key + "/activate", {})
                 RefreshDeviceSoftwareListPage(hardware_id, body_id)
             }
         }).appendTo(actions);
@@ -741,7 +737,7 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
             "class": 'OtaTriggerButton',
             html: 'Delete',
             click: function () {
-                QueryPostWithConfirm("/ota/device/" + hardware_id + "/commit/" + key + "/delete", {})
+                QueryPostWithConfirm("/firmware/device/" + hardware_id + "/commit/" + key + "/delete", {})
                 RefreshDeviceSoftwareListPage(hardware_id, body_id)
             }
         }).appendTo(actions);
@@ -751,7 +747,7 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
 
 function RefreshDeviceSoftwareListPage(hardware_id, body_id) {
     if(ActiveDevicePage[hardware_id] == "OTA") {
-        QueryGet("/ota/device/" + hardware_id + "/commit", function (data) {
+        QueryGet("/firmware/device/" + hardware_id + "/commit", function (data) {
             SetDeviceSoftwareListPage(hardware_id, body_id, data)
         })
     }

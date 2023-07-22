@@ -8,6 +8,7 @@ local file_image = require "lib/file-image"
 local shell = require "lib/shell"
 local tablex = require "pl.tablex"
 local stringx = require "pl.stringx"
+local lfs = require "lfs"
 
 -------------------------------------------------------------------------------------
 
@@ -15,7 +16,7 @@ local CONFIG_HASH_NAME = "config_hash.cfg"
 
 local function sha256(data)
     local sha2 = require "lib/sha2"
-    return "sha256:" .. sha2.sha256(data):lower()
+    return sha2.sha256(data):lower()
 end
 
 local function md5(data)
@@ -25,33 +26,39 @@ end
 
 -------------------------------------------------------------------------------------
 
-local ProjectMt = {}
-ProjectMt.__index = ProjectMt
+local DeviceConfig = { }
 
-function ProjectMt:Init(arg)
-    for k,v in pairs(arg) do
-        self[k] = v
-    end
+function DeviceConfig:Init(arg)
+    self.project = arg.project
+    self.chip = arg.chip
 
-    self.search_paths = {
-        self.project_path,
-        self.firmware_path,
-    }
+    self.firmware = arg.firmware
 
     self:Preprocess()
+end
+
+function DeviceConfig:GetLfsSize()
+    --TODO
+    return 128*1024
+    -- local poject_image = self.project.image
+    -- if poject_image and poject_image.lfs_size then
+    --     return poject_image.lfs_size
+    -- end
+
+    -- return self.firmware.image.lfs_size
 end
 
 local function GenerateFileLists(storage, fileList)
     local function store(f, content)
         storage:AddFile(f, content)
-        print("GENERATE:", f, #content, content)
+        -- print("GENERATE:", f, #content, content)
     end
 
     local function store_table(f, t)
         table.sort(t)
         local content = "return {" .. table.concat(t, ",") .. "}"
         storage:AddFile(f, content)
-        print("GENERATE:", f, #content, content)
+        -- print("GENERATE:", f, #content, content)
     end
 
     table.insert(fileList, storage.basePath .. "/" .. "lfs-files.lua")
@@ -93,113 +100,34 @@ local function FilterFiles(source, fileList, generateList)
     end
 end
 
-local function PreprocessGeneratedFile(self, conf, paths)
-    for i, v in ipairs(conf) do
-        local arg = v--path.normpath(v:formatEx(paths))
-        print("GEN:", i, conf[i], "->", arg)
-        conf[i] = arg
-    end
-end
-
--- local function PreprocessConditionalFile(self, fileList, name, item, vars)
---    if self.config.hw[name] then
---       for i, v in ipairs(item) do
---          local arg = path.normpath(v:formatEx(vars))
---          -- print("COND:", i, item[i], "->", arg)
---          table.insert(fileList, arg)
---       end
---    end
--- end
-
-local function FindFile(f, paths)
-    if (f:sub(1,1) == "/") and lfs.attributes(f) then
-        -- print("GLOBAL ", f, " -> ", f)
-        return f
+function DeviceConfig:Preprocess()
+    if self.ready then
+        return
     end
 
-    for i,v in ipairs(paths) do
-        local full = path.normpath(v .. "/" .. f)
-        local att = lfs.attributes(full)
-        if att then
-            -- print("RESOLVE ", f, " -> ", full)
-            return full
-        end
-    end
-
-    error("Failed to find " .. f .. " in \n" .. table.concat(paths, "\n"))
-end
-
-local function PreprocessFileList(self, fileList, paths)
-    local keys = table.keys(fileList)
-    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
-
-    for _, key in ipairs(keys) do
-        local k = key
-        local v = fileList[k]
-
-        local t = type(k)
-        -- print(t, k, v)
-
-        if t == "number" then
-            -- print(k, fileList[k])
-            fileList[k] = FindFile(v, paths)
-        elseif t == "string" then
-            -- print(k, v.mode)
-            if v.mode == "generated" then
-                PreprocessGeneratedFile(self, v, paths)
-            else
-                error("Unknown file entry mode: " .. v.mode)
-            end
-        else
-            error("Unknown file entry type: " .. t)
-        end
-    end
-end
-
-function ProjectMt:AddModuleFiles()
-    for _, v in ipairs(self.modules) do
-        -- print("PROCESSING MODULE: ", v)
-        local fw_module = self.firmware.modules[v]
-        if not fw_module then --
-            error("There is no module: " .. v)
-        end
-        self.lfs = table.merge(self.lfs, fw_module.lfs)
-        self.root = table.merge(self.root, fw_module.root)
-    end
-end
-
-function ProjectMt:Preprocess()
     print("Preprocessing", self.chip.name)
+    self.project:Preprocess()
 
-    self.modules = table.merge(self.project.modules, table.keys(self.project.config.hw))
-    -- print("MODULES: ", table.concat(self.modules, ","))
+    self.modules = tablex.deepcopy(self.project.modules)
 
-    self.lfs = table.merge(self.firmware.base.lfs, self.project.lfs)
-    self.root = table.merge(self.firmware.base.root, self.project.root)
-    self.config = table.merge(self.chip.config, self.project.config)
-    self.ota_install = self.firmware.ota_install
+    self.lfs =    tablex.deepcopy(self.project.components.lfs) -- table.merge(self.firmware.base.lfs, self.project.lfs)
+    self.root =   tablex.deepcopy(self.project.components.root) -- table.merge(self.firmware.base.root, self.project.root)
+    self.config = tablex.deepcopy(self.project.components.config) -- table.merge(self.chip.config, self.project.config)
+
+    self.ota_install = tablex.deepcopy(self.project.components.ota_install)
 
     self.config["hostname"] = self.chip.name
 
-    local fairy_node_base = "../fairyNode"
-
-    self:AddModuleFiles()
-
-    -- print("LFS:")
-    PreprocessFileList(self, self.lfs, self.search_paths)
-    -- print("FILES:")
-    PreprocessFileList(self, self.root, self.search_paths)
-    -- print("ota_install:")
-    PreprocessFileList(self, self.ota_install, self.search_paths)
+    self.ready = true
 end
 
-function ProjectMt:Timestamps()
+function DeviceConfig:Timestamps()
     if self.__timestamps then --
         return self.__timestamps
     end
 
     print(self, "Preparing timestamps")
-    function process(lst)
+    local function process(lst)
         local content = {}
         local max = 0
         for _, v in ipairs(lst) do
@@ -238,7 +166,7 @@ function ProjectMt:Timestamps()
     return self.__timestamps
 end
 
-function ProjectMt:GetConfigFileContent(name)
+function DeviceConfig:GetConfigFileContent(name)
     local v = self.config[name]
     if not v then
         print("There is no config " .. name)
@@ -253,7 +181,7 @@ function ProjectMt:GetConfigFileContent(name)
     end
 end
 
-function ProjectMt:GenerateConfigFiles()
+function DeviceConfig:GenerateConfigFiles()
     if self.generated_config then
         return self.generated_config
     end
@@ -283,12 +211,12 @@ function ProjectMt:GenerateConfigFiles()
     return r
 end
 
-function ProjectMt:GenerateDynamicFiles(source, outStorage, list)
+function DeviceConfig:GenerateDynamicFiles(source, outStorage, list)
     for k, v in pairs(source) do
         local lines, code = shell.LinesOf("lua", nil, v)
         if not code then error("Command execution failed!") end
         local content = table.concat(lines, "\n")
-        print("GENERATE", k, #content)
+        -- print("GENERATE", k, #content)
         table.insert(list, outStorage:AddFile(k, content))
     end
 
@@ -297,8 +225,7 @@ function ProjectMt:GenerateDynamicFiles(source, outStorage, list)
 
     local timestamp_file = string.format([[return %s ]], pretty_ts)
 
-   --  print("LFS-TIMESTAMP: \n---------------\n" .. timestamp_file ..
-   --            "\n---------------")
+   --  print("LFS-TIMESTAMP: \n---------------\n" .. timestamp_file .. "\n---------------")
 
     table.insert(list, outStorage:AddFile("lfs-timestamp.lua", timestamp_file))
 end
@@ -316,7 +243,7 @@ local function AssertFileUniqness(fileList)
     return succ
 end
 
-function ProjectMt:BuildLFS(luac)
+function DeviceConfig:BuildLFS(luac)
     if not luac then error("LFS compiler is not available") end
 
     local generated_storage = require("lib/file-temp-storage").new()
@@ -330,14 +257,20 @@ function ProjectMt:BuildLFS(luac)
         error("Canot generate lfs if not all files are unique!")
     end
 
-    print("Files in lfs: ", #fileList, table.concat(table.sorted(fileList), " "))
+    -- print("Files in lfs: ", #fileList, table.concat(table.sorted(fileList), ","))
+    -- print(pretty.write(table.sorted(fileList)))
     local result_file = generated_storage:AddFile("lfs.pending.img")
-    local args = {"f", o = result_file}
-    if not self.chip.config.debug then table.insert(args, "s") end
-    if not self.chip.config.integer then table.insert(args, "f") end
-    if self.chip.lfs and self.chip.lfs.size then
-        args.m = tostring(self.chip.lfs.size)
+    local args = {
+        "f",
+        o = result_file,
+        m = tostring(self:GetLfsSize()),
+    }
+    if not self.chip.debug then --
+        table.insert(args, "s")
     end
+    -- if not self.chip.integer then --
+    --     table.insert(args, "f")
+    -- end
 
     --
     shell.Start(luac, args, nil, table.unpack(fileList))
@@ -346,10 +279,14 @@ function ProjectMt:BuildLFS(luac)
 
     generated_storage:Clear()
 
+    if not image or #image < 1024 then
+        return nil
+    end
+
     return image
 end
 
-function ProjectMt:BuildRootImage()
+function DeviceConfig:BuildRootImage()
     local fileList = {}
     for _, v in ipairs(self.root) do
         fileList[path.basename(v)] = file.read(v)
@@ -361,19 +298,19 @@ function ProjectMt:BuildRootImage()
     fileList["root-timestamp.lua"] = "return " .. pretty.write(ts.root)
 
     local files = table.keys(fileList)
-    print("Files in root: ", #files, table.concat(files, " "))
+    -- print("Files in root: ", #files, table.concat(files, ","))
     return file_image.Pack(fileList), file_image.VersionHash()
 end
 
-function ProjectMt:BuildConfigImage()
+function DeviceConfig:BuildConfigImage()
     local fileList = self:GenerateConfigFiles()
     local files = table.keys(fileList)
     table.sort(files)
-    print("Files in config: ", #files, table.concat(files, " "))
+    -- print("Files in config: ", #files, table.concat(files, ","))
     return file_image.Pack(fileList), file_image.VersionHash()
 end
 
-function ProjectMt:GetOtaInstallFiles()
+function DeviceConfig:GetOtaInstallFiles()
     local fileList = { }
     for _, v in ipairs(self.ota_install) do
         fileList[path.basename(v)] = file.read(v)
@@ -383,4 +320,4 @@ end
 
 -------------------------------------------------------------------------------------
 
-return ProjectMt
+return DeviceConfig

@@ -9,6 +9,7 @@ function Package.GetConfig(base_path)
         },
         ["rest.endpoint.list"] = {
             "fairy-node/endpoint-ota",
+            "fairy-node/endpoint-firmware",
         }
     }
 end

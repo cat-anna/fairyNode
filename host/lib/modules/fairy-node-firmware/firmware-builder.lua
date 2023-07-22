@@ -7,7 +7,7 @@ local loader_class = require "lib/loader-class"
 
 local function sha256(data)
     local sha2 = require "lib/sha2"
-    return "sha256:" .. sha2.sha256(data):lower()
+    return sha2.sha256(data):lower()
 end
 
 -------------------------------------------------------------------------------------
@@ -44,6 +44,10 @@ function FirmwareBuilder:Work()
 
     if not self.dev_info then
         self.dev_info = self.owner:QueryDeviceStatus(self.dev_id)
+    end
+
+    if not self.dev_info then
+        self.dev_info = { }
     end
 
     if not self.dev_info.firmware then
@@ -98,7 +102,6 @@ function FirmwareBuilder:TestUpdate()
                 r = true
             end
         else
-            print(self:Tag() .. ": " .. dev_id .. " : TARGET DOES NOT HAVE FIRMWARE")
             r = true
         end
 
@@ -162,20 +165,27 @@ end
 function FirmwareBuilder:BuildLFS()
     print(self, "Building LFS image")
     local ts = self.project:Timestamps()
-    local compiler_path, compiler_id = self.owner:PrepareCompiler(self, self.dev_info, self.dev_id)
+    local compiler_path, compiler_id = self.owner:PrepareCompiler(self, self.dev_info)
     if not compiler_path then
         print(self, "Cannot build lfs for ", self.dev_id, "failed to get compiler")
-        all_success = false
+        -- all_success = false
     else
         local image = self.project:BuildLFS(compiler_path)
-        print(self, "Created lfs image, size=" .. tostring(#image))
 
+        if not image then
+            print(self, "Failed to build LFS image")
+            return nil
+        end
+
+
+        print(self, "Created lfs image, size=" .. tostring(#image))
         local image_meta = {
             image = "lfs",
             payload = image,
             timestamp = ts["lfs"],
             compiler_id = compiler_id,
         }
+
         if self:SubmitImage(image_meta) then
             return image_meta
         end

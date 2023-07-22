@@ -39,7 +39,10 @@ function HomieBaseNode:AddProperty(opt)
     local prop = loader_class:CreateObject(opt.class, opt)
     local id = prop:GetId()
 
-    assert(self.properties[id] == nil)
+    if self.properties[id] then
+        self:DeleteProperty(id)
+    end
+
     self.properties[id] = prop
 
     return prop

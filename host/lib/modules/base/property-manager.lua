@@ -22,18 +22,13 @@ local PROPERTY_MODE_PASSIVE = "passive"
 -------------------------------------------------------------------------------
 
 local PropertyManager = {}
+PropertyManager.__name = "PropertyManager"
 PropertyManager.__stats = true
-PropertyManager.__deps = {
-    mongo_connection = "mongo/mongo-connection",
-}
+PropertyManager.__deps = { }
 PropertyManager.__config = {
 }
 
 -------------------------------------------------------------------------------
-
-function PropertyManager:Tag()
-    return "PropertyManager"
-end
 
 function PropertyManager:AfterReload()
 end
@@ -49,11 +44,12 @@ function PropertyManager:Init()
 
     self.local_sensors = { }
     self.local_properties = { }
-
-    self.database = self:GetManagerDatabase()
 end
 
 function PropertyManager:PostInit()
+    self.mongo_connection = loader_module:GetModule("mongo/mongo-connection")
+    self.database = self:GetManagerDatabase()
+
     loader_module:EnumerateModules(
         function(name, module)
             if module.InitProperties then
@@ -213,8 +209,10 @@ end
 -------------------------------------------------------------------------------
 
 function PropertyManager:GetManagerDatabase()
-    local db_id = "property.manager"
-    return self.mongo_connection:GetCollection(db_id)
+    if self.mongo_connection then
+        local db_id = "property.manager"
+        return self.mongo_connection:GetCollection(db_id)
+    end
 end
 
 function PropertyManager:WriteManagerDatabaseEntry(data)
@@ -247,7 +245,7 @@ function PropertyManager:GetValueDatabase(value)
         })
     end
 
-    if persistent then
+    if persistent and self.mongo_connection then
         return self.mongo_connection:GetCollection(db_id, "timestamp")
     end
 end

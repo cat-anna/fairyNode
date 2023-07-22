@@ -145,7 +145,7 @@ function DeviceConnection:ShellCommand(txt)
     self.socket:send("print([[====BEG====]])\n")
     self.socket:send(txt .. "\n")
     -- print(self, "SEND",  "'" .. txt .. "'")
-    copas.pause(0.01)
+    copas.pause(0.005)
     self.socket:send("print([[====END====]])\n")
 
     local r = self:WaitForResponse()
@@ -205,7 +205,7 @@ function DeviceConnection:Upload(filename, data)
 
     local total = #data
     local pos = 0
-    local max_block = 64
+    local max_block = 32*3
     local last_info_pos = -1
 
     self:ShellCommand(string.format([[file.remove("%s")]], filename))
@@ -226,7 +226,7 @@ function DeviceConnection:Upload(filename, data)
 
     while pos < total do
         local info_pos = pos / total
-        if info_pos - last_info_pos > 0.05 then
+        if info_pos - last_info_pos > 0.1 then
             last_info_pos = info_pos
             print(self, string.format("Uploading %s %d/%d %.1f%%", filename, pos, total, info_pos*100))
         end

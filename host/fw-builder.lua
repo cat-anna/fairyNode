@@ -59,7 +59,7 @@ config_handler:SetCommandLineArgs{
         host = args.host,
         rebuild = args.rebuild,
     },
-    ["project.source.path"] = fairy_node_base .. "/../DeviceConfig/projects/",
+    ["project.source.path"] = { fairy_node_base .. "/../DeviceConfig/projects/" },
 }
 
 require("lib/loader-package"):Init()
