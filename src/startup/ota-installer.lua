@@ -107,7 +107,7 @@ local function InstallImage(image_name, installed_name)
     end
 
     file.remove(installed_name)
-    file.rename(image_name, installed_name)
+    file.remove(image_name)
 
     print("OTA: Unpacking completed")
     return true
@@ -153,6 +153,10 @@ local function StartInstall()
     end
     if file.exists(LFS_PENDING_FILE) then
         InstallLfs()
+    end
+
+    if file.exists(LFS_CURRENT_FILE) then
+        file.remove(LFS_CURRENT_FILE)
     end
 
     file.remove(TOKEN_FILE_NAME)
