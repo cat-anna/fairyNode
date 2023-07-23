@@ -114,13 +114,11 @@ function MongoCollection:FetchAll(query)
     local cursor = self.collection_handle:find(query or {})
 
     local r = { }
-
     for item in cursor:iterator() do
         table.insert(r, item)
     end
 
     -- print(self, "FetchAll:", pretty.write(r, ""))
-
     return r
 end
 

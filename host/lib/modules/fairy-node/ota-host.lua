@@ -8,6 +8,8 @@ local print = print
 
 -------------------------------------------------------------------------------------
 
+local MAX_COMMITS_PER_DEVICE = 10
+
 local OTA_COMPONENTS = {
     "root",
     "lfs",
@@ -38,13 +40,7 @@ local function MakeFwSetKey(device_id, fw_set)
         end
     end
 
-    local id_text = string.format("f:%s.r:%s.l:%s.c:%s",
-        device_id:upper(),
-        table.unpack(args)
-        -- fw_set.root:upper(),
-        -- fw_set.lfs:upper(),
-        -- fw_set.config:upper()
-    )
+    local id_text = string.format("f:%s.r:%s.l:%s.c:%s", device_id:upper(), table.unpack(args))
     return sha256(id_text), id_text
 end
 
@@ -102,87 +98,65 @@ function FairyNodeOta:GetDatabase()
     end
 end
 
-function FairyNodeOta:CheckDatabaseAsync()
-    scheduler.Delay(10, function () self:CheckDatabase() end)
+function FairyNodeOta:CheckDatabaseAsync(delay)
+    if type(delay) ~= "number" then
+        delay = 1
+    end
+    scheduler.Delay(delay, function () self:CheckDatabase() end)
 end
 
 function FairyNodeOta:CheckDatabase()
---     local db = self:LoadDatabase()
---     local uploaded_files = db.file
-
---     self:CheckImagesInStorage(db)
-
---     for _,device_id in ipairs(tablex.keys(db.device)) do
---         self:CheckDeviceCommits(db, device_id)
---         self:CheckDeviceFiles(db, device_id)
---     end
---     for _,hash in ipairs(tablex.keys(uploaded_files)) do
---         self:CheckFileImage(db, hash)
---     end
-
---     self:SaveDatabase(db)
+    print(self, "Checking database start")
+    self:CheckCommits()
+    self:CheckImages()
+    print(self, "Checking database completed")
 end
 
 -------------------------------------------------------------------------------
 
--- function FairyNodeOta:CheckDeviceCommits(db, device_id)
---     local device = db.device[device_id]
---     local firmware = device.firmware
+function FairyNodeOta:CheckCommits()
+    print(self, "Checking commits")
+    local devices = table.list_to_sparse(self:GetAllDeviceIds())
 
---     while #firmware.order > 8 do
---         local id = table.remove(firmware.order, #firmware.orde)
---         firmware.commits[id] = nil
---     end
+    local db = self:GetCommitDatabase()
+    for _,commit in ipairs(db:FetchAll()) do
+        if not devices[commit.device_id] then
+            printf(self, "Deleting commit %s - device %s does not exists", commit.key, commit.device_id)
+            db:DeleteOne({ key = commit.key })
+        end
+    end
 
---     local needed_images = { }
---     for k,v in pairs(firmware.commits) do
---         for c_id, hash in pairs(v.components) do
---             -- needed_images[c_id] = needed_images[c_id] or { }
---             needed_images[hash] = true
---         end
---     end
+    for device,_ in pairs(devices) do
+        local all = db:FetchAll({ device_id = device.key })
+        table.sort(all, function (a, b) return a.timestamp < b.timestamp end)
 
---     for _,k in ipairs(tablex.keys(device.images)) do
---         if not needed_images[k] then
---             -- device.images[k] = nil
---         end
---     end
--- end
+        while #all > MAX_COMMITS_PER_DEVICE do
+            local item = table.remove(all, 1)
+            db:DeleteOne(item)
+            printf(self, "Deleting commit %s:%s", item.device_id, item.key)
+        end
+    end
+end
 
--- function FairyNodeOta:CheckDeviceFiles(db, device_id)
---     local device = db.device[device_id]
---     if not device then
---         return
---     end
+function FairyNodeOta:CheckImages()
+    print(self, "Checking images")
+    local needed_images = { }
 
---     local used_files = { }
---     for _,image_entry in pairs(device.images) do
---         used_files[image_entry.file] = true
---     end
+    for _,v in ipairs(self:GetCommitDatabase():FetchAll()) do
+        for _,c in pairs(v.components) do
+            needed_images[c] = true
+        end
+    end
 
---     local id = "device:" .. device_id:upper(0)
-
---     for file_id,file_entry in pairs(db.file) do
---         if used_files[file_id] then
---             file_entry.used_by[id] = true
---         else
---             file_entry.used_by[id] = nil
---         end
---     end
--- end
-
--- function FairyNodeOta:CheckFileImage(db, hash)
---     local uploaded_files = db.file
---     local entry = uploaded_files[hash]
-
---     for _,_ in pairs(entry.used_by) do
---         return
---     end
-
---     printf(self, "File %s is no longer in use. Removing.", hash)
---     uploaded_files[hash] = nil
---     self.storage:RemoveFromStorage(entry.storage_id)
--- end
+    local image_db = self:GetImageDatabase()
+    for _,image in ipairs(image_db:FetchAll()) do
+        if not needed_images[image.key] then
+            printf(self, "Deleting image %s:%s", image.key, image.file_id)
+            image_db:DeleteOne(image)
+            self.storage:RemoveFromStorage(image.file_id)
+        end
+    end
+end
 
 -------------------------------------------------------------------------------
 
@@ -283,33 +257,6 @@ function FairyNodeOta:FindHomieDeviceById(device_id)
     end
 end
 
--------------------------------------------------------------------------------
-
--- function FairyNodeOta:ReleaseStoredFile(db, device_id, hash)
---     local uploaded_files = db.file
---     local entry =  uploaded_files[hash]
---     if entry then
---         entry.used_by["device:" .. device_id:upper()] = nil
---         self:CheckFileImage(db, hash)
---     end
--- end
-
--- function FairyNodeOta:CheckImagesInStorage(db)
---     local uploaded_files = db.file
---     local regex = string.format(OTA_IMAGE_PATTERN:gsub("([%.%-])", "%%%%%1"), "[A-Fa-f0-9%-]+")
---     local found_images = self.storage:FindStorageFiles(regex)
---     for _,file_name in ipairs(found_images) do
---         local content = self.storage:GetFromStorage(file_name)
---         local hash = sha256(content)
-
---         local entry = uploaded_files[hash]
---         if not entry or entry.storage_id ~= file_name then
---             print(self, "File", file_name, "has no entry in database. Removing.")
---             self.storage:RemoveFromStorage(file_name)
---         end
---     end
--- end
-
 -------------------------------------------------------------------------------------
 
 function FairyNodeOta:GetActiveFirmwareImageFileName(device_id, component_id)
@@ -401,11 +348,22 @@ end
 
 -------------------------------------------------------------------------------------
 
-function FairyNodeOta:GetOtaDevices()
-    -- TODO
-    -- local db = self:LoadDatabase()
-    -- return tablex.keys(db.device)
-    return {}
+function FairyNodeOta:GetAllDeviceIds()
+    local db = self:GetDeviceDatabase()
+    local r = { }
+    for _,v in ipairs(db:FetchAll()) do
+        table.insert(r, v.key)
+    end
+    return r
+end
+
+function FairyNodeOta:GetAllCommitIds()
+    local db = self:GetCommitDatabase()
+    local r = { }
+    for _,v in ipairs(db:FetchAll()) do
+        table.insert(r, v.key)
+    end
+    return r
 end
 
 -------------------------------------------------------------------------------------
@@ -461,6 +419,8 @@ function FairyNodeOta:AddFirmwareCommit(device_id, request)
     self:GetCommitDatabase():InsertOrReplace(key, commit_info)
 
     printf(self, "Firmware '%s' committed for %s", key, device_id)
+    self:CheckDatabaseAsync()
+
     return key
 end
 

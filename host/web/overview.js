@@ -704,16 +704,24 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
         GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
 
         GetOrCreateDiv("HEADER_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyName", { html: key.substring(0,24) })
+
         var active_status = "&nbsp;"
         if (entries.active == key) {
             active_status = "Active"
         }
         GetOrCreateDiv("ACTIVE_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodeSwCommitActive", { html: active_status })
+
+        var current_status = "&nbsp;"
+        if (entries.current == key) {
+            current_status = "Current"
+        }
+        GetOrCreateDiv("CURRENT_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodeSwCommitCurrent", { html: current_status })
+
         var success_block = GetOrCreateDiv("SUCCESS_" + prop_id, prop_id, "DeviceNodePropertyEntry DeviceNodeSwCommitSuccessful")
-        if (value.boot_successful != null){
-            success_block.html("&nbsp;" + value.boot_successful)
+        if (value.boot_successful){
+            success_block.html("Ok")
         } else {
-            success_block.html("&nbsp;-")
+            success_block.html("&nbsp;&nbsp;&nbsp;")
         }
 
         if(value.timestamp != null) {

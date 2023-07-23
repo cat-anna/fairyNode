@@ -477,6 +477,10 @@ html {
     width: 70px;
 }
 
+.DeviceNodeSwCommitCurrent {
+    width: 100px;
+}
+
 .MissingValue {
     color: red;
 }

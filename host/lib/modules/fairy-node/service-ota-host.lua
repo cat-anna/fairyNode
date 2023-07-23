@@ -181,6 +181,9 @@ function ServiceOta:GetFirmwareStatus(request, device_id)
     local active_firmware, current_firmware = self.firmware_host:GeDeviceFirmwareCommitInfo(device_id)
 
     local function clean_commit(c)
+        if not c then
+            return
+        end
         return {
             components = c.components,
             boot_successful = c.boot_successful,
@@ -201,7 +204,7 @@ end
 
 function ServiceOta:ListDevices(request)
     local r = { }
-    for i,v in ipairs(self.firmware_host:GetOtaDevices()) do
+    for i,v in ipairs(self.firmware_host:GetAllDeviceIds()) do
         r[v:upper()] = true
     end
 
@@ -243,6 +246,7 @@ function ServiceOta:GetDeviceFirmwareCommits(request, device_id)
             timestamp = v.timestamp,
             components = v.components,
             active = v.active,
+            boot_successful = v.boot_successful,
         })
     end
 
@@ -251,6 +255,7 @@ function ServiceOta:GetDeviceFirmwareCommits(request, device_id)
     return http.OK, {
         commits = commits,
         active = device.active_firmware,
+        current = device.current_firmware,
     }
 end
 
