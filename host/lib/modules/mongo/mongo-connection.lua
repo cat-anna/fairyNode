@@ -92,7 +92,9 @@ function MongoConnection:GetCollection(name, index_name)
 
     self.opened_collections[name] = obj
 
-    printf(self, "Opened collection '%s'", name)
+    if self.config.verbose then
+        printf(self, "Opened collection '%s'", name)
+    end
 
     return obj
 end

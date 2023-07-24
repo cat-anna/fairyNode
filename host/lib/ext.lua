@@ -135,6 +135,19 @@ function table.sorted_keys(t)
     return k
 end
 
+function table.list_to_sparse(t, v)
+    if v == nil then
+        v = 1
+    end
+
+    local r = { }
+    for _,k in ipairs(t) do
+        r[k]  = v
+    end
+
+    return r
+end
+
 function table.weak_values(t)
     return setmetatable(t or {}, { __mode = "v" })
 end

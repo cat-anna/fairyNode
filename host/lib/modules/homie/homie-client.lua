@@ -107,7 +107,6 @@ end
 
 function HomieClient:StartModule()
     print(self, "Starting")
-    self.app_started = true
 
     for _,gid in ipairs(self.property_manager:GetLocalProperties()) do
         local opt = {
@@ -118,6 +117,7 @@ function HomieClient:StartModule()
         self:CreateNode(opt)
     end
 
+    self.app_started = true
     self:ResetState()
 end
 
@@ -325,7 +325,7 @@ function HomieClient:CreateSmTask()
     self.sm_task = scheduler:CreateTask(
         self,
         "Homie client startup",
-        1,
+        5,
         function (owner, task) owner:ProcessStateMachine() end
     )
 end

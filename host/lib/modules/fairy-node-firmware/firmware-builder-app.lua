@@ -144,9 +144,8 @@ function FirmwareBuilderApp:PrepareCompiler(worker, dev_info, device_id)
 
     local compiler = self.compiler[git_commit_id]
 
-    table.insert(compiler.pending, (coroutine.running()))
-
     if compiler.pending then
+        table.insert(compiler.pending, (coroutine.running()))
         print(worker, "Waiting for compiler git_commit_id=" .. git_commit_id)
         while compiler.pending do
             copas.sleep(1)
