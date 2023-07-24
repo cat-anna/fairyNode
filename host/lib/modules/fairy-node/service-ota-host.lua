@@ -211,13 +211,12 @@ function ServiceOta:ListDevices(request)
     if self.homie_host then
         for i,v in ipairs(self.homie_host:GetDeviceList()) do
             local dev = self.homie_host:GetDevice(v)
-            print(dev, "test", dev.__name)
-            -- if dev:IsFairyNodeDevice() then
+            if dev:IsFairyNodeDevice() then
                 local cid = dev:GetHardwareId()
                 if cid then
                     r[cid:upper()] = true
                 end
-            -- end
+            end
         end
     end
 

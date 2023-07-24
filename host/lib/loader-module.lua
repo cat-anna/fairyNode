@@ -176,6 +176,7 @@ function ModuleLoader:UpdateModule(module)
         if module.instance.Init then
             local success, err_msg = pcall(function()
                 module.instance:Init()
+                printf(self, "Loaded module: %s", module.name)
             end)
 
             if not success then
@@ -280,7 +281,9 @@ function ModuleLoader:FindModuleFile(name)
 end
 
 function ModuleLoader:LoadModule(name)
-    printf(self, "Loading module %s", name)
+    if self.config.verbose then
+        printf(self, "Loading module %s", name)
+    end
     local m = self:InitModule(name)
     if m.needs_reload then
         self:UpdateModule(m)

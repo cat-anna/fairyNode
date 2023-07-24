@@ -82,11 +82,16 @@ function HomieHost:AddDevice(topic, payload, timestamp)
         end
     end
 
-    local function create_client() do_crete_device("client") end
+    local function create_client()
+        do_crete_device("client")
+    end
+
     self.mqtt:WatchTopic(self, create_client, self:Topic(device_name .. "/$fw/FairyNode/mode"), true)
     self.mqtt:WatchTopic(self, create_client, self:Topic(device_name .. "/$fw/FairyNode/version"), true)
 
-    scheduler.Delay(5, function() do_crete_device("generic") end)
+    scheduler.Delay(5, function()
+        do_crete_device("generic")
+    end)
 end
 
 function HomieHost:GetDeviceList()

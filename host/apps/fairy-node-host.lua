@@ -16,7 +16,7 @@ function Package.GetConfig(base_path)
             "base/logger",
             "base/event-bus",
             "base/debugging",
-            "base/error-reporter",
+            "base/error-manager",
             "base/server-storage",
             "base/health-monitor",
             "base/property-manager",

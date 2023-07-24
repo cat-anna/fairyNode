@@ -132,6 +132,9 @@ end
 local SysInfoSensor = { }
 SysInfoSensor.__name = "SysInfoSensor"
 
+function SysInfoSensor:Readout()
+end
+
 function SysInfoSensor:ReadoutFast()
     local system_uptime = LinuxProcUptime()
     local mem_info = LinuxProcMemInfo()
