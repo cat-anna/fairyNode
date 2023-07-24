@@ -13,15 +13,15 @@ RUN apk --update add \
     lua5.3-pty \
     lua5.3-posix \
     lua5.3-luassert \
-    lua5.3-lzlib 
+    lua5.3-lzlib
 
-    # lua5.3-mosquitto lua5.3-lzmq lua5.3-mpack lua5.3-luasrcdiet 
-    # lua5.3-posixtz lua5.3-luatz lua5.3-yaml lua5.3-lyaml lua5.3-cliargs 
+    # lua5.3-mosquitto lua5.3-lzmq lua5.3-mpack lua5.3-luasrcdiet
+    # lua5.3-posixtz lua5.3-luatz lua5.3-yaml lua5.3-lyaml lua5.3-cliargs
     # lua5.3-system
     # lua5.3-bit32 lua5.3-bitop \
     # luarocks-5.3 install lua-log && \
     # luarocks-5.3 install luazip && \
-    # zziplib zziplib-dev zlib-dev 
+    # zziplib zziplib-dev zlib-dev
     # luarocks-5.3 install lua-zlib  && \
 
 RUN \
@@ -47,12 +47,17 @@ RUN mkdir -p /service
 COPY host/docker/*.conf host/docker/*.lua /service/
 COPY "./" "/service/fairyNode/"
 
+RUN apk --update add tzdata
+ENV TZ=Europe/Warsaw
+# RUN cp /usr/share/zoneinfo/Europe/Warsaw /etc/localtime
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 EXPOSE 8080/tcp
 WORKDIR /service
 ENTRYPOINT ["supervisord","-c","/service/supervisor.conf"]
 
 
-    # apk del luarocks5.3 lua5.3-dev gcc git mongo-c-driver-dev && \
+# apk del luarocks5.3 lua5.3-dev gcc git mongo-c-driver-dev && \
 
 #  lua5.3-busted lua5.3-say lua5.3-term \
     # luarocks-5.3 --tree=/usr install sailor && \
