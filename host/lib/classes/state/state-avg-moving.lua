@@ -3,7 +3,6 @@ local tablex = require "pl.tablex"
 -------------------------------------------------------------------------------------
 
 local StateMovingAvg = {}
-StateMovingAvg.__index = StateMovingAvg
 StateMovingAvg.__name = "StateMovingAvg"
 StateMovingAvg.__base = "state/state-base"
 StateMovingAvg.__type = "class"
@@ -120,6 +119,50 @@ function StateMovingAvg:SaveCache()
     local cache = { samples = self.samples }
     self.server_storage:UpdateCache(self:CacheId(), cache)
 end
+
+-------------------------------------------------------------------------------------
+
+function StateMovingAvg.RegisterStateClass()
+    -- local state_prototypes = { }
+    -- for k,v in pairs(StateMovingAvg.OperatorFunctors) do
+    --     state_prototypes[k] = {
+    --         remotely_owned = false,
+    --         config = {
+    --             operator = k
+    --         },
+    --         args = {
+    --             min = v.arg_min or 1,
+    --             max = v.arg_max or 10,
+    --         },
+    --     }
+    -- end
+
+    -- state_prototype.MovingAvg = MakeMovingAvg(env)
+    -- local function MakeMovingAvg(env)
+    --     return function(data)
+    --         if not IsState(env, data[1]) then
+    --             env.error("MovingAvg operator state as first argument")
+    --             return
+    --         end
+    --         if type(data.period) ~= "number" then
+    --             env.error("MovingAvg operator requires numeric 'period' argument")
+    --             return
+    --         end
+    --         return MakeStateRule {
+    --             source_dependencies = {data[1]},
+    --             class = StateClassMapping.StateMovingAvg,
+    --             period = data.period
+    --         }
+    --     end
+    -- end
+
+    -- return {
+    --     meta_operators = { },
+    --     state_prototypes = state_prototypes,
+    --     state_accesors = { }
+    -- }
+end
+
 
 -------------------------------------------------------------------------------------
 

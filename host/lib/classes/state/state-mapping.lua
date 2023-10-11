@@ -3,9 +3,8 @@
 -------------------------------------------------------------------------------------
 
 local StateMapping = {}
-StateMapping.__index = StateMapping
-StateMapping.__base = "rule/state-base"
-StateMapping.__class_name = "StateMapping"
+StateMapping.__base = "state/state-base"
+StateMapping.__name = "StateMapping"
 StateMapping.__type = "class"
 
 -------------------------------------------------------------------------------------
@@ -20,7 +19,11 @@ end
 -------------------------------------------------------------------------------------
 
 function StateMapping:LocallyOwned()
-    return true, self.result_type
+    return true
+end
+
+function StateMapping:GetDatatype()
+    return self.result_type
 end
 
 function StateMapping:CalculateValue(dependant_values)

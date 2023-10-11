@@ -6,8 +6,8 @@ local pretty = require "pl.pretty"
 
 local StateFunction = {}
 StateFunction.__index = StateFunction
-StateFunction.__class_name = "StateFunction"
-StateFunction.__base = "rule/state-base"
+StateFunction.__name = "StateFunction"
+StateFunction.__base = "state/state-base"
 StateFunction.__type = "class"
 
 -------------------------------------------------------------------------------------
@@ -30,7 +30,11 @@ end
 -------------------------------------------------------------------------------------
 
 function StateFunction:LocallyOwned()
-    return true, self.result_type
+    return true
+end
+
+function StateFunction:GetDatatype()
+    return self.result_type
 end
 
 function StateFunction:GetDescription()
