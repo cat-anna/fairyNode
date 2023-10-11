@@ -44,13 +44,14 @@ RUN mkdir -p /service/run
 
 RUN apk --update add nginx supervisor
 RUN mkdir -p /service
-COPY host/docker/*.conf host/docker/*.lua /service/
-COPY "./" "/service/fairyNode/"
 
 RUN apk --update add tzdata
 ENV TZ=Europe/Warsaw
 # RUN cp /usr/share/zoneinfo/Europe/Warsaw /etc/localtime
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+COPY "./" "/service/fairyNode/"
+COPY host/docker/*.conf host/docker/*.lua /service/
 
 EXPOSE 8080/tcp
 WORKDIR /service
