@@ -31,6 +31,7 @@ local DeviceConfig = { }
 function DeviceConfig:Init(arg)
     self.project = arg.project
     self.chip = arg.chip
+    self.owner = arg.owner
 
     self.firmware = arg.firmware
 
@@ -112,7 +113,12 @@ function DeviceConfig:Preprocess()
 
     self.lfs =    tablex.deepcopy(self.project.components.lfs) -- table.merge(self.firmware.base.lfs, self.project.lfs)
     self.root =   tablex.deepcopy(self.project.components.root) -- table.merge(self.firmware.base.root, self.project.root)
-    self.config = tablex.deepcopy(self.project.components.config) -- table.merge(self.chip.config, self.project.config)
+
+    local is_debug = self.chip.debug
+    self.config = table.merge(
+        self.owner.config[is_debug and "debug" or "current"],
+        self.project.components.config
+    )
 
     self.ota_install = tablex.deepcopy(self.project.components.ota_install)
 
@@ -194,7 +200,7 @@ function DeviceConfig:GenerateConfigFiles()
     for _, k in ipairs(keys) do
         local name = k .. ".cfg"
         local content = self:GetConfigFileContent(k)
-        -- print("GENERATE:", name, content)
+        -- print("GENERATE-CONFIG:", name, content)
         r[name] = content
         table.insert(all_content, name .. "|" .. sha256(content))
     end
@@ -208,6 +214,7 @@ function DeviceConfig:GenerateConfigFiles()
     })
 
     self.generated_config = r
+
     return r
 end
 

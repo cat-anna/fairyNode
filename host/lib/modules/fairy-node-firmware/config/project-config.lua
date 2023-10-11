@@ -41,7 +41,6 @@ function ProjectConfig:Init(arg)
     self.name = arg.name
     self.config_file = arg.config_file
     self.path = arg.path
-    self.global_config = arg.global_config or { }
     self.owner = arg.owner
 
     self.search_paths = {
@@ -117,7 +116,7 @@ function ProjectConfig:Preprocess()
     self.components = {
         lfs = table.merge(self.firmware.config.base.lfs, config.lfs),
         root = table.merge(self.firmware.config.base.root, config.root),
-        config = table.merge(self.owner.global_config, self.global_config, config.config),
+        config = table.merge(config.config),
         ota_install = table.merge(self.firmware.config.ota_install),
     }
 

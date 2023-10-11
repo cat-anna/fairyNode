@@ -43,8 +43,8 @@ local function make_json_request_func(method)
             copy.body = ""
         end
 
-        local r, c =  self:Request(copy)
-        if r then
+        local r, c = self:Request(copy)
+        if r and c == 200 then
             return json.decode(r), c
         else
             return nil, c
@@ -68,35 +68,36 @@ end
 function HttpClient:ProcessRequest(arg)
     local url = "http://" .. self.host .. "/" .. arg.url
     local err
-    local response = {} -- for the response body
+    local response = "" -- for the response body
     if type(arg.body) == "table" then
         arg.mime_type = "application/json"
         arg.body = json.encode(arg.body)
     else
         arg.body = tostring(arg.body)
     end
-    print(string.format("Request(%s %s): size=%d", arg.method, arg.url, #arg.body))
+    print(string.format("Request(%s %s): size=%d", arg.method, url, #arg.body))
     if arg.body then
         local dummy
+        local table_response = { }
         dummy, err = copas_http.request({
           method = arg.method,
           url = url,
           source = ltn12.source.string(arg.body),
-          sink = ltn12.sink.table(response),
+          sink = ltn12.sink.table(table_response),
           headers = {
             ["content-type"] =  arg.mime_type or "application/octet-stream",
             ["content-length"] = tostring(#arg.body)
         },
       })
-      response = table.concat(response, "")
+      response = table.concat(table_response, "")
     else
         response, err = copas_http.request(url)
     end
-    print(string.format("Response(%s %s): code=%s size=%d", arg.method, arg.url, tostring(err), response:len()))
-    -- if err ~= 200 then
-    --     print("Failed to query " .. url .. " code " .. tostring(err))
-    --     print(response)
-    -- end
+    print(string.format("Response(%s %s): code=%s size=%d", arg.method, url, tostring(err), response:len()))
+    if err ~= 200 then
+        print("Failed to query " .. url .. " code " .. tostring(err))
+        print(response)
+    end
     if arg.callback then
         arg.callback(response, err)
     else

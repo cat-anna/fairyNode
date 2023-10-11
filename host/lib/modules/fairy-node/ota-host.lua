@@ -385,7 +385,6 @@ function FairyNodeOta:MarkDeviceBootSuccess(device_id, fw_set)
         commit_db:Insert({
             key = dbkey.key,
             device_id = device_id,
-            timestamp = 0,
             components = fw_set,
             boot_successful = true,
         })

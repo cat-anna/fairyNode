@@ -77,15 +77,15 @@ function FirmwareBuilderApp:CheckOtaStorage()
 end
 
 function FirmwareBuilderApp:QueryDeviceStatus(device_id)
-    return self.host_client:GetJson(string.format("firmware/device/%s/status", device_id:upper()))
+    return self.host_client:GetJson(string.format("api/firmware/device/%s/status", device_id:upper()))
 end
 
 function FirmwareBuilderApp:GetOtaDevices()
-    return self.host_client:GetJson("firmware/device") or { }
+    return self.host_client:GetJson("api/firmware/device") or { }
 end
 
 function FirmwareBuilderApp:UploadImage(request)
-    local prepare, prep_code = self.host_client:PostJson("firmware/image/upload/request", {
+    local prepare, prep_code = self.host_client:PostJson("api/firmware/image/upload/request", {
         image = request.image,
         timestamp = request.timestamp,
         hash = request.payload_hash,
@@ -103,7 +103,7 @@ function FirmwareBuilderApp:UploadImage(request)
     end
 
     local req, req_code = self.host_client:Post({
-        url = "firmware/image/upload/content/" .. prepare.key,
+        url = "api/firmware/image/upload/content/" .. prepare.key,
         body = request.payload,
         mime_type = "text/plain",
     })
@@ -112,7 +112,7 @@ function FirmwareBuilderApp:UploadImage(request)
 end
 
 function FirmwareBuilderApp:CommitFwSet(dev_id, fw_set)
-    local url_base = string.format("firmware/device/%s", dev_id:upper())
+    local url_base = string.format("api/firmware/device/%s", dev_id:upper())
     local req = self.host_client:PostJson(url_base .. "/commit", {
         device_id = dev_id,
         set = fw_set,

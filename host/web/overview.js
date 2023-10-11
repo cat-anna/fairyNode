@@ -385,7 +385,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                         })
                         var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
                         $(checkbox).attr("data-url", url)
-                        $(checkbox).prop('checked', prop.value)
+
                         $(checkbox).change(function () {
                             console.log("CHANGE " + $(this).attr("data-url"))
                             body = {}
@@ -431,12 +431,17 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             });
                         }
                     }
-                } else {
-                    if (prop.datatype == "boolean") {
-                        $("#" + control_id).prop('checked', prop.value)
+                }
+
+                var obj = $("#" + control_id)
+                if (prop.datatype == "boolean") {
+                    if (prop.value == "true") {
+                        obj.prop('checked', "checked")
                     } else {
-                        $("#" + control_id).prop('value', prop.value)
+                        obj.removeProp('checked')
                     }
+                } else {
+                    obj.prop('value', prop.value)
                 }
             }
         }

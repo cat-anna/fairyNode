@@ -8,10 +8,6 @@ local function ApplyEvent(id, arg, module)
     if f then
         return f(id, arg)
     end
-    f = mod[evid]
-    if f then
-        return f(id, arg)
-    end
 end
 
 local function BroadcastEvent(id, arg)
@@ -55,13 +51,13 @@ local function CoroutineTimer()
     while #event_queue > 0 do
         local e = table.remove(event_queue, 1)
         event_timer:interval(e.interval or 50)
-        BroadcastEvent(e.id, e.arg) 
+        BroadcastEvent(e.id, e.arg)
     end
     event_timer:unregister()
     event_timer = nil
 end
 
-function Event(id, arg, interval) 
+function Event(id, arg, interval)
     table.insert(event_queue, { id = id, arg = arg, interval = interval })
     if not event_timer then
         event_timer = tmr.create()

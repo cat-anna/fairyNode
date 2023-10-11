@@ -63,8 +63,16 @@ end
 
 function ProjectConfigLoader:AttachConfiguration(config)
     assert(config)
-    self.current_config = tablex.deepcopy(config)
-    self.global_config = self.current_config.set
+    self.attached_configuration = tablex.deepcopy(config)
+
+    self.config = { }
+    self.config.current = self.attached_configuration.set
+
+    self.config.debug =  tablex.deepcopy(self.attached_configuration.set)
+    for k,v in pairs(self.attached_configuration.debug) do
+        self.config.debug[k] = v
+    end
+    self.config.debug.debug = 1
 end
 
 function ProjectConfigLoader:AddDevice(entry)
@@ -83,34 +91,35 @@ function ProjectConfigLoader:AddDevice(entry)
     entry.name = entry.name or entry.project
     entry.project_name = entry.project
     entry.project = self.projects[entry.project]
+
     self:GenerateConfig(entry)
 end
 
 function ProjectConfigLoader:AddMultipleDevices(entry)
     assert(entry.project)
+    local prefix = entry.prefix or ""
+
     for k,v in pairs(entry.chips or {}) do
         self:AddDevice({
             project = entry.project,
-            name = v,
+            name = prefix .. v,
             device_id = k,
         })
     end
 end
 
 function ProjectConfigLoader:GenerateConfig(chip)
-    assert(self.current_config)
+    assert(self.attached_configuration)
 
     local config = chip.config or { }
     chip.config = config
 
     -- local current_config = self.current_config
-
     -- for _,cfg_name in ipairs(current_config.default_set) do
     --     if not config[cfg_name] then
     --         config[cfg_name] = tablex.deepcopy(current_config.set[cfg_name])
     --     end
     -- end
-
     -- return config
 end
 
@@ -165,13 +174,14 @@ function ProjectModule:LoadProjectForChip(chip_id)
         error("ERROR: Unknown chip " .. chip_id)
     end
 
+    assert(chip_config.project)
+
     local proj = { --
         firmware = self.firmware,
         chip = chip_config,
         project = chip_config.project,
+        owner = self.project_config,
     }
-
-    assert(proj.project)
 
     print(string.format("Loading project %s for chip %s", proj.chip.name or "?", chip_id))
     return loader_class:CreateObject("fairy-node-firmware/config/device-config", proj)

@@ -5,7 +5,7 @@ function Sensor:ControllerInit(event, ctl)
     self.node = ctl:AddNode("adc", {
         name = "Adc",
         properties = {
-            value = {name = "Value", datatype = "float"},
+            value = { name = "Value", datatype = "float" },
             update_delta = {
                 name = "Update delta",
                 datatype = "float",
@@ -16,8 +16,7 @@ function Sensor:ControllerInit(event, ctl)
     })
     if not self.timer then
         self.timer = tmr.create()
-        self.timer:alarm(1000, tmr.ALARM_AUTO,
-                                        function(t) self:Tick() end)
+        self.timer:alarm(1000, tmr.ALARM_AUTO, function(t) self:Tick() end)
     end
 end
 
@@ -45,11 +44,20 @@ end
 
 function Sensor:Tick()
     local current = self:ReadCurrentValue()
-    local delta = math.abs(self.value - current)
+    local previous = self.value
+    local delta = previous - current
+    local abs_delta = math.abs(delta)
     self.value = current
-    if delta > self.update_delta then
-        print("ADC: Update threshold exceeded")
+    if abs_delta > self.update_delta then
+        print("ADC: Update threshold exceeded", current, delta)
         self:PublishValue(current)
+        if Event then
+            Event("sensor.adc.readout", {
+                current = current,
+                previous = previous,
+                delta = delta
+            })
+        end
     end
 end
 
