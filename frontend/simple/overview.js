@@ -383,7 +383,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             classes: "DeviceNodePropertyEntry DeviceNodePropertySettable",
                             type: "input type='checkbox'"
                         })
-                        var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
+                        var url = "/device_deprecated/" + entry.name + "/node/" + node.id + "/" + prop.id
                         $(checkbox).attr("data-url", url)
 
                         $(checkbox).change(function () {
@@ -408,7 +408,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
                             classes: "DeviceNodePropertyEntry DeviceNodePropertySettable DeviceNodePropertySettableNumber",
                             type: "input type='" + input_type + "'"
                         })
-                        var url = "/device/" + entry.name + "/node/" + node.id + "/" + prop.id
+                        var url = "/device_deprecated/" + entry.name + "/node/" + node.id + "/" + prop.id
                         $(checkbox).attr("data-url", url)
                         $(checkbox).prop('value', prop.value)
                         if (prop.datatype == "string") {
@@ -516,7 +516,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         "device": entry.name,
         click: function () {
             body = { command: 'restart', }
-            url = "/device/" + $(this).attr("device") + "/command"
+            url = "/device_deprecated/" + $(this).attr("device") + "/command"
             QueryPostWithConfirm(url, body)
         }
     }).appendTo(header);
@@ -527,7 +527,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         "device": entry.name,
         click: function () {
             body = { command: 'check_ota_update', }
-            url = "/device/" + $(this).attr("device") + "/command"
+            url = "/device_deprecated/" + $(this).attr("device") + "/command"
             QueryPostWithConfirm(url, body)
         }
     }).appendTo(header);
@@ -538,7 +538,7 @@ function SetDeviceInfoPageSwVersion(entry, body_id) {
         "device": entry.name,
         click: function () {
             body = { command: 'force_ota_update', }
-            url = "/device/" + $(this).attr("device") + "/command"
+            url = "/device_deprecated/" + $(this).attr("device") + "/command"
             QueryPostWithConfirm(url, body)
         }
     }).appendTo(header);
@@ -634,7 +634,7 @@ function SetDeviceInfoPageActiveErrors(entry, body_id) {
                     key: $(this).attr("key"),
                 }
             }
-            url = "/device/" + $(this).attr("device") + "/command"
+            url = "/device_deprecated/" + $(this).attr("device") + "/command"
             QueryPost(url, body)
         })
 
@@ -666,7 +666,7 @@ function SetDeviceSoftwareActionsPage(entry, body_id) {
         "device": entry.name,
         click: function () {
             body = { command: 'restart', }
-            url = "/device/" + $(this).attr("device") + "/command"
+            url = "/device_deprecated/" + $(this).attr("device") + "/command"
             QueryPostWithConfirm(url, body)
         }
     }).appendTo(header);
@@ -677,7 +677,7 @@ function SetDeviceSoftwareActionsPage(entry, body_id) {
         "device": entry.name,
         click: function () {
             body = { command: 'check_ota_update',}
-            url = "/device/" + $(this).attr("device") + "/command"
+            url = "/device_deprecated/" + $(this).attr("device") + "/command"
             QueryPostWithConfirm(url, body)
         }
     }).appendTo(header);
@@ -688,7 +688,7 @@ function SetDeviceSoftwareActionsPage(entry, body_id) {
         "device": entry.name,
         click: function () {
             body = { command: 'force_ota_update', }
-            url = "/device/" + $(this).attr("device") + "/command"
+            url = "/device_deprecated/" + $(this).attr("device") + "/command"
             QueryPostWithConfirm(url, body)
         }
     }).appendTo(header);
@@ -741,7 +741,7 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
             "class": 'OtaTriggerButton',
             html: 'Activate',
             click: function () {
-                QueryPostWithConfirm("/firmware/device/" + hardware_id + "/commit/" + key + "/activate", {})
+                QueryPostWithConfirm("/firmware/device_deprecated/" + hardware_id + "/commit/" + key + "/activate", {})
                 RefreshDeviceSoftwareListPage(hardware_id, body_id)
             }
         }).appendTo(actions);
@@ -750,7 +750,7 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
             "class": 'OtaTriggerButton',
             html: 'Delete',
             click: function () {
-                QueryPostWithConfirm("/firmware/device/" + hardware_id + "/commit/" + key + "/delete", {})
+                QueryPostWithConfirm("/firmware/device_deprecated/" + hardware_id + "/commit/" + key + "/delete", {})
                 RefreshDeviceSoftwareListPage(hardware_id, body_id)
             }
         }).appendTo(actions);
@@ -760,7 +760,7 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
 
 function RefreshDeviceSoftwareListPage(hardware_id, body_id) {
     if(ActiveDevicePage[hardware_id] == "OTA") {
-        QueryGet("/firmware/device/" + hardware_id + "/commit", function (data) {
+        QueryGet("/firmware/device_deprecated/" + hardware_id + "/commit", function (data) {
             SetDeviceSoftwareListPage(hardware_id, body_id, data)
         })
     }
@@ -994,7 +994,7 @@ function HandleRuleChartResponse(data) {
 
 function refresh() {
     if (ActivePage == "Devices") {
-        QueryGet("/device", function (data) { HandleDeviceResponse(data) })
+        QueryGet("/device_deprecated", function (data) { HandleDeviceResponse(data) })
     } else {
         QueryGet("/rule/state/graph/group/url", function (data) { HandleRuleChartResponse(data) })
     }
@@ -1002,7 +1002,6 @@ function refresh() {
 
 function FairyNodeStart() {
     FairyNode_InitOverview()
-
     refresh();
     setInterval(refresh, 5000);
 }

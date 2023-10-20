@@ -1,6 +1,6 @@
 return {
     service = "homie/service-homie",
-    resource = "device",
+    resource = "device_deprecated",
     endpoints = {
         {
             method = "GET",
