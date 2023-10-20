@@ -1,5 +1,7 @@
 <template>
   <div class="dashboard">
+    <dashboard-device-table />
+
     <dashboard-charts />
 
     <dashboard-info-block />
@@ -19,16 +21,19 @@
 <script setup lang="ts">
   import { ref } from 'vue'
 
+  import DashboardDeviceTable from './DashboardDeviceTable.vue'
+  import DashboardMap from './DashboardMap.vue'
+
   import DashboardCharts from './DashboardCharts.vue'
   import DashboardInfoBlock from './DashboardInfoBlock.vue'
   import DashboardTabs from './DashboardTabs.vue'
-  import DashboardMap from './DashboardMap.vue'
+
 
   const dashboardMap = ref()
-
   function addAddressToMap({ city, country }: { city: { text: string }; country: string }) {
     dashboardMap.value.addAddress({ city: city.text, country })
   }
+
 </script>
 
 <style lang="scss">

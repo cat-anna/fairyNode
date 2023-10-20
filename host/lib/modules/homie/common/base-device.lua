@@ -14,6 +14,7 @@ HomieBaseDevice.__deps = {
 function HomieBaseDevice:Init(config)
     HomieBaseDevice.super.Init(self, config)
     self.nodes = {}
+    self.state = "unknown"
 end
 
 function HomieBaseDevice:PostInit()
@@ -49,6 +50,10 @@ function HomieBaseDevice:GetState()
     return self.state or "unknown"
 end
 
+function HomieBaseDevice:GetConnectionProtocol()
+    return nil
+end
+
 function HomieBaseDevice:GetHomieVersion()
     return self.homie_version
 end
@@ -73,6 +78,34 @@ end
 
 function HomieBaseDevice:GetNode(name)
     return self.nodes[name]
+end
+
+function HomieBaseDevice:GetNodeProperty(node, prop)
+    local n = self:GetNode(node)
+    if n then
+        return n:GetProperty(prop)
+    end
+end
+
+function HomieBaseDevice:GetNodePropertyValue(node, prop)
+    local n = self:GetNode(node)
+    if not n then
+        return
+    end
+
+    local p = n:GetProperty(prop)
+    if not p then
+        return
+    end
+    return p:GetValue()
+end
+
+function HomieBaseDevice:GetUptime()
+    return 0
+end
+
+function HomieBaseDevice:GetErrorCount()
+    return 0
 end
 
 -------------------------------------------------------------------------------------

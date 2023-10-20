@@ -58,7 +58,7 @@ function LoggerObject:WriteCsv(t)
         f,
         string_timestamp(),
         ",",
-        concat(t, ","),
+        concat(t or { }, ","),
         "\n"
     )
 end

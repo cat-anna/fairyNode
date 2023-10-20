@@ -1,3 +1,4 @@
+local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------------
 
@@ -31,6 +32,21 @@ function FairyNodeRemoteDevice:GetHardwareId()
     if chip_id then
         return chip_id:upper()
     end
+end
+
+function FairyNodeRemoteDevice:GetErrorCount()
+    local prop = self:GetNodePropertyValue("sysinfo", "errors")
+    if prop then
+        if type(prop) == "table" then
+            return #tablex.keys(prop)
+        end
+        return 1
+    end
+    return 0
+end
+
+function FairyNodeRemoteDevice:GetUptime()
+    return self:GetNodePropertyValue("sysinfo", "uptime")
 end
 
 function FairyNodeRemoteDevice:GetLfsSize()

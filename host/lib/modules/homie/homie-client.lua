@@ -103,6 +103,18 @@ function HomieClient:GetId()
     return self.client_name
 end
 
+function HomieClient:GetConnectionProtocol()
+    return nil
+end
+
+function HomieClient:GetUptime()
+    return 0
+end
+
+function HomieClient:GetErrorCount()
+    return 0
+end
+
 -------------------------------------------------------------------------------
 
 function HomieClient:StartModule()
