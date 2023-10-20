@@ -17,7 +17,11 @@
 
                         <tbody>
                             <tr v-for="device in deviceData" :key="device.id">
-                                <td>{{ device.name }}</td>
+                                <td>
+                                    <router-link style="text-decoration: none; color: inherit;" :to="{ path: '/admin/devices/' + device.id , params: { id: device.id } }">
+                                        {{ device.name }}
+                                    </router-link>
+                                </td>
                                 <td><va-badge :text="device.status" :color="getStatusColor(device.status)" /></td>
                                 <td><va-badge :text="device.errors" color="danger" v-if="device.errors > 0" /></td>
                                 <td>{{ formatSeconds(device.uptime) }}</td>
