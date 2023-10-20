@@ -15,7 +15,7 @@
         </va-sidebar-item>
       </template>
       <template v-for="(child, index) in route.children" :key="index">
-        <va-sidebar-item :active="isRouteActive(child)" :to="{ name: child.name }">
+        <va-sidebar-item :active="isRouteActive(child)" :to="{ name: child.name, params: child.params }">
           <va-sidebar-item-content>
             <div class="va-sidebar-item__icon" />
 
@@ -56,7 +56,8 @@
   // }
 
   function isRouteActive(item: INavigationRoute) {
-    return item.name === useRoute().name
+    return item.name === useRoute().name &&
+            JSON.stringify(item.params) === JSON.stringify(useRoute().params)
   }
 
   function isItemExpanded(item: INavigationRoute): boolean {
