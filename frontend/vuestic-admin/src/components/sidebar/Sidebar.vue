@@ -29,6 +29,21 @@
   )
 
   const items = ref(NavigationRoutes.routes)
+
+  import deviceService from '../../services/fairyNode/DeviceService'
+
+  deviceService.list().then(function(data) {
+    let r: any[] = []
+    data.forEach(function(e){
+      r.push({
+        name: 'device_info',
+        displayName: e.name,
+        params: { id: e.id },
+      })
+    })
+    items.value[1].children = r
+  })
+
 </script>
 
 <style lang="scss">

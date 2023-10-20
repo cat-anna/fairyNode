@@ -7,6 +7,8 @@ import Page404Layout from '../layouts/Page404Layout.vue'
 import RouteViewComponent from '../layouts/RouterBypass.vue'
 import UIRoute from '../pages/admin/ui/route'
 
+import DeviceView from '../pages/admin/devices/device_info.vue'
+
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/:catchAll(.*)',
@@ -22,6 +24,21 @@ const routes: Array<RouteRecordRaw> = [
         path: 'dashboard',
         component: () => import('../pages/admin/dashboard/Dashboard.vue'),
       },
+      {
+        name: 'devices',
+        path: 'devices',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'device_info',
+            path: ':id',
+            component: DeviceView,
+            meta: {
+            },
+          },
+        ],
+      },
+
       {
         name: 'statistics',
         path: 'statistics',
@@ -45,6 +62,7 @@ const routes: Array<RouteRecordRaw> = [
           },
         ],
       },
+
       {
         name: 'forms',
         path: 'forms',

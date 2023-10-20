@@ -1,8 +1,11 @@
+
+import { RouteParams } from "vue-router"
 export interface INavigationRoute {
   name: string
   displayName: string
   meta: { icon: string }
   children?: INavigationRoute[]
+  params: RouteParams,
 }
 
 export default {
@@ -18,6 +21,23 @@ export default {
         icon: 'vuestic-iconset-dashboard',
       },
     },
+    {
+      name: 'devices',
+      displayName: 'menu.devices',
+      meta: {
+        icon: 'vuestic-iconset-statistics',
+      },
+      disabled: false,
+      children: [
+        // {
+        //   name: 'device_info',
+        //   displayName: 'test',
+        //   params: { id: 'test' }
+        // },
+      ],
+    },
+
+
     {
       name: 'statistics',
       displayName: 'menu.statistics',
