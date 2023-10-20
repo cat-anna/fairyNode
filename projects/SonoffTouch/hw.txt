@@ -1,0 +1,20 @@
+
+
+[io03]gpio00 - BUTTON
+[io10]gpio01 -
+[io04]gpio02 -
+[io09]gpio03 -
+[io02]gpio04 -
+[io01]gpio05 -
+[io11]gpio09 -
+[io12]gpio10 -
+[io06]gpio12 - RELAY
+[io07]gpio13 - LED blue
+[io05]gpio14 -
+[io08]gpio15 -
+[io00]gpio16 -
+
+GPIO tied to onboard hardware:
+0 (button),
+12 (Relay 2A@230VAC),
+ 13 (LED blue)

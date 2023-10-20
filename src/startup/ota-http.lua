@@ -105,7 +105,11 @@ function DownloadItemMt:Receive(socket, data)
             self.target_file_handle = file.open(self.data.target_file, "w")
         end
 
-        self.target_file_handle:write(data)
+        if self.target_file_handle then
+            self.target_file_handle:write(data)
+        else
+            print("OTA: FATAL FAILURE: cannot open:", self.data.target_file)
+        end
     elseif self.data.response_cb then
         self.response = (self.response or "") .. data
     end
