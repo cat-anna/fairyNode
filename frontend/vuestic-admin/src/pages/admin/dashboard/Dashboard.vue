@@ -2,7 +2,7 @@
   <div class="dashboard">
     <dashboard-device-table />
 
-    <dashboard-charts />
+    <!-- <dashboard-charts />
 
     <dashboard-info-block />
 
@@ -14,7 +14,7 @@
       <div class="flex xs12 lg6">
         <DashboardMap ref="dashboardMap" />
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -22,11 +22,10 @@
   import { ref } from 'vue'
 
   import DashboardDeviceTable from './DashboardDeviceTable.vue'
-  import DashboardMap from './DashboardMap.vue'
-
-  import DashboardCharts from './DashboardCharts.vue'
-  import DashboardInfoBlock from './DashboardInfoBlock.vue'
-  import DashboardTabs from './DashboardTabs.vue'
+  // import DashboardMap from './DashboardMap.vue'
+  // import DashboardCharts from './DashboardCharts.vue'
+  // import DashboardInfoBlock from './DashboardInfoBlock.vue'
+  // import DashboardTabs from './DashboardTabs.vue'
 
 
   const dashboardMap = ref()
