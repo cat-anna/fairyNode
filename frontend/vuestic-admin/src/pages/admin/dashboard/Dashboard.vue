@@ -27,11 +27,10 @@
   // import DashboardInfoBlock from './DashboardInfoBlock.vue'
   // import DashboardTabs from './DashboardTabs.vue'
 
-
-  const dashboardMap = ref()
-  function addAddressToMap({ city, country }: { city: { text: string }; country: string }) {
-    dashboardMap.value.addAddress({ city: city.text, country })
-  }
+  // const dashboardMap = ref()
+  // function addAddressToMap({ city, country }: { city: { text: string }; country: string }) {
+  //   dashboardMap.value.addAddress({ city: city.text, country })
+  // }
 
 </script>
 

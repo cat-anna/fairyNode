@@ -42,6 +42,14 @@ function DeviceService:GetDevicesSummary()
     return  http.OK, r
 end
 
+function DeviceService:GetDeviceNodesSummary(request, dev_name)
+    local device = self.homie_host.devices[dev_name]
+    if not device then
+        return http.NotFound
+    end
+    return  http.OK, device:GetNodesSummary()
+end
+
 -------------------------------------------------------------------------------------
 
 return DeviceService

@@ -21,6 +21,9 @@ return {
         rest.GET_JSON("/list", "GetDeviceList"),
         rest.GET_JSON("/summary", "GetDevicesSummary"),
 
+        rest.GET_JSON("/nodes/{[^/]+}/summary", "GetDeviceNodesSummary"),
+
+
         -- {
         --     method = "GET",
         --     path = "/",
