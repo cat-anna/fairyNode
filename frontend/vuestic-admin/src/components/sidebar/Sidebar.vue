@@ -37,7 +37,7 @@
     data.forEach(function(e){
       r.push({
         name: 'device_info',
-        displayName: e.name,
+        rawDisplayName: e.name,
         params: { id: e.id },
       })
     })

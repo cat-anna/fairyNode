@@ -2,7 +2,8 @@
 import { RouteParams } from "vue-router"
 export interface INavigationRoute {
   name: string
-  displayName: string
+  displayName?: string
+  rawDisplayName?: string
   meta: { icon: string }
   children?: INavigationRoute[]
   params: RouteParams,

@@ -1,7 +1,7 @@
 <template>
     <div class="markup-tables flex">
         <va-card>
-            <va-card-title>{{ t('tables.stripedHoverable') }}</va-card-title>
+            <va-card-title>{{ t('dashboard.deviceTable.title') }}</va-card-title>
             <va-card-content>
                 <div class="table-wrapper">
                     <table class="va-table va-table--striped va-table--hoverable">

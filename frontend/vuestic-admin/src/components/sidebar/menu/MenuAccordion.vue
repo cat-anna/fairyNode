@@ -6,8 +6,11 @@
           <va-sidebar-item-content>
             <va-icon :name="route.meta.icon" class="va-sidebar-item__icon" />
 
-            <va-sidebar-item-title>
+            <va-sidebar-item-title v-if="route.displayName">
               {{ t(route.displayName) }}
+            </va-sidebar-item-title>
+            <va-sidebar-item-title v-if="route.rawDisplayName">
+              {{ route.rawDisplayName }}
             </va-sidebar-item-title>
 
             <va-icon v-if="route.children" :name="accordionValue[idx] ? 'expand_less' : 'expand_more'" />
@@ -17,11 +20,15 @@
       <template v-for="(child, index) in route.children" :key="index">
         <va-sidebar-item :active="isRouteActive(child)" :to="{ name: child.name, params: child.params }">
           <va-sidebar-item-content>
-            <div class="va-sidebar-item__icon" />
+            <div class="va-sidebar-item__icon" ></div>
 
-            <va-sidebar-item-title>
+            <va-sidebar-item-title v-if="child.displayName">
               {{ t(child.displayName) }}
             </va-sidebar-item-title>
+            <va-sidebar-item-title v-if="child.rawDisplayName">
+              {{ child.rawDisplayName }}
+            </va-sidebar-item-title>
+
           </va-sidebar-item-content>
         </va-sidebar-item>
       </template>

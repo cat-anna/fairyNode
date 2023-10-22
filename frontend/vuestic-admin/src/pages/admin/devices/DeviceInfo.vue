@@ -1,16 +1,16 @@
 <template>
     <va-card>
         <va-card-title>
-            {{ t('DeviceInfo.PageTitle') }}
+            {{ t('deviceInfo.title') }}
         </va-card-title>
         <va-card-content>
             <va-tabs v-model="activeTabName" grow>
                 <template #tabs>
                     <va-tab name="DeviceInfoNodesTab">
-                        {{ t('DeviceInfo.Nodes.PageTitle') }}
+                        {{ t('deviceInfo.nodes.tabTitle') }}
                     </va-tab>
                     <va-tab name="DeviceInfoSoftwareTab">
-                        {{ t('DeviceInfo.Software.PageTitle') }}
+                        {{ t('deviceInfo.software.tabTitle') }}
                     </va-tab>
                 </template>
             </va-tabs>
