@@ -28,6 +28,8 @@
 </template>
 
 <script setup lang="ts">
+  import { useGlobalStore } from '../../../../stores/global-store'
+
   import VaIconColor from '../../../icons/VaIconColor.vue'
   import ColorDropdownItem from './ColorDropdownItem.vue'
   import { useColors } from 'vuestic-ui'
@@ -35,10 +37,12 @@
 
   const { presets, applyPreset, colors } = useColors()
 
-  const currentTheme = ref('dark')
+  const GlobalStore = useGlobalStore()
+  const currentTheme = ref(GlobalStore.currentTheme)
 
   watchEffect(() => {
     applyPreset(currentTheme.value)
+    GlobalStore.changeCurrentTheme(currentTheme.value)
   })
 
   const themeOptions = Object.keys(presets.value).map((themeName) => ({
