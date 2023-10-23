@@ -6,9 +6,24 @@ function rest.GET(arg)
     return arg
 end
 
+function rest.POST(arg)
+    arg.method = "POST"
+    return arg
+end
+
+
 function rest.GET_JSON(path, service_method)
     return rest.GET({
         produces = "application/json",
+        path = path,
+        service_method = service_method,
+    })
+end
+
+function rest.POST_JSON(path, service_method)
+    return rest.POST({
+        produces = "application/json",
+        consumes = "application/json",
         path = path,
         service_method = service_method,
     })
@@ -19,10 +34,11 @@ return {
     resource = "device",
     endpoints = {
         rest.GET_JSON("/list", "GetDeviceList"),
+
         rest.GET_JSON("/summary", "GetDevicesSummary"),
+        rest.GET_JSON("/summary/{[^/]+}", "GetDeviceNodesSummary"),
 
-        rest.GET_JSON("/nodes/{[^/]+}/summary", "GetDeviceNodesSummary"),
-
+        rest.POST_JSON("/node/{[^/]+}/{[^/]+}/{[^/]+}/", "SetDevicePropertyValue"),
 
         -- {
         --     method = "GET",

@@ -20,6 +20,9 @@
         },
         "software": {
             "tabTitle": "Software"
+        },
+        "setter": {
+            "toggle": "Toggle"
         }
     },
     "language": {

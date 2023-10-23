@@ -7,32 +7,40 @@
                 <div class="table-wrapper">
                     <table class="va-table va-table--striped va-table--hoverable">
                         <colgroup>
-                            <col style="width:40%">
                             <col style="width:20%">
-                            <col style="width:20%">
+                            <col style="width:10%">
+                            <col style="width:10%">
+                            <col style="width:10%">
                         </colgroup>
                         <thead>
                             <tr>
                                 <th>Name</th>
                                 <th>Value</th>
                                 <th>Timestamp</th>
+                                <th>Set</th>
                             </tr>
                         </thead>
 
                         <tbody>
                             <tr v-for="(prop, prop_key) in node_data.properties">
                                 <td>{{ prop.name }}</td>
-                                <td>{{ prop.value }} {{ prop.unit }}</td>
+                                <td>{{ prop.value }}<span v-if="prop.unit"> [{{ prop.unit }}]</span></td>
                                 <td>{{ formatting.formatTimestamp(prop.timestamp) }}</td>
-
-                                <!-- <td><va-badge :text="device.status" :color="getStatusColor(device.status)" /></td> -->
-                                <!-- <td><va-badge :text="device.errors" color="danger" v-if="device.errors > 0" /></td> -->
-                                <!-- <td>{{ formatSeconds(device.uptime) }}</td> -->
+                                <td>
+                                    <div v-if="prop.settable">
+                                        <boolean-setter
+                                            v-if="prop.datatype == 'boolean'"
+                                            :device_id="device_id"
+                                            :node_id="key"
+                                            :prop_id="prop_key"
+                                            :value="dataTypes.parseBooleanProperty(prop.value)"
+                                             />
+                                    </div>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-
             </va-card-content>
           <va-separator />
         </va-card>
@@ -63,12 +71,16 @@ import { defineComponent } from 'vue'
 import deviceService from '../../../services/fairyNode/DeviceService'
 import { DeviceNode, DeviceNodeProperty } from '../../../services/fairyNode/DeviceService'
 import formatting from '../../../services/fairyNode/Formatting'
+import dataTypes from '../../../services/fairyNode/DataTypes'
 import { ref, watch } from 'vue'
 import { OrbitSpinner } from 'epic-spinners'
 
+import BooleanSetter from "./setters/BooleanSetter.vue"
+
 export default defineComponent({
     components: {
-        OrbitSpinner
+        OrbitSpinner,
+        BooleanSetter,
     },
     setup() {
         const route = useRoute()
@@ -90,6 +102,7 @@ export default defineComponent({
     data() {
         return {
             timerId: 0,
+            dataTypes: dataTypes,
         }
     },
 

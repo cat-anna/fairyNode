@@ -33,12 +33,17 @@ export interface DeviceNode {
 }
 
 export class DeviceService {
-    get_json(url:string) { return http.get_json("/device" + url); }
+    get_json(url: string) { return http.get_json("/device" + url); }
+    post_json(url: string, data: object) { return http.post_json("/device" + url, data); }
 
     summary(): Promise<SummaryDeviceEntry[]> { return this.get_json("/summary"); }
     list(): Promise<DeviceEntry[]> { return this.get_json("/list"); }
 
-    nodesSummary(device_id: string) : Promise<Map<string,DeviceNode>> { return this.get_json("/nodes/"+device_id+"/summary"); }
+    nodesSummary(device_id: string) : Promise<Map<string,DeviceNode>> { return this.get_json("/summary/"+device_id); }
+
+    setProperty(device_id: string, node_id: string, property_id: string, value: object) {
+        return this.post_json( "/node/" + device_id + "/" + node_id + "/" + property_id, { value: value });
+    }
 
     getStatusColor(status: string) : string {
         if (status === 'ready') { return 'success' }
