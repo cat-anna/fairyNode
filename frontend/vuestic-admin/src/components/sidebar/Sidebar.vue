@@ -38,8 +38,13 @@
       r.push({
         name: 'device_info',
         rawDisplayName: e.name,
-        params: { id: e.id },
+        params: {
+          device_id: e.device_id,
+        },
       })
+    })
+    r.sort(function(a,b) {
+      return a.rawDisplayName.toLowerCase().localeCompare(b.rawDisplayName.toLowerCase());
     })
     items.value[1].children = r
   })

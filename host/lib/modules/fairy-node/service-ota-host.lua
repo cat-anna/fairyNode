@@ -43,6 +43,20 @@ end
 
 -------------------------------------------------------------------------------
 
+function ServiceOta:GetDeviceHardwareId(device_id)
+    if self.homie_host then
+        local dev = self.homie_host:GetDevice(device_id)
+        if dev then
+            local hw = dev:GetHardwareId()
+            print(device_id, '=>', hw)
+            return hw
+        end
+    end
+    return device_id
+end
+
+-------------------------------------------------------------------------------
+
 function ServiceOta:GetDeviceFirmwareProperties(device_id)
     if self.homie_host then
         local result = { }
@@ -235,8 +249,10 @@ end
 -------------------------------------------------------------------------------
 
 function ServiceOta:GetDeviceFirmwareCommits(request, device_id)
+    device_id = self:GetDeviceHardwareId(device_id)
+
     local commit_entries = self.firmware_host:GetDeviceCommits(device_id)
-    table.sort(commit_entries, function(a,b) return a.timestamp < b.timestamp end)
+    table.sort(commit_entries, function(a,b) return (a.timestamp or 0) < (b.timestamp or 0) end)
 
     local commits = { }
     for _,v in ipairs(commit_entries) do
@@ -259,25 +275,29 @@ function ServiceOta:GetDeviceFirmwareCommits(request, device_id)
 end
 
 function ServiceOta:DeviceFirmwareCommitActivate(request, device_id, commit_id)
+    device_id = self:GetDeviceHardwareId(device_id)
+
     device_id = device_id:upper()
     commit_id = commit_id:lower()
 
     if not self.firmware_host:ActiveDeviceCommit(device_id, commit_id) then
-        return http.Forbidden, false
+        return http.Forbidden, {success = false}
     end
 
-    return http.OK, true
+    return http.OK, {success = true}
 end
 
 function ServiceOta:DeviceFirmwareCommitDelete(request, device_id, commit_id)
+    device_id = self:GetDeviceHardwareId(device_id)
+
     device_id = device_id:upper()
     commit_id = commit_id:lower()
 
     if not self.firmware_host:DeleteDeviceCommit(device_id, commit_id) then
-        return http.Forbidden, false
+        return http.Forbidden, {success = false}
     end
 
-    return http.OK, true
+    return http.OK, {success = true}
 end
 
 -------------------------------------------------------------------------------

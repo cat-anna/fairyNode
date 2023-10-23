@@ -741,7 +741,7 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
             "class": 'OtaTriggerButton',
             html: 'Activate',
             click: function () {
-                QueryPostWithConfirm("/firmware/device_deprecated/" + hardware_id + "/commit/" + key + "/activate", {})
+                QueryPostWithConfirm("/firmware/device/" + hardware_id + "/commit/" + key + "/activate", {})
                 RefreshDeviceSoftwareListPage(hardware_id, body_id)
             }
         }).appendTo(actions);
@@ -750,7 +750,7 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
             "class": 'OtaTriggerButton',
             html: 'Delete',
             click: function () {
-                QueryPostWithConfirm("/firmware/device_deprecated/" + hardware_id + "/commit/" + key + "/delete", {})
+                QueryPostWithConfirm("/firmware/device/" + hardware_id + "/commit/" + key + "/delete", {})
                 RefreshDeviceSoftwareListPage(hardware_id, body_id)
             }
         }).appendTo(actions);
@@ -760,7 +760,7 @@ function SetDeviceSoftwareListPage(hardware_id, body_id, entries) {
 
 function RefreshDeviceSoftwareListPage(hardware_id, body_id) {
     if(ActiveDevicePage[hardware_id] == "OTA") {
-        QueryGet("/firmware/device_deprecated/" + hardware_id + "/commit", function (data) {
+        QueryGet("/firmware/device/" + hardware_id + "/commit", function (data) {
             SetDeviceSoftwareListPage(hardware_id, body_id, data)
         })
     }

@@ -16,10 +16,37 @@
     "deviceInfo": {
         "title": "Device info",
         "nodes": {
-            "tabTitle": "Nodes"
+            "copyToClipboard": "Property global id copied to clipboard",
+            "tabTitle": "Nodes",
+            "property": {
+                "name": "Name",
+                "value": "Value",
+                "timestamp": "Timestamp",
+                "set": "set"
+            }
         },
         "software": {
-            "tabTitle": "Software"
+            "tabTitle": "Software",
+            "commits": "Commits",
+            "activate": "Activate",
+            "commit_is_active_help": "This commit is active",
+            "commit_is_current_help": "This commit is running on device",
+            "commit_boot_successful_help": "This commit booted successfully on device ",
+            "activate_commit_help": "Click to activate this commit",
+            "commit": {
+                "active": "Active",
+                "id": "id",
+                "timestamp": "Timestamp",
+                "boot_successful": "Successful",
+                "current": "Current",
+                "actions": "Actions"
+            },
+            "activate-confirmation": {
+                "title": "Confirmation is needed",
+                "message": "Do you really want to activate this software?",
+                "accept": "Activate",
+                "cancel": "Cancel"
+            }
         },
         "setter": {
             "toggle": "Toggle"

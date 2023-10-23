@@ -1,8 +1,8 @@
 <template>
     <div class="markup-tables flex">
-        <OrbitSpinner v-if="nodeData.size == 0" />
-        <va-card class="node-card" v-for="(node_data, key, index) in nodeData">
-            <va-card-title>{{ key }}</va-card-title>
+        <OrbitSpinner v-if="nodeData.length == 0" />
+        <va-card class="node-card" v-for="(node_data) in nodeData">
+            <va-card-title>{{ node_data.name }}</va-card-title>
             <va-card-content>
                 <div class="table-wrapper">
                     <table class="va-table va-table--striped va-table--hoverable">
@@ -14,27 +14,33 @@
                         </colgroup>
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Value</th>
-                                <th>Timestamp</th>
-                                <th>Set</th>
+                                <th> {{ t("deviceInfo.nodes.property.name") }} </th>
+                                <th> {{ t("deviceInfo.nodes.property.value") }} </th>
+                                <th> {{ t("deviceInfo.nodes.property.timestamp") }} </th>
+                                <th> {{ t("deviceInfo.nodes.property.set") }} </th>
                             </tr>
                         </thead>
 
                         <tbody>
                             <tr v-for="(prop, prop_key) in node_data.properties">
-                                <td>{{ prop.name }}</td>
+                                <td>
+                                    <VaPopover :message="getPropGlobalId(node_data, prop)"
+                                        @click="copyGlobalId(node_data, prop)">
+                                        {{ prop.name }}
+                                    </VaPopover>
+                                </td>
                                 <td>{{ prop.value }}<span v-if="prop.unit"> [{{ prop.unit }}]</span></td>
-                                <td>{{ formatting.formatTimestamp(prop.timestamp) }}</td>
+                                <td>
+                                    <VaPopover class="test" :message="getPropGlobalId(node_data, prop)">
+                                        {{ formatting.formatTimestamp(prop.timestamp) }}
+                                    </VaPopover>
+                                </td>
                                 <td>
                                     <div v-if="prop.settable">
-                                        <boolean-setter
-                                            v-if="prop.datatype == 'boolean'"
-                                            :device_id="device_id"
-                                            :node_id="key"
-                                            :prop_id="prop_key"
-                                            :value="dataTypes.parseBooleanProperty(prop.value)"
-                                             />
+                                        <boolean-setter v-if="dataTypes.isBooleanProperty(prop)" :device_id="device_id"
+                                            :node_id="node_data.id" :prop_id="prop_key"
+                                            :value="dataTypes.parseBooleanProperty(prop.value)" @changed="onChanged" />
+                                        <span v-if="prop.datatype != 'boolean'"> TODO {{ prop.datatype }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -42,12 +48,16 @@
                     </table>
                 </div>
             </va-card-content>
-          <va-separator />
         </va-card>
     </div>
 </template>
 
 <style lang="scss">
+.va-popover__content {
+    position: relative;
+    z-index: 1000;
+}
+
 .node-card {
     margin-bottom: 15px;
 }
@@ -66,38 +76,41 @@
 
 <script lang="ts">
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router';
 import { defineComponent } from 'vue'
 import deviceService from '../../../services/fairyNode/DeviceService'
 import { DeviceNode, DeviceNodeProperty } from '../../../services/fairyNode/DeviceService'
 import formatting from '../../../services/fairyNode/Formatting'
 import dataTypes from '../../../services/fairyNode/DataTypes'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { OrbitSpinner } from 'epic-spinners'
 
 import BooleanSetter from "./setters/BooleanSetter.vue"
+import { useToast } from 'vuestic-ui'
 
 export default defineComponent({
     components: {
         OrbitSpinner,
         BooleanSetter,
     },
+    props: {
+        hardware_id: String,
+        device_id: String,
+    },
+    watch: {
+        async device_id() {
+            console.log("watch " + this.device_id)
+            this.nodeData = new Array<DeviceNode>()
+            this.getData()
+        }
+    },
     setup() {
-        const route = useRoute()
-        const device_id = ref(route.params.id as string)
-        const nodeData = ref(new Map<string, DeviceNode>())
-
-        watch(
-            () => route.params.id,
-            async newId => {
-                device_id.value = newId as string
-                // console.log(device_id)
-                nodeData.value = new Map<string, DeviceNode>()
-                nodeData.value = await deviceService.nodesSummary(device_id.value)
-            }
-        )
+        const { init, close, closeAll } = useToast()
+        const nodeData = ref(new Array<DeviceNode>())
         const { t } = useI18n()
-        return { t, device_id, nodeData, formatting  }
+        return {
+            t, nodeData, formatting,
+            toastShow: init,
+        }
     },
     data() {
         return {
@@ -107,6 +120,7 @@ export default defineComponent({
     },
 
     mounted() {
+        console.log("mounted " + this.device_id)
         if (this.timerId == 0) {
             this.timerId = window.setInterval(() => { this.getData() }, 5 * 1000)
         }
@@ -119,8 +133,24 @@ export default defineComponent({
         }
     },
     methods: {
+        copyGlobalId(node: DeviceNode, prop: DeviceNodeProperty) {
+            var gid = this.getPropGlobalId(node, prop)
+            navigator.clipboard.writeText(gid)
+            this.toastShow(this.t("deviceInfo.nodes.copyToClipboard") + ": " + gid)
+        },
+        getPropGlobalId(node: DeviceNode, prop: DeviceNodeProperty): string {
+            return prop.global_id
+        },
+        onChanged() {
+            this.getData()
+        },
         async getData() {
-            this.nodeData = await deviceService.nodesSummary(this.device_id)
+            if (this.device_id) {
+                this.nodeData = await deviceService.nodesSummary(this.device_id)
+                this.nodeData.sort(function (a, b) {
+                    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+                })
+            }
         }
     }
 })

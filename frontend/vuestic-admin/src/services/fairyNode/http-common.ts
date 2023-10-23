@@ -41,6 +41,11 @@
 
 var base_url = "/api"
 
+export interface GenericResult {
+  success: boolean
+  message?: string
+}
+
 class HttpHandler {
     get_json(path: string) {
         let url = base_url + path;

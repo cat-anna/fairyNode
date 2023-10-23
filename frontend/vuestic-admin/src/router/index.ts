@@ -29,7 +29,7 @@ const routes: Array<RouteRecordRaw> = [
                 children: [
                     {
                         name: 'device_info',
-                        path: ':id',
+                        path: ':device_id',
                         component: () => import('../pages/admin/devices/DeviceInfo.vue'),
                         meta: {
                         },

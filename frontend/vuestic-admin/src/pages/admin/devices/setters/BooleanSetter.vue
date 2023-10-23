@@ -1,4 +1,8 @@
 
+import { Properties } from 'maplibre-gl';
+
+import { emitKeypressEvents } from 'readline';
+
 <template>
     <OrbitSpinner v-if="!idle" :size="16" />
     <va-button v-if="idle" preset="plain" size="small" @click="onToggle"> {{ t('deviceInfo.setter.toggle') }} </va-button>
@@ -22,9 +26,10 @@ export default {
         prop_id: String,
         value: Boolean
     },
-    setup() {
+    emits: [ "changed" ],
+    setup(Properties, { emit }) {
         const { t } = useI18n()
-        return { t }
+        return { t, emit }
     },
     data() {
         return { "idle": true }
@@ -33,7 +38,10 @@ export default {
         onToggle() {
             this.idle = false
             deviceService.setProperty(this.device_id, this.node_id, this.prop_id, !this.value)
-                .finally( () => this.idle = true )
+                .finally( () => {
+                    this.idle = true
+                    this.emit('changed')
+                })
         }
     }
 }

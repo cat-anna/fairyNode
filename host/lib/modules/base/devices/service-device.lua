@@ -1,5 +1,6 @@
 local http = require "lib/http-code"
 local scheduler = require "lib/scheduler"
+local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------
 
@@ -25,7 +26,8 @@ function DeviceService:GetDeviceList()
     local r = { }
     for id,dev in pairs(self.homie_host.devices) do
         table.insert(r, {
-            id = id,
+            device_id = id,
+            hardware_id = dev:GetHardwareId(),
             name = dev:GetName(),
         })
     end
@@ -36,7 +38,8 @@ function DeviceService:GetDevicesSummary()
     local r = { }
     for id,dev in pairs(self.homie_host.devices) do
         table.insert(r, {
-            id = id,
+            device_id = id,
+            hardware_id = dev:GetHardwareId(),
             name = dev:GetName(),
             protocol = dev:GetConnectionProtocol(),
             status = dev:GetState(),
@@ -52,7 +55,7 @@ function DeviceService:GetDeviceNodesSummary(request, dev_name)
     if not device then
         return http.NotFound
     end
-    return  http.OK, device:GetNodesSummary()
+    return  http.OK, tablex.values(device:GetNodesSummary())
 end
 
 function DeviceService:SetDevicePropertyValue(request, device, node, property)
