@@ -28,6 +28,10 @@ end
 
 -------------------------------------------------------------------------------------
 
+function HomieBaseDevice:IsFairyNodeClient()
+    return false
+end
+
 function HomieBaseDevice:IsFairyNodeDevice()
     return false
 end

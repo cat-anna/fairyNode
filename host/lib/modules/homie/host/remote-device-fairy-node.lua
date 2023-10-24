@@ -21,6 +21,10 @@ end
 
 -------------------------------------------------------------------------------------
 
+function FairyNodeRemoteDevice:IsFairyNodeDevice()
+    return true
+end
+
 function FairyNodeRemoteDevice:IsFairyNodeClient()
     return true
 end

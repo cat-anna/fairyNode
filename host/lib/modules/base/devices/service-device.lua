@@ -55,7 +55,11 @@ function DeviceService:GetDeviceNodesSummary(request, dev_name)
     if not device then
         return http.NotFound
     end
-    return  http.OK, tablex.values(device:GetNodesSummary())
+    local r = tablex.values(device:GetNodesSummary())
+    for k,v in ipairs(r) do
+        v.properties = tablex.values(v.properties)
+    end
+    return http.OK, r
 end
 
 function DeviceService:SetDevicePropertyValue(request, device, node, property)

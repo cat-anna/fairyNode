@@ -7,10 +7,10 @@
                 <div class="table-wrapper">
                     <table class="va-table va-table--striped va-table--hoverable">
                         <colgroup>
+                            <col style="width:25%">
                             <col style="width:20%">
-                            <col style="width:10%">
-                            <col style="width:10%">
-                            <col style="width:10%">
+                            <col style="width:15%">
+                            <col style="width:40%">
                         </colgroup>
                         <thead>
                             <tr>
@@ -22,25 +22,29 @@
                         </thead>
 
                         <tbody>
-                            <tr v-for="(prop, prop_key) in node_data.properties">
+                            <tr v-for="prop_data in node_data.properties">
                                 <td>
-                                    <VaPopover :message="getPropGlobalId(node_data, prop)"
-                                        @click="copyGlobalId(node_data, prop)">
-                                        {{ prop.name }}
+                                    <VaPopover :message="getPropGlobalId(node_data, prop_data)"
+                                        @click="copyGlobalId(node_data, prop_data)">
+                                        {{ prop_data.name }}
                                     </VaPopover>
                                 </td>
-                                <td>{{ prop.value }}<span v-if="prop.unit"> [{{ prop.unit }}]</span></td>
+                                <td>{{ prop_data.value }}<span v-if="prop_data.unit"> [{{ prop_data.unit }}]</span></td>
                                 <td>
-                                    <VaPopover class="test" :message="getPropGlobalId(node_data, prop)">
-                                        {{ formatting.formatTimestamp(prop.timestamp) }}
+                                    <VaPopover class="test" :message="getPropGlobalId(node_data, prop_data)">
+                                        {{ formatting.formatTimestamp(prop_data.timestamp) }}
                                     </VaPopover>
                                 </td>
                                 <td>
-                                    <div v-if="prop.settable">
-                                        <boolean-setter v-if="dataTypes.isBooleanProperty(prop)" :device_id="device_id"
-                                            :node_id="node_data.id" :prop_id="prop_key"
-                                            :value="dataTypes.parseBooleanProperty(prop.value)" @changed="onChanged" />
-                                        <span v-if="prop.datatype != 'boolean'"> TODO {{ prop.datatype }}</span>
+                                    <div v-if="prop_data.settable">
+                                        <boolean-setter v-if="dataTypes.isBooleanProperty(prop_data)" :device_id="device_id"
+                                            :node_id="node_data.id" :prop_id="prop_data.id"
+                                            :value="dataTypes.parseBooleanProperty(prop_data.value)" @changed="onChanged" />
+                                        <numeric-setter v-if="dataTypes.isNumberProperty(prop_data)" :device_id="device_id"
+                                            :node_id="node_data.id" :prop_id="prop_data.id"
+                                            :value="dataTypes.parseNumberProperty(prop_data.value)" @changed="onChanged" />
+
+                                        <span v-if="!dataTypes.isBooleanProperty(prop_data) && !dataTypes.isNumberProperty(prop_data)"> TODO {{ prop_data.datatype }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -85,12 +89,14 @@ import { ref } from 'vue'
 import { OrbitSpinner } from 'epic-spinners'
 
 import BooleanSetter from "./setters/BooleanSetter.vue"
+import NumericSetter from "./setters/NumericSetter.vue"
 import { useToast } from 'vuestic-ui'
 
 export default defineComponent({
     components: {
         OrbitSpinner,
         BooleanSetter,
+        NumericSetter,
     },
     props: {
         hardware_id: String,
@@ -122,7 +128,7 @@ export default defineComponent({
     mounted() {
         console.log("mounted " + this.device_id)
         if (this.timerId == 0) {
-            this.timerId = window.setInterval(() => { this.getData() }, 5 * 1000)
+            this.timerId = window.setInterval(() => { this.getData() }, 10 * 1000)
         }
         this.getData()
     },

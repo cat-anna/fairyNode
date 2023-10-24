@@ -31,8 +31,10 @@ export interface DeviceNode {
     name: string
     id: string
     global_id: string
-    properties: Map<string, DeviceNodeProperty>
+    properties: DeviceNodeProperty[]
 }
+
+export declare type PropertyTypes = boolean | number | string;
 
 export class DeviceService {
     get_json(url: string) { return http.get_json("/device" + url) }
@@ -43,7 +45,7 @@ export class DeviceService {
 
     nodesSummary(device_id: string) : Promise<DeviceNode[]> { return this.get_json("/summary/"+device_id) }
 
-    setProperty(device_id: string, node_id: string, property_id: string, value: object) : Promise<GenericResult> {
+    setProperty(device_id: string, node_id: string, property_id: string, value: PropertyTypes) : Promise<GenericResult> {
         return this.post_json( "/node/" + device_id + "/" + node_id + "/" + property_id, { value: value })
     }
 

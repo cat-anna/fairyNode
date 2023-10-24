@@ -47,6 +47,9 @@ function ServiceOta:GetDeviceHardwareId(device_id)
     if self.homie_host then
         local dev = self.homie_host:GetDevice(device_id)
         if dev then
+            if not dev:IsFairyNodeDevice() then
+                return
+            end
             local hw = dev:GetHardwareId()
             print(device_id, '=>', hw)
             return hw
@@ -250,6 +253,9 @@ end
 
 function ServiceOta:GetDeviceFirmwareCommits(request, device_id)
     device_id = self:GetDeviceHardwareId(device_id)
+    if not device_id then
+        return http.BadRequest
+    end
 
     local commit_entries = self.firmware_host:GetDeviceCommits(device_id)
     table.sort(commit_entries, function(a,b) return (a.timestamp or 0) < (b.timestamp or 0) end)

@@ -12,6 +12,13 @@ class DataTypes {
         else
             return false
     }
+
+    public isNumberProperty(property: DeviceNodeProperty): boolean {
+        return property.datatype == 'number' || property.datatype == 'float'
+    }
+    public parseNumberProperty(value: string): number {
+        return Number.parseFloat(value)
+    }
 }
 
 export default new DataTypes();

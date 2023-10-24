@@ -473,8 +473,12 @@ end
 --     HomieLocalDevice.super.StopDevice(self)
 -- end
 
+function HomieClient:IsFairyNodeClient()
+    return true
+end
+
 function HomieClient:IsFairyNodeDevice()
-    return false --TODO
+    return false
 end
 
 function HomieClient:GetHardwareId()
