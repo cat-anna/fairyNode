@@ -20,6 +20,13 @@ class DataTypes {
         return Number.parseFloat(value)
     }
 
+    public isIntegerProperty(property: DeviceNodeProperty): boolean {
+        return property.datatype == 'integer'
+    }
+    public parseIntegerProperty(value: string): number {
+        return Number.parseInt(value)
+    }
+
     public isStringProperty(property: DeviceNodeProperty): boolean {
         return property.datatype == 'string'
     }

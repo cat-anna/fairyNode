@@ -31,7 +31,7 @@
                                 </td>
                                 <td>{{ prop_data.value }}<span v-if="prop_data.unit"> [{{ prop_data.unit }}]</span></td>
                                 <td>
-                                    <VaPopover class="test" :message="getPropGlobalId(node_data, prop_data)">
+                                    <VaPopover :message="getPropGlobalId(node_data, prop_data)">
                                         {{ formatting.formatTimestamp(prop_data.timestamp) }}
                                     </VaPopover>
                                 </td>
@@ -46,6 +46,9 @@
                                         <string-setter v-else-if="dataTypes.isStringProperty(prop_data)" :device_id="device_id"
                                             :node_id="node_data.id" :prop_id="prop_data.id"
                                             :value="prop_data.value" @changed="onChanged" />
+                                        <integer-setter v-else-if="dataTypes.isIntegerProperty(prop_data)" :device_id="device_id"
+                                            :node_id="node_data.id" :prop_id="prop_data.id"
+                                            :value="dataTypes.parseIntegerProperty(prop_data.value)" @changed="onChanged" />
                                         <span v-else=""> TODO {{ prop_data.datatype }}</span>
                                     </div>
                                 </td>
@@ -93,6 +96,7 @@ import { OrbitSpinner } from 'epic-spinners'
 import BooleanSetter from "./setters/BooleanSetter.vue"
 import NumericSetter from "./setters/NumericSetter.vue"
 import StringSetter from "./setters/StringSetter.vue"
+import IntegerSetter from "./setters/IntegerSetter.vue"
 
 export default defineComponent({
     components: {
@@ -100,6 +104,7 @@ export default defineComponent({
         BooleanSetter,
         NumericSetter,
         StringSetter,
+        IntegerSetter,
     },
     props: {
         hardware_id: String,
