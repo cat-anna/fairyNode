@@ -1,11 +1,14 @@
 <template>
     <div class="markup-tables flex">
 
-        <OrbitSpinner v-if="softwareData.commits == null" />
-        <va-card class="node-card" v-if="softwareData.commits != null">
+        <va-card class="node-card">
             <va-card-title>{{ t("deviceInfo.software.commits") }}</va-card-title>
 
-            <va-card-content>
+            <va-card-content v-if="softwareData == null">
+                {{ t("deviceInfo.software.notSupported") }}
+            </va-card-content>
+
+            <va-card-content v-if="softwareData">
                 <div class="table-wrapper">
                     <table class="va-table va-table--striped va-table--hoverable">
                         <colgroup>
@@ -20,10 +23,10 @@
                         </colgroup>
                         <thead>
                             <tr>
-                                <th> {{ t("deviceInfo.software.commit.active") }} </th>
+                                <th>  </th>
                                 <th> {{ t("deviceInfo.software.commit.current") }} </th>
                                 <th> {{ t("deviceInfo.software.commit.id") }} </th>
-                                <th> {{ t("deviceInfo.software.commit.boot_successful") }} </th>
+                                <th> {{ t("deviceInfo.software.commit.bootSuccessful") }} </th>
                                 <th> {{ t("deviceInfo.software.commit.timestamp") }} </th>
                                 <th>&nbsp;</th>
                                 <th> {{ t("deviceInfo.software.commit.actions") }} </th>
@@ -34,12 +37,12 @@
                             <tr v-for="(commit, prop_key) in softwareData.commits">
                                 <td>
                                     <VaPopover v-if="commit.key == softwareData.active"
-                                        :message="t('deviceInfo.software.commit_is_active_help')">
+                                        :message="t('deviceInfo.software.help.commitIsActive')">
                                         <va-icon :name='"material-icons-arrow_forward"' />
                                     </VaPopover>
                                 </td>
                                 <td>
-                                    <VaPopover :message="t('deviceInfo.software.commit_is_current_help')"
+                                    <VaPopover :message="t('deviceInfo.software.help.commitIsCurrent')"
                                         v-if="commit.key == softwareData.current">
                                         <va-icon :name='"material-icons-memory"' />
                                     </VaPopover>
@@ -50,7 +53,7 @@
                                     </VaPopover>
                                 </td>
                                 <td>
-                                    <VaPopover :message="t('deviceInfo.software.commit_boot_successful_help')"
+                                    <VaPopover :message="t('deviceInfo.software.help.commitBootSuccessful')"
                                         v-if="commit.boot_successful">
                                         <va-icon :name='"material-icons-check"' />
                                     </VaPopover>
@@ -61,7 +64,7 @@
                                         v-if="activationIsBlocked && selectedCommit && selectedCommit.key == commit.key" />
                                 </td>
                                 <td>
-                                    <VaPopover :message="t('deviceInfo.software.activate_commit_help')">
+                                    <VaPopover :message="t('deviceInfo.software.help.activateCommit')">
                                         <va-button @click="confirmActivateSoftware(commit)"
                                             :disabled="(commit.key == softwareData.active) || activationIsBlocked"
                                             preset="plain" size="small">
@@ -75,14 +78,11 @@
                     </table>
                 </div>
             </va-card-content>
+            <va-card-content v-if="fetchingData && softwareData==null">
+                <OrbitSpinner />
+            </va-card-content>
         </va-card>
     </div>
-
-    <va-modal v-model="showActivateModal" :title="t('deviceInfo.software.activate-confirmation.title')"
-        :message="t('deviceInfo.software.activate-confirmation.message')"
-        :ok-text="t('deviceInfo.software.activate-confirmation.accept')"
-        :cancel-text="t('deviceInfo.software.activate-confirmation.cancel')" @ok="activateSoftware"
-        @cancel="cancelActivation" blur no-dismiss />
 </template>
 
 <style lang="scss">
@@ -100,9 +100,24 @@
 }
 </style>
 
+<!--
+
+export default defineComponent({
+  setup() {
+
+    return {
+      onButtonClick: () => {
+        confirm('Are you sure you want to see standard alert?')
+          .then((ok) => ok && alert('This is standard browser alert'))
+      },
+    }
+  }
+}) -->
+
 <script lang="ts">
 import { useI18n } from 'vue-i18n'
 import { defineComponent } from 'vue'
+import { useModal } from 'vuestic-ui'
 import firmwareService from '../../../services/fairyNode/FirmwareService'
 import { DeviceCommitStatus, DeviceCommit } from '../../../services/fairyNode/FirmwareService'
 import formatting from '../../../services/fairyNode/Formatting'
@@ -111,6 +126,7 @@ import { ref } from 'vue'
 import { OrbitSpinner } from 'epic-spinners'
 
 export declare type OptionalDeviceCommit = null | DeviceCommit;
+export declare type OptionalDeviceCommitStatus = null | DeviceCommitStatus;
 
 export default defineComponent({
     components: {
@@ -120,30 +136,33 @@ export default defineComponent({
         device_id: String,
     },
     watch: {
-        async hardware_id() {
-            this.softwareData = <DeviceCommitStatus>{}
+        async device_id() {
+            this.softwareData = null
             this.getData()
         }
     },
     setup() {
-        const softwareData = ref(<DeviceCommitStatus>{})
+        const softwareData = ref(<OptionalDeviceCommitStatus>{})
         const selectedCommit = ref(<OptionalDeviceCommit>{})
-        const showActivateModal = ref(false)
 
+        const { confirm } = useModal()
         const { t } = useI18n()
-        return { t, softwareData, formatting, selectedCommit, showActivateModal }
+
+        return { t, softwareData, formatting, selectedCommit,
+             showModalConfirm: confirm  }
     },
     data() {
         return {
             timerId: 0,
             dataTypes: dataTypes,
             activationIsBlocked: false,
+            fetchingData: false
         }
     },
 
     mounted() {
         if (this.timerId == 0) {
-            this.timerId = window.setInterval(() => { this.getData() }, 5 * 1000)
+            this.timerId = window.setInterval(() => { this.getData() }, 30 * 1000)
         }
         this.getData()
     },
@@ -170,15 +189,27 @@ export default defineComponent({
         },
         confirmActivateSoftware(commit: DeviceCommit) {
             this.selectedCommit = commit
-            this.showActivateModal = true
             this.activationIsBlocked = true
+            this.showModalConfirm({
+                message: this.t('deviceInfo.software.activateConfirmationMessage'),
+                blur: true,
+                onOk: () => this.activateSoftware(),
+                onCancel: () => this.cancelActivation(),
+            })
         },
         async getData() {
             if (this.device_id) {
-                this.softwareData = await firmwareService.listCommitsForDevice(this.device_id)
-                this.softwareData.commits.sort(function (a, b) {
-                    a.timestamp < b.timestamp
-                })
+                this.fetchingData = true
+                firmwareService.listCommitsForDevice(this.device_id)
+                    .then((data) => {
+                        data.commits.sort(function (a, b) {
+                            return a.timestamp - b.timestamp
+                        })
+                        this.softwareData = data
+                    })
+                    .catch(() => { this.softwareData = null })
+                    .finally(() => this.fetchingData = false)
+
             }
         }
     }

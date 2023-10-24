@@ -29,24 +29,22 @@
             "tabTitle": "Software",
             "commits": "Commits",
             "activate": "Activate",
-            "commit_is_active_help": "This commit is active",
-            "commit_is_current_help": "This commit is running on device",
-            "commit_boot_successful_help": "This commit booted successfully on device ",
-            "activate_commit_help": "Click to activate this commit",
+            "notSupported": "This device does not run fairyNode",
+            "help": {
+                "commitIsActive": "This commit is active",
+                "commitIsCurrent": "This commit is running on device",
+                "commitBootSuccessful": "This commit booted successfully on device ",
+                "activateCommit": "Click to activate this commit",
+            },
             "commit": {
                 "active": "Active",
                 "id": "id",
                 "timestamp": "Timestamp",
-                "boot_successful": "Successful",
+                "bootSuccessful": "Successful",
                 "current": "Current",
                 "actions": "Actions"
             },
-            "activate-confirmation": {
-                "title": "Confirmation is needed",
-                "message": "Do you really want to activate this software?",
-                "accept": "Activate",
-                "cancel": "Cancel"
-            }
+            "activateConfirmationMessage": "Do you really want to activate this software?",
         },
         "setter": {
             "toggle": "Toggle"
