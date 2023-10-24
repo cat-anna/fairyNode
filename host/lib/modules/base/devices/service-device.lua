@@ -88,7 +88,7 @@ function DeviceService:SetDevicePropertyValue(request, device, node, property)
 
     prop:SetValue(request.value)
 
-    for i=1,300 do
+    for i=1,100 do
         local v,t = prop:GetValue()
         if v == request.value then
             return http.OK, {success=true}

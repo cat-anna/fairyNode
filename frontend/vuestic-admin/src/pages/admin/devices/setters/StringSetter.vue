@@ -1,8 +1,19 @@
 
 <template>
     <OrbitSpinner v-if="!idle" :size="16" />
-    <va-button v-if="idle && device_id && node_id && prop_id" preset="plain" size="small" @click="onToggle"> {{
-        t('deviceInfo.setter.toggle') }} </va-button>
+    <va-button v-if="!editing && idle" @click="beginEdit" plain>
+        <va-icon :name='"material-icons-edit"' />
+    </va-button>
+
+
+    <va-input v-if="editing" v-model="pending_value" class="mb-6" style="width: 200px;">
+        <template #prepend>
+            <va-button plain @click="applyEdit"><va-icon :name='"material-icons-done"' /></va-button>
+        </template>
+        <template #append>
+            <va-button plain @click="cancelEdit"><va-icon :name='"material-icons-cancel"' /></va-button>
+        </template>
+    </va-input>
 </template>
 
 <style></style>
@@ -21,7 +32,7 @@ export default {
         device_id: String,
         node_id: String,
         prop_id: String,
-        value: Boolean
+        value: String
     },
     emits: ["changed"],
     setup(Properties, { emit }) {
@@ -31,14 +42,26 @@ export default {
     },
     data() {
         return {
-            idle: true
+            idle: true,
+            editing: false,
+            pending_value: "",
         }
     },
     methods: {
-        onToggle() {
-            this.idle = false
+        beginEdit() {
+            this.pending_value = ""
+            if (this.value != null) {
+                this.pending_value = this.value
+            }
+            this.editing = true
+        },
+        cancelEdit() {
+            this.editing = false
+        },
+        applyEdit() {
             if (this.device_id && this.node_id && this.prop_id) {
-                deviceService.setProperty(this.device_id, this.node_id, this.prop_id, !this.value)
+                this.idle = false
+                deviceService.setProperty(this.device_id, this.node_id, this.prop_id, this.pending_value)
                     .then(() => this.toastShow({
                         message: this.t("deviceInfo.nodes.setSuccess"),
                         color: 'success'
@@ -52,7 +75,8 @@ export default {
                         this.emit('changed')
                     })
             }
-        }
+            this.editing = false
+        },
     }
 }
 </script>

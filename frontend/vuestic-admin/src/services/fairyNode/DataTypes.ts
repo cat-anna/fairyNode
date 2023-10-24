@@ -19,6 +19,10 @@ class DataTypes {
     public parseNumberProperty(value: string): number {
         return Number.parseFloat(value)
     }
+
+    public isStringProperty(property: DeviceNodeProperty): boolean {
+        return property.datatype == 'string'
+    }
 }
 
 export default new DataTypes();

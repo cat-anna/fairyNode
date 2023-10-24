@@ -19,7 +19,7 @@
                 <va-button v-for="step in steps" :key="step" class="!px-0" @click="updateValue(step)">
                     +{{ step }}
                 </va-button>
-                <va-button @click="applyEdit"><va-icon :name='"material-icons-done"'/></va-button>
+                <va-button @click="applyEdit"><va-icon :name='"material-icons-done"' /></va-button>
             </va-button-group>
         </template>
     </va-counter>
@@ -31,6 +31,7 @@
 import { useI18n } from 'vue-i18n'
 import deviceService from '../../../../services/fairyNode/DeviceService'
 import { OrbitSpinner } from 'epic-spinners'
+import { useToast } from 'vuestic-ui'
 
 export default {
     components: {
@@ -44,8 +45,9 @@ export default {
     },
     emits: ["changed"],
     setup(Properties, { emit }) {
+        const { init, close, closeAll } = useToast()
         const { t } = useI18n()
-        return { t, emit }
+        return { t, emit, toastShow: init, }
     },
     data() {
         return {
@@ -63,7 +65,7 @@ export default {
             this.pending_value = this.value
             this.editing = true
         },
-        updateValue(step:number) {
+        updateValue(step: number) {
             this.pending_value += step
             this.pending_value = parseFloat(this.pending_value.toFixed(3))
         },
@@ -74,10 +76,18 @@ export default {
             if (this.device_id && this.node_id && this.prop_id) {
                 this.idle = false
                 deviceService.setProperty(this.device_id, this.node_id, this.prop_id, this.pending_value)
-                .finally( () => {
-                    this.idle = true
-                    this.emit('changed')
-                })
+                    .then(() => this.toastShow({
+                        message: this.t("deviceInfo.nodes.setSuccess"),
+                        color: 'success'
+                    }))
+                    .catch(() => this.toastShow({
+                        message: this.t("deviceInfo.nodes.setFailure"),
+                        color: 'warning'
+                    }))
+                    .finally(() => {
+                        this.idle = true
+                        this.emit('changed')
+                    })
             }
             this.editing = false
         },

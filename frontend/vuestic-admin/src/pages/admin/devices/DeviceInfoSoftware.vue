@@ -23,7 +23,7 @@
                         </colgroup>
                         <thead>
                             <tr>
-                                <th>  </th>
+                                <th> </th>
                                 <th> {{ t("deviceInfo.software.commit.current") }} </th>
                                 <th> {{ t("deviceInfo.software.commit.id") }} </th>
                                 <th> {{ t("deviceInfo.software.commit.bootSuccessful") }} </th>
@@ -78,7 +78,7 @@
                     </table>
                 </div>
             </va-card-content>
-            <va-card-content v-if="fetchingData && softwareData==null">
+            <va-card-content v-if="fetchingData && softwareData == null">
                 <OrbitSpinner />
             </va-card-content>
         </va-card>
@@ -100,29 +100,14 @@
 }
 </style>
 
-<!--
-
-export default defineComponent({
-  setup() {
-
-    return {
-      onButtonClick: () => {
-        confirm('Are you sure you want to see standard alert?')
-          .then((ok) => ok && alert('This is standard browser alert'))
-      },
-    }
-  }
-}) -->
-
 <script lang="ts">
 import { useI18n } from 'vue-i18n'
-import { defineComponent } from 'vue'
-import { useModal } from 'vuestic-ui'
+import { defineComponent, ref } from 'vue'
+import { useModal, useToast } from 'vuestic-ui'
 import firmwareService from '../../../services/fairyNode/FirmwareService'
 import { DeviceCommitStatus, DeviceCommit } from '../../../services/fairyNode/FirmwareService'
 import formatting from '../../../services/fairyNode/Formatting'
 import dataTypes from '../../../services/fairyNode/DataTypes'
-import { ref } from 'vue'
 import { OrbitSpinner } from 'epic-spinners'
 
 export declare type OptionalDeviceCommit = null | DeviceCommit;
@@ -145,11 +130,14 @@ export default defineComponent({
         const softwareData = ref(<OptionalDeviceCommitStatus>{})
         const selectedCommit = ref(<OptionalDeviceCommit>{})
 
+        const { init, close, closeAll } = useToast()
         const { confirm } = useModal()
         const { t } = useI18n()
 
-        return { t, softwareData, formatting, selectedCommit,
-             showModalConfirm: confirm  }
+        return {
+            t, softwareData, formatting, selectedCommit,
+            showModalConfirm: confirm, toastShow: init,
+        }
     },
     data() {
         return {
@@ -181,6 +169,14 @@ export default defineComponent({
             if (this.selectedCommit && this.device_id) {
                 console.log(this.device_id)
                 firmwareService.activateCommitForDevice(this.device_id, this.selectedCommit.key)
+                    .then(() => this.toastShow({
+                        message: this.t("deviceInfo.software.activateSuccess"),
+                        color: 'success'
+                    }))
+                    .catch(() => this.toastShow({
+                        message: this.t("deviceInfo.software.activateFailure"),
+                        color: 'warning'
+                    }))
                     .finally(() => {
                         this.activationIsBlocked = false
                         this.getData()

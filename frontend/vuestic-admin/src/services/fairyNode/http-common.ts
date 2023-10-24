@@ -56,38 +56,12 @@ class HttpHandler {
               'content-type': 'application/json'
             }
           })
-            .then(res => res.json())
-            // .then(res => {
-            //   // a non-200 response code
-            //   // if (!res.ok) {
-            // //     // create error instance with HTTP status text
-            //   //   const error = new Error(res.statusText);
-            //   //   error.json = res.json();
-            //   //   throw error;
-            //   // }
-            //   var r = res.json()
-            //   console.log(r);
-            //   return r
-            // })
-            // .then(json => {
-            //   // set the response data
-            //   data.value = json.data;
-            // })
-            .catch(err => {
-                console.log(err);
-                throw err
-              //     error.value = err;
-            //   // In case a custom JSON error response was provided
-            //   if (err.json) {
-            //     return err.json.then(json => {
-            //       // set the JSON response message
-            //       error.value.message = json.message;
-            //     });
-            //   }
-            })
-            // .then(() => {
-            //   loading.value = false;
-            // })
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            }
+            throw new Error('Something went wrong');
+          })
             ;
     }
 
@@ -101,39 +75,12 @@ class HttpHandler {
             'content-type': 'application/json'
           }
         })
-          .then(res => res.json())
-          // .then(res => {
-          //   // a non-200 response code
-          //   // if (!res.ok) {
-          // //     // create error instance with HTTP status text
-          //   //   const error = new Error(res.statusText);
-          //   //   error.json = res.json();
-          //   //   throw error;
-          //   // }
-          //   var r = res.json()
-          //   console.log(r);
-          //   return r
-          // })
-          // .then(json => {
-          //   // set the response data
-          //   data.value = json.data;
-          // })
-          .catch(err => {
-              console.log(err);
-              throw err
-          //     error.value = err;
-          //   // In case a custom JSON error response was provided
-          //   if (err.json) {
-          //     return err.json.then(json => {
-          //       // set the JSON response message
-          //       error.value.message = json.message;
-          //     });
-          //   }
-          })
-          // .then(() => {
-          //   loading.value = false;
-          // })
-          ;
+        .then((response) => {
+          if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Something went wrong');
+        })
   }
 
 }

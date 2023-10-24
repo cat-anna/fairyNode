@@ -16,6 +16,8 @@
     "deviceInfo": {
         "title": "Device info",
         "nodes": {
+            "setFailure": "Failed to set property value",
+            "setSuccess": "Property value is updated",
             "copyToClipboard": "Property global id copied to clipboard",
             "tabTitle": "Nodes",
             "property": {
@@ -45,6 +47,8 @@
                 "actions": "Actions"
             },
             "activateConfirmationMessage": "Do you really want to activate this software?",
+            "activateSuccess": "Software activated",
+            "activateFailure": "Software activation failed"
         },
         "setter": {
             "toggle": "Toggle"

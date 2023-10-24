@@ -40,11 +40,13 @@
                                         <boolean-setter v-if="dataTypes.isBooleanProperty(prop_data)" :device_id="device_id"
                                             :node_id="node_data.id" :prop_id="prop_data.id"
                                             :value="dataTypes.parseBooleanProperty(prop_data.value)" @changed="onChanged" />
-                                        <numeric-setter v-if="dataTypes.isNumberProperty(prop_data)" :device_id="device_id"
+                                        <numeric-setter v-else-if="dataTypes.isNumberProperty(prop_data)" :device_id="device_id"
                                             :node_id="node_data.id" :prop_id="prop_data.id"
                                             :value="dataTypes.parseNumberProperty(prop_data.value)" @changed="onChanged" />
-
-                                        <span v-if="!dataTypes.isBooleanProperty(prop_data) && !dataTypes.isNumberProperty(prop_data)"> TODO {{ prop_data.datatype }}</span>
+                                        <string-setter v-else-if="dataTypes.isStringProperty(prop_data)" :device_id="device_id"
+                                            :node_id="node_data.id" :prop_id="prop_data.id"
+                                            :value="prop_data.value" @changed="onChanged" />
+                                        <span v-else=""> TODO {{ prop_data.datatype }}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -80,23 +82,24 @@
 
 <script lang="ts">
 import { useI18n } from 'vue-i18n'
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
+import { useToast } from 'vuestic-ui'
 import deviceService from '../../../services/fairyNode/DeviceService'
 import { DeviceNode, DeviceNodeProperty } from '../../../services/fairyNode/DeviceService'
 import formatting from '../../../services/fairyNode/Formatting'
 import dataTypes from '../../../services/fairyNode/DataTypes'
-import { ref } from 'vue'
 import { OrbitSpinner } from 'epic-spinners'
 
 import BooleanSetter from "./setters/BooleanSetter.vue"
 import NumericSetter from "./setters/NumericSetter.vue"
-import { useToast } from 'vuestic-ui'
+import StringSetter from "./setters/StringSetter.vue"
 
 export default defineComponent({
     components: {
         OrbitSpinner,
         BooleanSetter,
         NumericSetter,
+        StringSetter,
     },
     props: {
         hardware_id: String,
