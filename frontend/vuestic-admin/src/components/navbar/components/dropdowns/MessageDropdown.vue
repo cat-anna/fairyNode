@@ -1,33 +1,27 @@
 <template>
-  <va-dropdown class="message-dropdown" position="bottom" :offset="[13, 0]">
+  <va-dropdown class="message-dropdown" :offset="[13, 0]" stick-to-edges>
     <template #anchor>
       <va-icon-message class="message-dropdown__icon" :class="{ 'message-dropdown__icon--unread': !allRead }" />
     </template>
 
-    <va-dropdown-content class="message-dropdown__content pl-4 pr-4 pt-2 pb-2">
+    <va-dropdown-content class="message-dropdown__content pl-8 pr-8 pt-2 pb-2">
       <div
         v-for="message in messagesProxy"
         :key="message.id"
-        class="message-dropdown__item row pt-1 pb-1 mt-2 mb-2"
+        class="message-dropdown__item flex flex-1 flex-wrap pt-1 pb-1 mt-2 mb-2"
         :class="{ 'message-dropdown__item--unread': message.unread }"
         @click="message.unread = false"
       >
-        <img :src="message.details.avatar" class="message-dropdown__item__avatar mr-2" />
+        <img :src="message.details.avatar" class="message-dropdown__item__avatar mr-2" alt="" />
         <span class="ellipsis" style="max-width: 85%">{{
           t(`messages.${message.name}`, { name: message.details.name })
         }}</span>
       </div>
-      <div class="row justify--space-between mt-1">
-        <va-button class="md6 mr-2" size="small">{{ t('messages.all') }}</va-button>
-        <va-button
-          class="md6"
-          size="small"
-          preset="outline"
-          border-color="primary"
-          :disabled="allRead"
-          @click="markAllAsRead"
-          >{{ t('messages.mark_as_read') }}</va-button
-        >
+      <div class="grid grid-cols-2 justify-between mt-1">
+        <va-button class="mr-2" size="small">{{ t('messages.all') }}</va-button>
+        <va-button size="small" preset="outline" border-color="primary" :disabled="allRead" @click="markAllAsRead">{{
+          t('messages.mark_as_read')
+        }}</va-button>
       </div>
     </va-dropdown-content>
   </va-dropdown>
@@ -128,9 +122,9 @@
         &::after {
           content: '';
           position: absolute;
-          right: 0;
+          right: -0.25rem;
           top: 0;
-          bottom: 0;
+          bottom: 0.5rem;
           height: 0.375rem;
           width: 0.375rem;
           background-color: var(--va-danger);

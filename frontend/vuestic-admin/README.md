@@ -13,7 +13,7 @@ Based on <a href="https://github.com/epicmaxco/vuestic-ui">Vuestic UI</a> librar
 </p>
 
 <p align="center">
-  <a href="https://vuestic.epicmax.co/admin/dashboard?theme=light"> Light theme demo </a> | <a href="https://vuestic.epicmax.co/admin/dashboard?theme=semi-dark">Semi-dark theme demo </a> | <a href="https://vuestic.epicmax.co/admin/dashboard?theme=original">Original theme demo </a> | <a href="https://vuestic.dev"> Vuestic UI documentation </a>
+  <a href="https://admin.vuestic.dev/admin/dashboard?theme=light"> Light theme demo </a> | <a href="https://admin.vuestic.dev/admin/dashboard?theme=semi-dark">Semi-dark theme demo </a> | <a href="https://admin.vuestic.dev/admin/dashboard?theme=original">Original theme demo </a> | <a href="https://vuestic.dev"> Vuestic UI documentation </a>
 </p>
 
 > Vuestic Admin is built with Vuestic UI. See our
@@ -22,7 +22,7 @@ Based on <a href="https://github.com/epicmaxco/vuestic-ui">Vuestic UI</a> librar
 > <a href="https://discord.gg/jTKTjj2weV">discord server</a> to help us improve Vuestic Admin & Vuestic UI experience.
 
 <p align="center">
-  <a href="https://vuestic.epicmax.co" target="_blank">
+  <a href="https://admin.vuestic.dev" target="_blank">
     <img src="./public/vuestic-admin-image.jpg" align="center" width="888px"/>
   </a>
 </p>
@@ -96,40 +96,40 @@ $ yarn build --report
 
 ### Features
 
-[Responsive layout](https://vuestic.epicmax.co/admin/dashboard) |
-[charts (Chart.js)](https://vuestic.epicmax.co/admin/statistics/charts) |
-[progress bars](https://vuestic.epicmax.co/admin/statistics/progress-bars) |
-[forms](https://vuestic.epicmax.co/admin/forms/form-elements) |
-[selects](https://vuestic.epicmax.co/admin/forms/form-elements) |
-[date pickers](https://vuestic.epicmax.co/admin/forms/form-elements) |
-[checkboxes and radios](https://vuestic.epicmax.co/admin/forms/form-elements)
+[Responsive layout](https://admin.vuestic.dev/admin/dashboard) |
+[charts (Chart.js)](https://admin.vuestic.dev/admin/statistics/charts) |
+[progress bars](https://admin.vuestic.dev/admin/statistics/progress-bars) |
+[forms](https://admin.vuestic.dev/admin/forms/form-elements) |
+[selects](https://admin.vuestic.dev/admin/forms/form-elements) |
+[date pickers](https://admin.vuestic.dev/admin/forms/form-elements) |
+[checkboxes and radios](https://admin.vuestic.dev/admin/forms/form-elements)
 |
-[static tables and data tables](https://vuestic.epicmax.co/admin/tables/data)
+[static tables and data tables](https://admin.vuestic.dev/admin/tables/data)
 |
-[medium editor](https://vuestic.epicmax.co/admin/forms/medium-editor) |
-[smooth typography](https://vuestic.epicmax.co/admin/ui/typography) |
-[buttons](https://vuestic.epicmax.co/admin/ui/buttons) |
-[collapses](https://vuestic.epicmax.co/admin/ui/collapses) |
-[color pickers](https://vuestic.epicmax.co/admin/ui/color-pickers) |
-[timelines](https://vuestic.epicmax.co/admin/ui/timelines) |
-[toasts](https://vuestic.epicmax.co/admin/ui/notifications) |
-[tooltips](https://vuestic.epicmax.co/admin/ui/popovers) |
-[popovers](https://vuestic.epicmax.co/admin/ui/popovers) |
-[icons](https://vuestic.epicmax.co/admin/ui/icons/) |
-[spinners](https://vuestic.epicmax.co/admin/ui/spinners) |
-[modals](https://vuestic.epicmax.co/admin/ui/modals) |
-[file upload](https://vuestic.epicmax.co/admin/ui/file-upload) |
-[chips](https://vuestic.epicmax.co/admin/ui/chips) |
-[trees](https://vuestic.epicmax.co/admin/ui/tree-view) |
-[cards](https://vuestic.epicmax.co/admin/ui/cards) |
-[ratings](https://vuestic.epicmax.co/admin/ui/rating) |
-[sliders](https://vuestic.epicmax.co/admin/ui/sliders) |
-[chat](https://vuestic.epicmax.co/admin/ui/chat) |
-[maps (MapLibre, Yandex, Leaflet, amMap)](https://vuestic.epicmax.co/admin/maps/maplibre-maps)
+[medium editor](https://admin.vuestic.dev/admin/forms/medium-editor) |
+[smooth typography](https://admin.vuestic.dev/admin/ui/typography) |
+[buttons](https://admin.vuestic.dev/admin/ui/buttons) |
+[collapses](https://admin.vuestic.dev/admin/ui/collapses) |
+[color pickers](https://admin.vuestic.dev/admin/ui/color-pickers) |
+[timelines](https://admin.vuestic.dev/admin/ui/timelines) |
+[toasts](https://admin.vuestic.dev/admin/ui/notifications) |
+[tooltips](https://admin.vuestic.dev/admin/ui/popovers) |
+[popovers](https://admin.vuestic.dev/admin/ui/popovers) |
+[icons](https://admin.vuestic.dev/admin/ui/icons/) |
+[spinners](https://admin.vuestic.dev/admin/ui/spinners) |
+[modals](https://admin.vuestic.dev/admin/ui/modals) |
+[file upload](https://admin.vuestic.dev/admin/ui/file-upload) |
+[chips](https://admin.vuestic.dev/admin/ui/chips) |
+[trees](https://admin.vuestic.dev/admin/ui/tree-view) |
+[cards](https://admin.vuestic.dev/admin/ui/cards) |
+[ratings](https://admin.vuestic.dev/admin/ui/rating) |
+[sliders](https://admin.vuestic.dev/admin/ui/sliders) |
+[chat](https://admin.vuestic.dev/admin/ui/chat) |
+[maps (MapLibre, Yandex, Leaflet, amMap)](https://admin.vuestic.dev/admin/maps/maplibre-maps)
 |
-[login/signup pages templates](https://vuestic.epicmax.co/auth/login) |
-[404 pages templates](https://vuestic.epicmax.co/admin/pages/404-pages) |
-[i18n](https://vuestic.epicmax.co/admin/dashboard)
+[login/signup pages templates](https://admin.vuestic.dev/auth/login) |
+[404 pages templates](https://admin.vuestic.dev/admin/pages/404-pages) |
+[i18n](https://admin.vuestic.dev/admin/dashboard)
 
 ### Browser Support
 
@@ -142,10 +142,12 @@ We design Vuestic Admin to support the latest modern web browsers.
 ### Contributing
 
 Thanks for all your wonderful PRs, issues and ideas.
+
 <a href="https://github.com/epicmaxco/vuestic-admin/graphs/contributors">
 <img src="https://opencollective.com/vuestic-admin/contributors.svg?width=890&button=false" />
 </a>
 <br>
+
 You’re always welcome to join: check out
 our <a href="https://vuestic.dev/en/contribution/guide">
 contribution guides</a>
@@ -154,20 +156,21 @@ and [discord server](https://discord.gg/jTKTjj2weV)
 
 ### Partners & Sponsors ❤️
 
-<div>
-        <a href="https://epicmax.co/" target="_blank" title="Epicmax - Top Vue.js Development Company"><img src="./.github/assets/epicmax.svg" loading="lazy" vspace="10" alt=""></a>
-        <a href="https://www.ag-grid.com/" target="_blank" title=" Data Grid: AG Grid: High-Performance React Grid, Angular Grid, JavaScript Grid"><img hspace="15" vspace="10" src="./.github/assets/aggrid.svg" loading="lazy" alt=""></a>
-        <a href="https://vuejobs.com/" target="_blank" title="Vue.js jobs – Browse through dozens of Vue.js openings"><img src="./.github/assets/vuejobs.svg" loading="lazy" vspace="10" alt=""></a>
-        <a href="https://flatlogic.com/" target="_blank" title="Flatlogic - The best way to create React, Angular and Vue full-stack web applications"><img hspace="15" vspace="10" src="./.github/assets/flatlogic.svg" loading="lazy" alt=""></a>
-</div>
-<br >
+<img src="./.github/assets/sponsors.jpg" loading="lazy" alt="Epicmax, vuejobs, ag-grid, flatlogic, browserstack and jetbrains" width="400px">
 
 Become a partner: [hello@epicmax.co](mailto:hello@epicmax.co)
 
 ## Can I hire you guys?
 
-Yes! Say hi: [hello@epicmax.co](mailto:hello@epicmax.co) </br>
-We will be happy to work with you! Other [work we’ve done](https://epicmax.co)
+[Epicmax](https://epicmax.co) is committed to Open Source from its beginning.
+[Vuestic UI](https://vuestic.dev) was created and backed by Epicmax, and is supported through all the years.
+You can request a consultation or order web development services by Epicmax via this [form](https://epicmax.co/contacts) 😎
+
+Say hi: <a href="mailto:hello@epicmax.co">hello@epicmax.co</a>. We will be happy to work with you!
+
+[Other work](https://epicmax.co) we’ve done 🤘
+
+[Meet the Team](https://vuestic.dev/team)
 
 ### Awards
 
@@ -181,8 +184,8 @@ We will be happy to work with you! Other [work we’ve done](https://epicmax.co)
 ### Follow us
 
 Stay up to date with the latest Vuestic news! Follow us
-on [Twitter](https://twitter.com/epicmaxco)
-or [Facebook](https://facebook.com/epicmaxco)
+on [Twitter](https://twitter.com/vuestic_ui)
+or [Linkedin](https://www.linkedin.com/company/18509340)
 
 ### License
 
