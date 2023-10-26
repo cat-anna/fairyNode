@@ -1,7 +1,6 @@
 <template>
-    <div class="markup-tables flex">
         <OrbitSpinner v-if="nodeData.length == 0" />
-        <va-card class="node-card" v-for="(node_data) in nodeData">
+    <va-card class="node-card" v-for="(node_data) in nodeData" >
             <va-card-title>{{ node_data.name }}</va-card-title>
             <va-card-content>
                 <div class="table-wrapper">
@@ -44,10 +43,10 @@
                                             :node_id="node_data.id" :prop_id="prop_data.id"
                                             :value="dataTypes.parseNumberProperty(prop_data.value)" @changed="onChanged" />
                                         <string-setter v-else-if="dataTypes.isStringProperty(prop_data)" :device_id="device_id"
-                                            :node_id="node_data.id" :prop_id="prop_data.id"
-                                            :value="prop_data.value" @changed="onChanged" />
-                                        <integer-setter v-else-if="dataTypes.isIntegerProperty(prop_data)" :device_id="device_id"
-                                            :node_id="node_data.id" :prop_id="prop_data.id"
+                                        :node_id="node_data.id" :prop_id="prop_data.id" :value="prop_data.value"
+                                        @changed="onChanged" />
+                                    <integer-setter v-else-if="dataTypes.isIntegerProperty(prop_data)"
+                                        :device_id="device_id" :node_id="node_data.id" :prop_id="prop_data.id"
                                             :value="dataTypes.parseIntegerProperty(prop_data.value)" @changed="onChanged" />
                                         <span v-else=""> TODO {{ prop_data.datatype }}</span>
                                     </div>
@@ -58,7 +57,6 @@
                 </div>
             </va-card-content>
         </va-card>
-    </div>
 </template>
 
 <style lang="scss">
@@ -71,11 +69,9 @@
     margin-bottom: 15px;
 }
 
-.markup-tables {
     .table-wrapper {
         overflow: auto;
         table-layout: fixed;
-    }
 
     .va-table {
         width: 100%;
