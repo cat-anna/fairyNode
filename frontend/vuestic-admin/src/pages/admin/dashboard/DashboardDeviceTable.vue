@@ -15,10 +15,10 @@
                     </thead>
 
                     <tbody>
-                        <tr v-for="device in deviceData" :key="device.id">
+                        <tr v-for="device in deviceData" :key="device.device_id">
                             <td>
                                 <router-link style="text-decoration: none; color: inherit;"
-                                    :to="{ path: '/admin/devices/' + device.id, params: { id: device.id } }">
+                                    :to="{ path: '/admin/devices/' + device.device_id, params: { device_id: device.device_id } }">
                                     {{ device.name }}
                                 </router-link>
                             </td>
@@ -37,6 +37,7 @@
 <script lang="ts">
 import { useI18n } from 'vue-i18n'
 import deviceService from '../../../services/fairyNode/DeviceService'
+import dashboardService from '../../../services/fairyNode/DashboardService'
 import { SummaryDeviceEntry } from '../../../services/fairyNode/DeviceService'
 import formatting from '../../../services/fairyNode/Formatting'
 
@@ -72,7 +73,7 @@ export default {
         formatSeconds(v: number) { return formatting.formatSeconds(v) },
 
         getData() {
-            deviceService.summary().then(data => this.deviceData = data)
+            dashboardService.summary().then(data => this.deviceData = data)
         }
     },
 }

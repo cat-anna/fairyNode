@@ -38,6 +38,10 @@ function FairyNodeRemoteDevice:GetHardwareId()
     end
 end
 
+function FairyNodeRemoteDevice:GetVariables()
+    return self.variables
+end
+
 function FairyNodeRemoteDevice:GetErrorCount()
     local prop = self:GetNodePropertyValue("sysinfo", "errors")
     if prop then

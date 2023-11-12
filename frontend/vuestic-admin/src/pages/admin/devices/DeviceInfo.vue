@@ -7,13 +7,15 @@
                 <template #tabs>
                     <va-tab name="DeviceInfoNodesTab"> {{ t('deviceInfo.nodes.tabTitle') }} </va-tab>
                     <va-tab name="DeviceInfoSoftwareTab"> {{ t('deviceInfo.software.tabTitle') }} </va-tab>
+                    <va-tab name="DeviceInfoDetails"> {{ t('deviceInfo.details.tabTitle') }} </va-tab>
                 </template>
             </va-tabs>
         </va-card-content>
     </va-card>
     <va-separator />
-    <DeviceInfoNodes v-if="activeTabName == 'DeviceInfoNodesTab'" :device_id="device_id" />
-    <DeviceInfoSoftware v-if="activeTabName == 'DeviceInfoSoftwareTab'" :device_id="device_id" />
+    <device-info-nodes v-if="activeTabName == 'DeviceInfoNodesTab'" :device_id="device_id" />
+    <device-info-software v-if="activeTabName == 'DeviceInfoSoftwareTab'" :device_id="device_id" />
+    <device-info-details v-if="activeTabName == 'DeviceInfoDetails'" :device_id="device_id" />
 </template>
 
 <style lang="scss">
@@ -29,11 +31,13 @@ import { useRoute } from 'vue-router'
 
 import DeviceInfoNodes from './DeviceInfoNodes.vue'
 import DeviceInfoSoftware from './DeviceInfoSoftware.vue'
+import DeviceInfoDetails from './DeviceInfoDetails.vue'
 
 export default {
     components: {
         DeviceInfoNodes,
         DeviceInfoSoftware,
+        DeviceInfoDetails,
     },
     setup() {
         const route = useRoute()

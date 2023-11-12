@@ -50,6 +50,15 @@
             "activateSuccess": "Software activated",
             "activateFailure": "Software activation failed"
         },
+        "details": {
+            "tabTitle": "Details",
+            "variables": {
+                "title": "Device variables",
+                "key": "key",
+                "value": "Value",
+                "invalid": "This device does not have variables"
+            }
+        },
         "setter": {
             "toggle": "Toggle"
         }

@@ -1,6 +1,6 @@
 <template>
-    <OrbitSpinner v-if="nodeData.length == 0" />
-    <va-card class="mb-2" v-for="(node_data) in nodeData">
+    <!-- <OrbitSpinner v-if="nodeData.length == 0" /> -->
+    <!-- <va-card class="mb-2" v-for="(node_data) in nodeData">
         <va-card-title>{{ node_data.name }}</va-card-title>
         <va-card-content>
             <div class="table-wrapper">
@@ -8,7 +8,7 @@
                     <colgroup>
                         <col style="width:25%">
                         <col style="width:20%">
-                        <col style="width:20%">
+                        <col style="width:15%">
                         <col style="width:40%">
                     </colgroup>
                     <thead>
@@ -19,7 +19,6 @@
                             <th> {{ t("deviceInfo.nodes.property.set") }} </th>
                         </tr>
                     </thead>
-
                     <tbody>
                         <tr v-for="prop_data in node_data.properties">
                             <td>
@@ -34,29 +33,14 @@
                                     {{ formatting.formatTimestamp(prop_data.timestamp) }}
                                 </VaPopover>
                             </td>
-                            <td>
-                                <div v-if="prop_data.settable">
-                                    <boolean-setter v-if="dataTypes.isBooleanProperty(prop_data)" :device_id="device_id"
-                                        :node_id="node_data.id" :prop_id="prop_data.id"
-                                        :value="dataTypes.parseBooleanProperty(prop_data.value)" @changed="onChanged" />
-                                    <numeric-setter v-else-if="dataTypes.isNumberProperty(prop_data)" :device_id="device_id"
-                                        :node_id="node_data.id" :prop_id="prop_data.id"
-                                        :value="dataTypes.parseNumberProperty(prop_data.value)" @changed="onChanged" />
-                                    <string-setter v-else-if="dataTypes.isStringProperty(prop_data)" :device_id="device_id"
-                                        :node_id="node_data.id" :prop_id="prop_data.id" :value="prop_data.value"
-                                        @changed="onChanged" />
-                                    <integer-setter v-else-if="dataTypes.isIntegerProperty(prop_data)"
-                                        :device_id="device_id" :node_id="node_data.id" :prop_id="prop_data.id"
-                                        :value="dataTypes.parseIntegerProperty(prop_data.value)" @changed="onChanged" />
-                                    <span v-else=""> TODO {{ prop_data.datatype }}</span>
-                                </div>
-                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </va-card-content>
-    </va-card>
+    </va-card> -->
+
+    <device-details-variables :device_id="device_id" />
 </template>
 
 <style lang="scss">
@@ -80,22 +64,19 @@ import formatting from '../../../services/fairyNode/Formatting'
 import dataTypes from '../../../services/fairyNode/DataTypes'
 import { OrbitSpinner } from 'epic-spinners'
 
-import BooleanSetter from "./setters/BooleanSetter.vue"
-import NumericSetter from "./setters/NumericSetter.vue"
-import StringSetter from "./setters/StringSetter.vue"
-import IntegerSetter from "./setters/IntegerSetter.vue"
+import DeviceDetailsVariables from './details/DeviceDetailsVariables.vue'
 
 export default defineComponent({
     components: {
         OrbitSpinner,
-        BooleanSetter,
-        NumericSetter,
-        StringSetter,
-        IntegerSetter,
+        DeviceDetailsVariables,
     },
     props: {
         hardware_id: String,
-        device_id: String,
+        device_id: {
+            type: String,
+            required: true
+        },
     },
     watch: {
         async device_id() {

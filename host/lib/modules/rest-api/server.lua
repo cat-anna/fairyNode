@@ -71,28 +71,38 @@ function RestServer:FindEndpoint(endpoint_name)
 end
 
 function RestServer:AddEndpoint(endpoint_name, endpoint_file)
-    local r, endpoint_def = pcall(dofile, endpoint_file)
+    local load_result = { pcall(dofile, endpoint_file) }
+    local r = table.remove(load_result, 1)
     if not r then
-        print(self, "Failed to load endpoiint", endpoint_name)
+        printf(self, "Failed to load endpoint: %s - %s", endpoint_name, load_result[1])
         return
     end
-    assert(not self.endpoints[endpoint_name])
-    local module = self.loader_module:LoadModule(endpoint_def.service)
 
-    self.endpoints[endpoint_name] = {
-        file = endpoint_file,
-        definition = endpoint_def,
-        timestamp = os.timestamp(),
-    }
+    assert(type(load_result[1]) ~= "boolean")
+    for _,endpoint_def in ipairs(load_result) do
+        assert(endpoint_def)
+        local resource = endpoint_def.resource
+        assert(resource)
+        assert(not self.endpoints[resource])
 
-    for _,endpoint in ipairs(endpoint_def.endpoints) do
-        if endpoint.service_method then
-            endpoint.handler = self:HandlerModule(endpoint_def.service, module, endpoint.service_method)
-            endpoint_def.service_method = nil
+        local module = self.loader_module:LoadModule(endpoint_def.service)
+
+        self.endpoints[resource] = {
+            file = endpoint_file,
+            definition = endpoint_def,
+            timestamp = os.timestamp(),
+        }
+
+        for _,endpoint in ipairs(endpoint_def.endpoints) do
+            if endpoint.service_method then
+                endpoint.handler = self:HandlerModule(endpoint_def.service, module, endpoint.service_method)
+                endpoint.service_method = nil
+            end
         end
-    end
 
-    self.server:add_resource(endpoint_def.resource,endpoint_def.endpoints)
+        self.server:add_resource(endpoint_def.resource,endpoint_def.endpoints)
+        printf(self, "Registered endpoint /%s service:%s", endpoint_def.resource, endpoint_def.service)
+    end
 end
 
 function RestServer:LoadEndpoints()
@@ -123,7 +133,6 @@ function RestServer:InitServer()
     self:LoadEndpoints()
     printf(self, "Starting server initialized on port %s:%d", host, port)
 end
-
 
 function RestServer:ExecuteServer(task)
     local function HttpLogger(...)

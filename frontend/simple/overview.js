@@ -345,7 +345,7 @@ function SetDeviceNodesPage(entry, sub_id, body_id) {
             GetOrCreateDiv(prop_id, node_id, "DeviceNodePropertyContent")
 
             if (prop.datatype == "float" || prop.datatype == "integer" || prop.datatype == "boolean" || prop.datatype == "number") {
-                var chart_source = "/property/value/" + prop.property_id + "/history"
+                var chart_source = "/property/value/" + prop.global_id + "/history"
                 var chart_node_id = "CHART_BTN_" + prop_id
                 var open_chart = GetOrCreateDiv(chart_node_id, prop_id, "DeviceNodePropertyEntry DeviceNodePropertyOpenChart", { html: "&nbsp" })
                 $(open_chart).attr("data-url", chart_source)
@@ -466,7 +466,7 @@ function SetDeviceInfoPageStatus(entry, body_id) {
         sysinfo = nodes.sysinfo
         if (sysinfo && sysinfo.properties) {
             sysinfo_props = sysinfo.properties
-            if (sysinfo_props.uptime.value) {
+            if (sysinfo_props.uptime && sysinfo_props.uptime.value) {
               blocks.push(["Uptime", FormatSeconds(sysinfo_props.uptime.value),])
             }
         }

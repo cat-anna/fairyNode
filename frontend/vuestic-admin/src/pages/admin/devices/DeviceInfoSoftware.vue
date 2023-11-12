@@ -1,5 +1,5 @@
 <template>
-    <div class="markup-tables flex">
+    <div class="markup-tables">
 
         <va-card class="node-card">
             <va-card-title>{{ t("deviceInfo.software.commits") }}</va-card-title>
