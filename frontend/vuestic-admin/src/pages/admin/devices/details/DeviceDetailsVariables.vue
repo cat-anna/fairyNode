@@ -44,7 +44,6 @@ import { useI18n } from 'vue-i18n'
 import { defineComponent, ref } from 'vue'
 import deviceService from '../../../../services/fairyNode/DeviceService'
 import { DeviceVariable } from '../../../../services/fairyNode/DeviceService'
-import formatting from '../../../../services/fairyNode/Formatting'
 import dataTypes from '../../../../services/fairyNode/DataTypes'
 import { OrbitSpinner } from 'epic-spinners'
 
@@ -75,7 +74,6 @@ export default defineComponent({
     },
     data() {
         return {
-            timerId: 0,
             dataTypes: dataTypes,
             pending: true,
             valid: true

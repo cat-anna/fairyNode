@@ -41,6 +41,23 @@ export interface DeviceVariable {
     key: string
     value: string
 }
+
+export interface FairyNodeVersionInfo {
+    version: string
+    timestamps: Map<string, number>
+}
+
+export interface NodeMcuVersionInfo {
+    version: string
+    release: string
+    branch: string
+}
+
+export interface DeviceSoftwareInfo {
+    fairy_node?: FairyNodeVersionInfo
+    nodemcu?: NodeMcuVersionInfo
+}
+
 export class DeviceService {
     get_json(url: string) { return http.get_json("/device" + url) }
     post_json(url: string, data: object) { return http.post_json("/device" + url, data) }
@@ -48,6 +65,7 @@ export class DeviceService {
     list(): Promise<DeviceEntry[]> { return this.get_json("") }
     nodesSummary(device_id: string) : Promise<DeviceNode[]> { return this.get_json("/" + device_id + "/summary") }
     variables(device_id: string) : Promise<DeviceVariable[]> { return this.get_json("/" + device_id + "/variables") }
+    softwareInfo(device_id: string) : Promise<DeviceSoftwareInfo> { return this.get_json("/" + device_id + "/software") }
 
     setProperty(device_id: string, node_id: string, property_id: string, value: PropertyTypes) : Promise<GenericResult> {
         return this.post_json( "/" + device_id + "/property/" + node_id + "/" + property_id + "/set", { value: value })

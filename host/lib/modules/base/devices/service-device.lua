@@ -68,6 +68,19 @@ function DeviceService:GetDeviceVariables(request, dev_name)
     return http.OK, r
 end
 
+function DeviceService:GetDeviceSoftwareInfo(request, dev_name)
+    local device = self.homie_host.devices[dev_name]
+    if not device then
+        return http.NotFound
+    end
+
+    if not device:IsFairyNodeDevice() then
+        return http.BadRequest
+    end
+
+    return http.OK, device:GetDeviceSoftwareInfo()
+end
+
 function DeviceService:GetDeviceNodesSummary(request, dev_name)
     local device = self.homie_host.devices[dev_name]
     if not device then

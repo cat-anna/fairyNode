@@ -42,6 +42,28 @@ function FairyNodeRemoteDevice:GetVariables()
     return self.variables
 end
 
+function FairyNodeRemoteDevice:GetDeviceSoftwareInfo()
+    local function v(id)
+        return self.variables[id]
+    end
+    local r = {
+        fairy_node = {
+            version = v("fw/FairyNode/version"),
+            timestamps = {
+                config = tonumber(v("fw/FairyNode/config/timestamp")),
+                lfs = tonumber(v("fw/FairyNode/lfs/timestamp")),
+                root = tonumber(v("fw/FairyNode/root/timestamp")),
+            },
+        },
+        nodemcu = {
+            version = v("fw/NodeMcu/version"),
+            release = v("fw/NodeMcu/git_release"),
+            branch = v("fw/NodeMcu/git_branch"),
+        }
+    }
+    return r
+end
+
 function FairyNodeRemoteDevice:GetErrorCount()
     local prop = self:GetNodePropertyValue("sysinfo", "errors")
     if prop then
