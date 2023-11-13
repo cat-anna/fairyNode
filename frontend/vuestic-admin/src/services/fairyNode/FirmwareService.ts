@@ -1,6 +1,5 @@
 
-import http from "./http-common";
-import {GenericResult} from "./http-common";
+import { RestServiceBase, GenericResult } from "./RestServiceBase"
 
 export interface DeviceCommit {
     timestamp: number
@@ -15,9 +14,10 @@ export interface DeviceCommitStatus {
     commits: DeviceCommit[]
 }
 
-export class FirmwareService {
-    get_json(url: string) { return http.get_json("/firmware" + url); }
-    post_json(url: string, data: object) { return http.post_json("/firmware" + url, data); }
+export class FirmwareService extends RestServiceBase {
+    constructor() {
+        super("firmware")
+    }
 
     listCommitsForDevice(device_id: string) : Promise<DeviceCommitStatus> {
         return this.get_json("/device/" + device_id + "/commit")

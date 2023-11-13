@@ -1,6 +1,5 @@
+import { RestServiceBase, GenericResult } from "./RestServiceBase"
 
-import http from "./http-common"
-import {GenericResult} from "./http-common";
 
 export interface DeviceEntry {
     name: string
@@ -47,9 +46,10 @@ export interface ChartSeriesInfo {
     values: ChartSeriesSourceInfo[]
 }
 
-export class DashboardService {
-    get_json(url: string) { return http.get_json("/dashboard" + url) }
-    post_json(url: string, data: object) { return http.post_json("/dashboard" + url, data) }
+export class DashboardService extends RestServiceBase {
+    constructor() {
+        super("dashboard")
+    }
 
     summary(): Promise<SummaryDeviceEntry[]> { return this.get_json("/summary") }
 

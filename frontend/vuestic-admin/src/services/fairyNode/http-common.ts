@@ -53,7 +53,6 @@ class HttpError {
   }
 }
 
-
 export interface GenericResult {
   success: boolean
   message?: string

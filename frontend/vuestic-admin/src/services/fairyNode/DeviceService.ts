@@ -1,6 +1,5 @@
 
-import http from "./http-common"
-import {GenericResult} from "./http-common";
+import { RestServiceBase, GenericResult } from "./RestServiceBase"
 
 export interface DeviceEntry {
     name: string
@@ -58,9 +57,10 @@ export interface DeviceSoftwareInfo {
     nodemcu?: NodeMcuVersionInfo
 }
 
-export class DeviceService {
-    get_json(url: string) { return http.get_json("/device" + url) }
-    post_json(url: string, data: object) { return http.post_json("/device" + url, data) }
+export class DeviceService extends RestServiceBase {
+    constructor() {
+        super("device")
+    }
 
     list(): Promise<DeviceEntry[]> { return this.get_json("") }
     nodesSummary(device_id: string) : Promise<DeviceNode[]> { return this.get_json("/" + device_id + "/summary") }
