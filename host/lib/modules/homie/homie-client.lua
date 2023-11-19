@@ -56,6 +56,7 @@ end
 function HomieClient:Init()
     self.client_name = self.config[CONFIG_KEY_HOMIE_NAME]
     self.base_topic = "homie/" .. self.client_name
+    self.global_id = self.client_name
 
     self.retained = true
     self.qos = 0
@@ -113,6 +114,14 @@ end
 
 function HomieClient:GetErrorCount()
     return 0
+end
+
+function HomieClient:GetNodeIds()
+    return tablex.keys(self.nodes)
+end
+
+function HomieClient:GetNode(name)
+    return self.nodes[name]
 end
 
 -------------------------------------------------------------------------------
@@ -267,6 +276,7 @@ function HomieClient:CreateNode(opt)
     -- qos = self.qos,
 
     local node = loader_class:CreateObject(opt.class or "homie/common/base-node", opt)
+    node:UpdateGlobalId()
     local id = node:GetId()
 
     assert(self.nodes[id] == nil)
@@ -315,7 +325,7 @@ function HomieClient:GetQos()
 end
 
 function HomieClient:GetGlobalId()
-    return "HomieClient"
+    return self:GetId()
 end
 
 function HomieClient:GetHomieVersion()

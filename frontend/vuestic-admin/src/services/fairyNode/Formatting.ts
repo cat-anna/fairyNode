@@ -1,4 +1,10 @@
+import { ChartSeriesValueEntry } from './PropertyService'
 
+
+export interface ChartPoint {
+    x: any
+    y: any
+};
 
 class Formatting {
 
@@ -31,6 +37,25 @@ class Formatting {
     public pad(num: string, size: number): string {
         while (num.length < size) num = "0" + num;
         return num;
+    }
+
+    public transformChartSeries(list: ChartSeriesValueEntry[]) : ChartPoint[] {
+        var r = new Array<ChartPoint>()
+        for (var key in list) {
+            var item = list[key]
+            // if (chart.last_timestamp < item.timestamp) {
+                // chart.config.data.labels.push(newDate(item.timestamp));
+                r.push({
+                    // x: Math.round(item.timestamp),//* 1000,
+                    x: item.timestamp * 1000,
+                    //  moment.unix(item.timestamp).toDate(),
+                     //newDate(item.timestamp),
+                    y: item.value,
+                });
+                // chart.last_timestamp = item.timestamp
+            // }
+        }
+        return r
     }
 }
 

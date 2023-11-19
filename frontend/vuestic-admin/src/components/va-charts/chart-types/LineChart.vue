@@ -1,5 +1,5 @@
 <template>
-  <Line :chart-options="chartOptions" :chart-data="props.chartData" />
+  <Line :options="chartOptions" :data="chartData" />
 </template>
 
 <script setup lang="ts">
@@ -15,10 +15,23 @@
     PointElement,
     CategoryScale,
     Filler,
+    TimeScale,
+    Colors
   } from 'chart.js'
   import { TLineChartData } from '../../../data/types'
 
-  ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler)
+  ChartJS.register(
+    Colors,
+    TimeScale,
+    Title,
+    Tooltip,
+    Legend,
+    LineElement,
+    LinearScale,
+    PointElement,
+    CategoryScale,
+    Filler
+  )
 
   const props = defineProps<{
     chartData: TLineChartData

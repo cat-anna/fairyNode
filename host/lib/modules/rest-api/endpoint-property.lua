@@ -26,5 +26,11 @@ return {
             produces = "application/json",
             service_method = "GetValueHistory",
         },
+        {
+            method = "GET",
+            path = "/chart/series",
+            produces = "application/json",
+            service_method = "ListDataSeries",
+        },
     }
 }

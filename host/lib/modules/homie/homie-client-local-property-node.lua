@@ -17,8 +17,11 @@ function HomieLocalProperty:Init(config)
     self.local_property = config.local_property
     assert(self.local_property:IsLocal())
 
+    self:UpdateGlobalId()
     self:ResetHomieProperties()
+
     self.local_property:Subscribe(self, self.OnPropertyUpdate)
+
 end
 
 -------------------------------------------------------------------------------------

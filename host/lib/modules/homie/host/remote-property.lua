@@ -35,7 +35,7 @@ end
 
 -------------------------------------------------------------------------------------
 
-function HomieRemoteProperty:GetPropertyId()
+function HomieRemoteProperty:GetGlobalId()
     if self.property_handle then
         return self.property_handle:GetGlobalId()
     end

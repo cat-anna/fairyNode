@@ -1,12 +1,13 @@
 <template>
-  <component :is="chartComponent" ref="chart" class="va-chart" :chart-options="chartOptions" :chart-data="data" />
+  <component :is="chartComponent" ref="chart" class="va-chart" :chart-options="options" :chart-data="data" />
 </template>
 
 <script setup lang="ts">
   import { computed, ref } from 'vue'
   import type { TChartOptions } from 'vue-chartjs/dist/types'
-  import { defaultConfig, chartTypesMap } from './vaChartConfigs'
+  import { chartTypesMap } from './vaChartConfigs'
   import { TChartData } from '../../data/types'
+  import 'chartjs-adapter-luxon';
 
   const props = defineProps<{
     data: TChartData
@@ -15,13 +16,7 @@
   }>()
 
   const chart = ref()
-
   const chartComponent = computed(() => chartTypesMap[props.type])
-
-  const chartOptions = computed(() => ({
-    ...defaultConfig,
-    ...props.options,
-  }))
 </script>
 
 <style lang="scss">

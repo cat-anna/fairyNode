@@ -1,5 +1,7 @@
 local http = require "lib/http-code"
 local pretty = require "pl.pretty"
+local tablex = require "pl.tablex"
+local md5 = require "md5"
 
 -------------------------------------------------------------------------------------
 
@@ -68,7 +70,67 @@ function ServiceProperty:GetValueHistory(request, value_id)
 
     local result = v:Query(from, to)
 
+    -- local r = { }
+    -- for i,e in ipairs(result.list) do
+    --     r[i] = { x = e.timestamp, y = tonumber(e.value) }
+    -- end
+
+    -- result.list = r
+
     return http.OK, result
+end
+
+function ServiceProperty:ListDataSeries()
+    local allowed_datatypes = {
+        float = true,
+        number = true,
+        integer = true,
+        string = false,
+        boolean = false,
+    }
+
+    local unit_exceptions = {
+        ["°C"] = true,
+        ["ug"] = true,
+    }
+
+    local r = {}
+    for _, prop in pairs(self.property_manager.properties_by_id) do
+        for _, value in pairs(prop:GetValues()) do
+            local unit = value:GetUnit() or ""
+            local datatype = value:GetDatatype()
+
+            local a = allowed_datatypes[datatype]
+            if a == nil then
+                -- print(prop_id, a, datatype)
+            end
+
+            if unit_exceptions[unit] then
+                -- prop_id = ""
+            end
+
+            if a then
+                local series_id = string.format("%s|%s", unit, value:GetName())
+                if not r[series_id] then
+                    local name = value:GetName()
+                    r[series_id] = {
+                        name = name,
+                        unit = unit,
+                        id = md5.sumhexa(string.format("%s|%s", unit, name)),
+                        values = { },
+                    }
+                end
+
+                table.insert(r[series_id].values, {
+                    global_id = value:GetGlobalId(),
+                    display_name = string.format("%s %s", prop:GetSourceName(), value:GetName())
+                    -- device = dev:GetName(),
+                })
+            end
+        end
+
+    end
+    return http.OK, tablex.values(r)
 end
 
 -------------------------------------------------------------------------------------

@@ -15,6 +15,7 @@ function HomieClientLocalPropertyValue:Init(config)
 
     -- self.local_property = config.local_property
     self.local_value = config.local_value
+    self:UpdateGlobalId()
 
     self.local_value:Subscribe(self, self.OnPropertyValueChanged)
 end
@@ -45,9 +46,9 @@ function HomieClientLocalPropertyValue:GetValue()
     return self.local_value:GetValue()
 end
 
-function HomieClientLocalPropertyValue:GetPropertyId()
-    return self.local_value:GetGlobalId()
-end
+-- function HomieClientLocalPropertyValue:GetGlobalId()
+--     return self.local_value:GetGlobalId()
+-- end
 
 -------------------------------------------------------------------------------------
 

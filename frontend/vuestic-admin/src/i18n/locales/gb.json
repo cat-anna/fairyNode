@@ -11,7 +11,8 @@
     },
     "menu": {
         "dashboard": "Dashboard",
-        "devices": "Devices"
+        "devices": "Devices",
+        "charts": "Charts",
     },
     "deviceInfo": {
         "title": "Device info",
@@ -57,6 +58,20 @@
                 "key": "key",
                 "value": "Value",
                 "invalid": "This device does not have variables"
+            },
+            "software": {
+                "title": "Software version",
+                "invalid": "This device does not run FairyNode software ",
+                "version": "Version",
+                "branch": "Branch",
+                "release": "Release",
+                "nodemcu_version": "Nodemcu version",
+                "fairy_node_version": "FairyNode version",
+                "component": {
+                    "lfs": "LFS",
+                    "root": "Root fs",
+                    "config": "Configuration"
+                }
             }
         },
         "setter": {
