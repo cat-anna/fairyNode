@@ -1,7 +1,7 @@
 {
     "404": {
-        "title": "This page’s gone fishing.",
-        "text": "If you feel that it’s not right, please send us a message at ",
+        "title": "This page's gone fishing.",
+        "text": "If you feel that it's not right, please send us a message at ",
         "back_button": "Back to dashboard"
     },
     "dashboard": {
@@ -12,7 +12,7 @@
     "menu": {
         "dashboard": "Dashboard",
         "devices": "Devices",
-        "charts": "Charts",
+        "charts": "Charts"
     },
     "deviceInfo": {
         "title": "Device info",
@@ -76,6 +76,16 @@
         },
         "setter": {
             "toggle": "Toggle"
+        }
+    },
+    "charts": {
+        "options_title": "Options",
+        "add_chart": "Add chart",
+        "remove_chart": "remove",
+        "samples": "samples",
+        "tips": {
+            "reload": "Reload this chart",
+            "remove_chart": "Remove this chart"
         }
     },
     "language": {

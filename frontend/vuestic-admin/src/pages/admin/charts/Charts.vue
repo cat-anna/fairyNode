@@ -1,7 +1,7 @@
 
 <template>
     <opts-card
-        @DurationChanged="reloadCharts"
+        @DurationChanged="updateChartDuration"
         />
 
     <chart-card
@@ -12,34 +12,11 @@
         :chart-count="charts.length"
         @removeChart="removeChart"
         />
-        <!-- :class="'chart_count_' + min(charts.length, 3)" -->
 
-    <va-card class="mb-2">
-        <va-card-content>
-            <orbit-spinner v-if="seriesInfo.length == 0" />
-            <va-dropdown v-if="seriesInfo.length > 0" trigger="hover" class="mr-2 mb-2" preset="primary">
-                <template #anchor>
-                    <va-button>
-                        <va-icon :name='"material-icons-add"' />
-                        Add Chart
-                    </va-button>
-                </template>
-
-                <va-dropdown-content>
-                    <va-scroll-container class="max-h-[400px]" vertical>
-                        <va-list>
-                            <va-list-item v-for="series in seriesInfo" class="flex py-1">
-                                <va-button plain @click="addChart(series.id)">
-                                    {{ series.name }}
-                                </va-button>
-                            </va-list-item>
-                        </va-list>
-
-                    </va-scroll-container>
-                </va-dropdown-content>
-            </va-dropdown>
-        </va-card-content>
-    </va-card>
+    <footer-card
+        :series-info="seriesInfo"
+        @AddChart="addChart"
+        />
 </template>
 
 <style lang="scss">
@@ -50,31 +27,29 @@
 
 <script lang="ts">
 import { useI18n } from 'vue-i18n'
-import { Ref, defineComponent, ref } from 'vue'
+import { Ref, defineComponent, ref, ShallowReactive, shallowReactive } from 'vue'
 import propertyService from '../../../services/fairyNode/PropertyService'
 import { ChartSeries,ChartSeriesListEntry } from '../../../services/fairyNode/PropertyService'
-import formatting from '../../../services/fairyNode/Formatting'
-import dataTypes from '../../../services/fairyNode/DataTypes'
-import { OrbitSpinner } from 'epic-spinners'
 
 import { storeToRefs } from 'pinia'
 import { useGlobalStore } from '../../../stores/global-store'
 
 import ChartCard from './ChartCard.vue'
 import OptsCard from './OptsCard.vue'
+import FooterCard from './FooterCard.vue'
 import { ChartState } from './ChartState'
 
 export default defineComponent({
     components: {
-        OrbitSpinner,
         ChartCard,
         OptsCard,
+        FooterCard,
     },
     props: { },
     watch: { },
     setup() {
         const { t } = useI18n()
-        const charts = ref(new Array<ChartState>())
+        const charts = ref(new Array<ShallowReactive<ChartState>>())
         const seriesInfo = ref(new Array<ChartSeries>())
 
         const globalStore = useGlobalStore()
@@ -88,20 +63,28 @@ export default defineComponent({
             addedCharts, chartDuration,
         }
     },
-    data() {
-        return { }
-    },
+    data() { return { timerId: 0 } },
     mounted() {
         this.refreshSeries()
+        if (this.timerId == 0) {
+            this.timerId = window.setInterval(() => {
+                this.updateCharts()
+            }, 10 * 1000 )
+        }
     },
-    unmounted() { },
+    unmounted() {
+        if (this.timerId != 0) {
+            window.clearInterval(this.timerId)
+            this.timerId = 0
+        }
+    },
     methods: {
         addChart(id: string) {
-            for(var index in this.seriesInfo)
-            {
+            for(var index in this.seriesInfo) {
                 var entry : ChartSeries = this.seriesInfo[index]
                 if(entry.id == id) {
-                    this.charts.push(new ChartState(entry, this.chartDuration))
+                    this.charts.push(shallowReactive(new ChartState(entry, this.chartDuration)))
+                    //
                     this.UpdateChartsStore()
                     return
                 }
@@ -122,9 +105,15 @@ export default defineComponent({
             this.globalStore.setAddedCharts(lst)
         },
 
+        updateCharts() {
+            this.charts.forEach((e) => e.update())
+        },
         reloadCharts() {
             this.removeAllCharts()
             this.addedCharts.forEach((id) => this.addChart(id))
+        },
+        updateChartDuration() {
+            this.charts.forEach((e) => e.setDuration(this.chartDuration))
         },
         refreshSeries() {
             propertyService.chartSeries()

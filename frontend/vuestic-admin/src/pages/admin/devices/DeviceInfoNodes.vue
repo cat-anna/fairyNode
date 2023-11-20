@@ -99,7 +99,6 @@ export default defineComponent({
     },
     watch: {
         async device_id() {
-            console.log("watch " + this.device_id)
             this.nodeData = new Array<DeviceNode>()
             this.getData()
         }
@@ -121,7 +120,6 @@ export default defineComponent({
     },
 
     mounted() {
-        console.log("mounted " + this.device_id)
         if (this.timerId == 0) {
             this.timerId = window.setInterval(() => { this.getData() }, 10 * 1000)
         }

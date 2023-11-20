@@ -39,21 +39,18 @@ class Formatting {
         return num;
     }
 
+    public TimestampToMilliseconds(v: number): number {
+        return v * 1000
+    }
+
     public transformChartSeries(list: ChartSeriesValueEntry[]) : ChartPoint[] {
         var r = new Array<ChartPoint>()
         for (var key in list) {
             var item = list[key]
-            // if (chart.last_timestamp < item.timestamp) {
-                // chart.config.data.labels.push(newDate(item.timestamp));
                 r.push({
-                    // x: Math.round(item.timestamp),//* 1000,
-                    x: item.timestamp * 1000,
-                    //  moment.unix(item.timestamp).toDate(),
-                     //newDate(item.timestamp),
+                    x: this.TimestampToMilliseconds(item.timestamp),
                     y: item.value,
                 });
-                // chart.last_timestamp = item.timestamp
-            // }
         }
         return r
     }
