@@ -1,4 +1,12 @@
-FROM alpine:latest
+FROM node:lts-alpine AS build_box
+
+RUN mkdir -p /service/frontend/vuestic-admin
+WORKDIR /service/frontend/vuestic-admin
+COPY frontend/vuestic-admin /service/frontend/vuestic-admin
+RUN NODE_ENV=dev npm install
+RUN npm run build
+
+FROM alpine:latest AS service
 
 RUN apk --update add \
     lua5.3 \
@@ -40,17 +48,20 @@ RUN \
     apk del '*-dev' gcc && \
     true
 
-RUN mkdir -p /service/run
+RUN mkdir -p /service/run /service/fairyNode/frontend/
 
 RUN apk --update add nginx supervisor
 RUN mkdir -p /service
 
 RUN apk --update add tzdata
 ENV TZ=Europe/Warsaw
-# RUN cp /usr/share/zoneinfo/Europe/Warsaw /etc/localtime
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-COPY "./" "/service/fairyNode/"
+COPY --from=build_box /service/frontend/vuestic-admin/dist /service/fairyNode/frontend/vuestic-admin
+COPY host/ /service/fairyNode/host
+COPY projects/ /service/fairyNode/projects
+COPY frontend/index.html  /service/fairyNode/frontend/index.html
+COPY frontend/simple /service/fairyNode/frontend/simple
 COPY host/docker/*.conf host/docker/*.lua /service/
 
 EXPOSE 8080/tcp
