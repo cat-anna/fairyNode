@@ -2,6 +2,7 @@
 <template>
     <va-card class="mb-2">
         <va-card-content>
+
             <orbit-spinner v-if="seriesInfo.length == 0" />
             <va-dropdown v-if="seriesInfo.length > 0" trigger="hover" class="mr-2 mb-2" preset="primary">
                 <template #anchor>
@@ -20,10 +21,10 @@
                                 </va-button>
                             </va-list-item>
                         </va-list>
-
                     </va-scroll-container>
                 </va-dropdown-content>
             </va-dropdown>
+
         </va-card-content>
     </va-card>
 </template>

@@ -1,7 +1,7 @@
 
 <template>
     <va-card class="mb-2">
-        <va-card-title>{{ t("charts.options_title")}}</va-card-title>
+        <va-card-title>{{ t("charts.options_title") }}</va-card-title>
         <va-card-content>
             <va-button-toggle :options="durationTimes" v-model="duration" @update:model-value="setDuration" />
         </va-card-content>
@@ -23,7 +23,7 @@ const day: number = 24 * hour
 const week: number = 7 * day
 
 const durationTimes = [
-    { label: "10M",  value: 10*60, },
+    // { label: "10M",  value: 10*60, },
     // { label: "30M",  value: 30*60, },
     { label: "1H",  value: 1 * hour, },
     { label: "2H",  value: 2 * hour, },

@@ -1,22 +1,11 @@
 
 <template>
-    <opts-card
-        @DurationChanged="updateChartDuration"
-        />
+    <opts-card @duration-changed="updateChartDuration" />
 
-    <chart-card
-        class="mb-2 chart_card"
-        v-for="(chart, index) in charts"
-        :chart-state="chart"
-        :index="index"
-        :chart-count="charts.length"
-        @removeChart="removeChart"
-        />
+    <chart-card class="mb-2 chart_card" v-for="(chart, index) in charts" :chart-state="chart" :index="index"
+        :chart-count="charts.length" @removeChart="removeChart" />
 
-    <footer-card
-        :series-info="seriesInfo"
-        @AddChart="addChart"
-        />
+    <footer-card v-if="seriesInfo.groups" :series-info="seriesInfo.groups" @add-chart="addChart" />
 </template>
 
 <style lang="scss">
@@ -29,7 +18,7 @@
 import { useI18n } from 'vue-i18n'
 import { Ref, defineComponent, ref, ShallowReactive, shallowReactive } from 'vue'
 import propertyService from '../../../services/fairyNode/PropertyService'
-import { ChartSeries,ChartSeriesListEntry } from '../../../services/fairyNode/PropertyService'
+import { ChartSeries, ChartSeriesInfo, ChartSeriesValueEntry } from '../../../services/fairyNode/PropertyService'
 
 import { storeToRefs } from 'pinia'
 import { useGlobalStore } from '../../../stores/global-store'
@@ -45,12 +34,12 @@ export default defineComponent({
         OptsCard,
         FooterCard,
     },
-    props: { },
-    watch: { },
+    props: {},
+    watch: {},
     setup() {
         const { t } = useI18n()
         const charts = ref(new Array<ShallowReactive<ChartState>>())
-        const seriesInfo = ref(new Array<ChartSeries>())
+        const seriesInfo = ref(<ChartSeriesInfo>{})
 
         const globalStore = useGlobalStore()
         const { addedCharts, chartDuration } = storeToRefs(globalStore)
@@ -69,7 +58,7 @@ export default defineComponent({
         if (this.timerId == 0) {
             this.timerId = window.setInterval(() => {
                 this.updateCharts()
-            }, 10 * 1000 )
+            }, 10 * 1000)
         }
     },
     unmounted() {
@@ -80,13 +69,14 @@ export default defineComponent({
     },
     methods: {
         addChart(id: string) {
-            for(var index in this.seriesInfo) {
-                var entry : ChartSeries = this.seriesInfo[index]
-                if(entry.id == id) {
-                    this.charts.push(shallowReactive(new ChartState(entry, this.chartDuration)))
-                    //
-                    this.UpdateChartsStore()
-                    return
+            if (this.seriesInfo.groups) {
+                for (var index in this.seriesInfo.groups) {
+                    var entry: ChartSeries = this.seriesInfo.groups[index]
+                    if (entry.id == id) {
+                        this.charts.push(shallowReactive(new ChartState(entry, this.chartDuration)))
+                        this.UpdateChartsStore()
+                        return
+                    }
                 }
             }
         },
@@ -98,7 +88,7 @@ export default defineComponent({
         min(a: any, b: any) { return a > b ? b : a },
 
         UpdateChartsStore() {
-            var lst: string[] = [ ]
+            var lst: string[] = []
             this.charts.forEach((e) => {
                 lst.push(e.chartSeries.id)
             })
@@ -117,17 +107,27 @@ export default defineComponent({
         },
         refreshSeries() {
             propertyService.chartSeries()
-            .then((data) => {
-                data.sort(function (a, b) {
-                    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+                .then((data) => {
+                    var sortFunc = function (a: any, b: any) {
+                        var a_name = a.name || ""
+                        var b_name = b.name || ""
+                        return a_name.toLowerCase().localeCompare(b_name.toLowerCase());
+                    }
+
+                    if (data.device)
+                        data.device.sort(sortFunc)
+                    if (data.groups)
+                        data.groups.sort(sortFunc)
+                    if (data.units)
+                        data.units.sort(sortFunc)
+
+                    this.seriesInfo = data
+                    this.reloadCharts()
                 })
-                this.seriesInfo = data
-                this.reloadCharts()
-            })
-            .catch(() => {
-            })
-            .finally(() => {
-            })
+                .catch(() => {
+                })
+                .finally(() => {
+                })
         }
     }
 })

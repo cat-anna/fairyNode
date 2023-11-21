@@ -10,9 +10,9 @@ export interface ChartSeriesListEntry {
 
 export interface ChartSeries {
     unit?: string
-    name: string
+    name?: string
     id: string
-    values: ChartSeriesListEntry[]
+    series: ChartSeriesListEntry[]
 }
 
 export interface ChartSeriesValueEntry {
@@ -26,12 +26,18 @@ export interface ChartSeriesData {
     list: ChartSeriesValueEntry[]
 }
 
+export interface ChartSeriesInfo {
+    groups?: ChartSeries[]
+    units?: ChartSeries[]
+    device?: ChartSeries[]
+}
+
 export class PropertyService extends RestServiceBase {
     constructor() {
         super("property")
     }
 
-    chartSeries(): Promise<ChartSeries[]> { return this.get_json("/chart/series") }
+    chartSeries(): Promise<ChartSeriesInfo> { return this.get_json("/chart/series") }
 
     valueHistory(value_id: string, from: number|null = null, to: number|null = null): Promise<ChartSeriesData> {
         let args: String[] = []

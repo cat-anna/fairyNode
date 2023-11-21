@@ -102,11 +102,11 @@ export class ChartState {
         this.chartData.datasets = [];
         this.datasets = new Array<DatasetState>()
 
-        this.chartSeries.values.sort((a, b) => {
+        this.chartSeries.series.sort((a, b) => {
             return a.display_name.localeCompare(b.display_name)
         })
 
-        this.chartSeries.values.forEach((entry) => {
+        this.chartSeries.series.forEach((entry) => {
             this.datasets.push(new DatasetState(this, entry, this.chartData.datasets, dataDuration))
         })
     }

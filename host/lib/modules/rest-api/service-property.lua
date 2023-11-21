@@ -94,11 +94,14 @@ function ServiceProperty:ListDataSeries()
         ["ug"] = true,
     }
 
-    local r = {}
+    local groups = {}
+    local units = {}
+
     for _, prop in pairs(self.property_manager.properties_by_id) do
         for _, value in pairs(prop:GetValues()) do
             local unit = value:GetUnit() or ""
             local datatype = value:GetDatatype()
+            local value_name = value:GetName()
 
             local a = allowed_datatypes[datatype]
             if a == nil then
@@ -106,31 +109,56 @@ function ServiceProperty:ListDataSeries()
             end
 
             if unit_exceptions[unit] then
-                -- prop_id = ""
+                -- value_name = ""
             end
 
             if a then
-                local series_id = string.format("%s|%s", unit, value:GetName())
-                if not r[series_id] then
-                    local name = value:GetName()
-                    r[series_id] = {
+                local series_id = string.format("%s|%s", unit, value_name)
+                local name = value:GetName()
+                local global_id = value:GetGlobalId()
+
+                if not groups[series_id] then
+                    groups[series_id] = {
                         name = name,
                         unit = unit,
                         id = md5.sumhexa(string.format("%s|%s", unit, name)),
-                        values = { },
+                        series = { },
                     }
                 end
 
-                table.insert(r[series_id].values, {
-                    global_id = value:GetGlobalId(),
-                    display_name = string.format("%s %s", prop:GetSourceName(), value:GetName())
+                if not units[unit] then
+                    units[unit] = {
+                        name = name,
+                        unit = unit,
+                        id = md5.sumhexa(string.format("%s", unit)),
+                        series = { }
+                    }
+                else
+                    if units[unit].name ~= nil and units[unit].name ~= name then
+                        units[unit].name = nil
+                    end
+                end
+
+                local display_name = string.format("%s %s", prop:GetSourceName(), value:GetName())
+
+                table.insert(groups[series_id].series, {
+                    global_id = global_id,
+                    display_name = display_name,
+                    -- device = dev:GetName(),
+                })
+
+                table.insert(units[unit].series, {
+                    global_id = global_id,
+                    display_name = display_name,
                     -- device = dev:GetName(),
                 })
             end
         end
-
     end
-    return http.OK, tablex.values(r)
+    return http.OK,  {
+        groups = tablex.values(groups),
+        units = tablex.values(units)
+    }
 end
 
 -------------------------------------------------------------------------------------
