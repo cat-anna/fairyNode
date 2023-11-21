@@ -1,98 +1,98 @@
 {
-    "404": {
-        "title": "This page's gone fishing.",
-        "text": "If you feel that it's not right, please send us a message at ",
-        "back_button": "Back to dashboard"
-    },
-    "dashboard": {
-        "deviceTable": {
-            "title": "Device list"
-        }
-    },
-    "menu": {
-        "dashboard": "Dashboard",
-        "devices": "Devices",
-        "charts": "Charts"
-    },
-    "deviceInfo": {
-        "title": "Device info",
-        "nodes": {
-            "setFailure": "Failed to set property value",
-            "setSuccess": "Property value is updated",
-            "copyToClipboard": "Property global id copied to clipboard",
-            "tabTitle": "Nodes",
-            "property": {
-                "name": "Name",
-                "value": "Value",
-                "timestamp": "Timestamp",
-                "set": "set"
-            }
-        },
-        "software": {
-            "tabTitle": "Software",
-            "commits": "Commits",
-            "activate": "Activate",
-            "notSupported": "This device does not run fairyNode",
-            "help": {
-                "commitIsActive": "This commit is active",
-                "commitIsCurrent": "This commit is running on device",
-                "commitBootSuccessful": "This commit booted successfully on device ",
-                "activateCommit": "Click to activate this commit",
-            },
-            "commit": {
-                "active": "Active",
-                "id": "id",
-                "timestamp": "Timestamp",
-                "bootSuccessful": "Successful",
-                "current": "Current",
-                "actions": "Actions"
-            },
-            "activateConfirmationMessage": "Do you really want to activate this software?",
-            "activateSuccess": "Software activated",
-            "activateFailure": "Software activation failed"
-        },
-        "details": {
-            "tabTitle": "Details",
-            "variables": {
-                "title": "Device variables",
-                "key": "key",
-                "value": "Value",
-                "invalid": "This device does not have variables"
-            },
-            "software": {
-                "title": "Software version",
-                "invalid": "This device does not run FairyNode software ",
-                "version": "Version",
-                "branch": "Branch",
-                "release": "Release",
-                "nodemcu_version": "Nodemcu version",
-                "fairy_node_version": "FairyNode version",
-                "component": {
-                    "lfs": "LFS",
-                    "root": "Root fs",
-                    "config": "Configuration"
-                }
-            }
-        },
-        "setter": {
-            "toggle": "Toggle"
-        }
-    },
-    "charts": {
-        "options_title": "Options",
-        "add_chart": "Add chart",
-        "remove_chart": "remove",
-        "samples": "samples",
-        "tips": {
-            "reload": "Reload this chart",
-            "remove_chart": "Remove this chart"
-        }
-    },
-    "language": {
-        "english": "English"
-    },
-    "user": {
-        "profile": "Profile",
-        "logout":"Logout"
+  "404": {
+    "title": "This page's gone fishing.",
+    "text": "If you feel that it's not right, please send us a message at ",
+    "back_button": "Back to dashboard"
+  },
+  "dashboard": {
+    "deviceTable": {
+      "title": "Device list"
     }
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "devices": "Devices",
+    "charts": "Charts"
+  },
+  "deviceInfo": {
+    "title": "Device info",
+    "nodes": {
+      "setFailure": "Failed to set property value",
+      "setSuccess": "Property value is updated",
+      "copyToClipboard": "Property global id copied to clipboard",
+      "tabTitle": "Nodes",
+      "property": {
+        "name": "Name",
+        "value": "Value",
+        "timestamp": "Timestamp",
+        "set": "set"
+      }
+    },
+    "software": {
+      "tabTitle": "Software",
+      "commits": "Commits",
+      "activate": "Activate",
+      "notSupported": "This device does not run fairyNode",
+      "help": {
+        "commitIsActive": "This commit is active",
+        "commitIsCurrent": "This commit is running on device",
+        "commitBootSuccessful": "This commit booted successfully on device ",
+        "activateCommit": "Click to activate this commit"
+      },
+      "commit": {
+        "active": "Active",
+        "id": "id",
+        "timestamp": "Timestamp",
+        "bootSuccessful": "Successful",
+        "current": "Current",
+        "actions": "Actions"
+      },
+      "activateConfirmationMessage": "Do you really want to activate this software?",
+      "activateSuccess": "Software activated",
+      "activateFailure": "Software activation failed"
+    },
+    "details": {
+      "tabTitle": "Details",
+      "variables": {
+        "title": "Device variables",
+        "key": "key",
+        "value": "Value",
+        "invalid": "This device does not have variables"
+      },
+      "software": {
+        "title": "Software version",
+        "invalid": "This device does not run FairyNode software ",
+        "version": "Version",
+        "branch": "Branch",
+        "release": "Release",
+        "nodemcu_version": "Nodemcu version",
+        "fairy_node_version": "FairyNode version",
+        "component": {
+          "lfs": "LFS",
+          "root": "Root fs",
+          "config": "Configuration"
+        }
+      }
+    },
+    "setter": {
+      "toggle": "Toggle"
+    }
+  },
+  "charts": {
+    "options_title": "Options",
+    "add_chart": "Add chart",
+    "remove_chart": "remove",
+    "samples": "samples",
+    "tips": {
+      "reload": "Reload this chart",
+      "remove_chart": "Remove this chart"
+    }
+  },
+  "language": {
+    "english": "English"
+  },
+  "user": {
+    "profile": "Profile",
+    "logout": "Logout"
+  }
 }

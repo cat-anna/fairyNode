@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
   import { Line } from 'vue-chartjs'
-  import type { TChartOptions } from 'vue-chartjs/dist/types'
+  // eslint-disable-next-line
   import {
     Chart as ChartJS,
     Title,
@@ -16,7 +16,8 @@
     CategoryScale,
     Filler,
     TimeScale,
-    Colors
+    Colors,
+    ChartOptions,
   } from 'chart.js'
   import { TLineChartData } from '../../../data/types'
 
@@ -30,11 +31,11 @@
     LinearScale,
     PointElement,
     CategoryScale,
-    Filler
+    Filler,
   )
 
-  const props = defineProps<{
+  defineProps<{
     chartData: TLineChartData
-    chartOptions?: TChartOptions<'line'>
+    chartOptions?: ChartOptions<'line'>
   }>()
 </script>

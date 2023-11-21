@@ -12,6 +12,9 @@ module.exports = {
     parser: '@typescript-eslint/parser',
     sourceType: 'module',
     ecmaVersion: 2021,
+    ecmaFeatures: {
+      jsx: false,
+    },
   },
   extends: [
     'eslint:recommended',
@@ -19,12 +22,13 @@ module.exports = {
     'plugin:vue/vue3-recommended',
     '@vue/typescript/recommended',
     '@vue/prettier',
+    '@vue/eslint-config-prettier',
   ],
-
   rules: {
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'prettier/prettier': ['warn', {}, { usePrettierrc: true }],
+    '@typescript-eslint/ban-ts-comment': 'warn',
     '@typescript-eslint/no-non-null-assertion': 0,
     '@typescript-eslint/no-explicit-any': 0, // allow explicit any's because of the legacy code and ts-less deps, but still prohibit IMplicit any's
     'vue/multi-word-component-names': 0,

@@ -1,59 +1,64 @@
-
 <template>
-    <OrbitSpinner v-if="!idle" :size="16" />
-    <va-button v-if="idle && device_id && node_id && prop_id" preset="plain" size="small" @click="onToggle"> {{
-        t('deviceInfo.setter.toggle') }} </va-button>
+  <OrbitSpinner v-if="!idle" :size="16" />
+  <va-button v-if="idle && deviceId && nodeId && propId" preset="plain" size="small" @click="onToggle">
+    {{ t('deviceInfo.setter.toggle') }}
+  </va-button>
 </template>
 
-<style></style>
-
 <script lang="ts">
-import { useI18n } from 'vue-i18n'
-import deviceService from '../../../../services/fairyNode/DeviceService'
-import { OrbitSpinner } from 'epic-spinners'
-import { useToast } from 'vuestic-ui'
+  import { useI18n } from 'vue-i18n'
+  import deviceService from '../../../../services/fairyNode/DeviceService'
+  import { OrbitSpinner } from 'epic-spinners'
+  import { useToast } from 'vuestic-ui'
+  import { defineComponent } from 'vue'
 
-export default {
+  export default defineComponent({
     components: {
-        OrbitSpinner,
+      OrbitSpinner,
     },
     props: {
-        device_id: String,
-        node_id: String,
-        prop_id: String,
-        value: Boolean
+      deviceId: { type: String, required: true },
+      nodeId: { type: String, required: true },
+      propId: { type: String, required: true },
+      value: Boolean,
     },
-    emits: ["changed"],
+    emits: ['changed'],
     setup(Properties, { emit }) {
-        const { init, close, closeAll } = useToast()
-        const { t } = useI18n()
-        return { t, emit, toastShow: init, }
+      const { init } = useToast()
+      const { t } = useI18n()
+      return { t, emit, toastShow: init }
     },
     data() {
-        return {
-            idle: true
-        }
+      return {
+        idle: true,
+      }
     },
     methods: {
-        onToggle() {
-            this.idle = false
-            if (this.device_id && this.node_id && this.prop_id) {
-                deviceService.setProperty(this.device_id, this.node_id, this.prop_id, !this.value)
-                    .then(() => this.toastShow({
-                        message: this.t("deviceInfo.nodes.setSuccess"),
-                        color: 'success'
-                    }))
-                    .catch(() => this.toastShow({
-                        message: this.t("deviceInfo.nodes.setFailure"),
-                        color: 'warning'
-                    }))
-                    .finally(() => {
-                        this.idle = true
-                        this.emit('changed')
-                    })
-            }
+      onToggle() {
+        this.idle = false
+        if (this.deviceId && this.nodeId && this.propId) {
+          deviceService
+            .setProperty(this.deviceId, this.nodeId, this.propId, !this.value)
+            .then(() =>
+              this.toastShow({
+                message: this.t('deviceInfo.nodes.setSuccess'),
+                color: 'success',
+              }),
+            )
+            .catch(() =>
+              this.toastShow({
+                message: this.t('deviceInfo.nodes.setFailure'),
+                color: 'warning',
+              }),
+            )
+            .finally(() => {
+              this.idle = true
+              this.emit('changed')
+            })
         }
-    }
-}
+      },
+    },
+  })
 </script>
 
+<style></style>

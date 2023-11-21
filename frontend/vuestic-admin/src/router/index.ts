@@ -7,98 +7,96 @@ import Page404Layout from '../layouts/Page404Layout.vue'
 import RouteViewComponent from '../layouts/RouterBypass.vue'
 
 const routes: Array<RouteRecordRaw> = [
-    {
-        path: '/:catchAll(.*)',
-        redirect: { name: 'dashboard' },
-    },
-    {
-        name: 'admin',
-        path: '/admin',
-        component: AppLayout,
+  {
+    path: '/:catchAll(.*)',
+    redirect: { name: 'dashboard' },
+  },
+  {
+    name: 'admin',
+    path: '/admin',
+    component: AppLayout,
+    children: [
+      {
+        name: 'dashboard',
+        path: 'dashboard',
+        component: () => import('../pages/admin/dashboard/Dashboard.vue'),
+      },
+      {
+        name: 'charts',
+        path: 'charts',
+        component: () => import('../pages/admin/charts/Charts.vue'),
+        children: [],
+      },
+      {
+        name: 'devices',
+        path: 'devices',
+        component: RouteViewComponent,
         children: [
-            {
-                name: 'dashboard',
-                path: 'dashboard',
-                component: () => import('../pages/admin/dashboard/Dashboard.vue'),
-            },
-            {
-                name: 'charts',
-                path: 'charts',
-                component: () => import('../pages/admin/charts/Charts.vue'),
-                children: [
-                ],
-            },
-            {
-                name: 'devices',
-                path: 'devices',
-                component: RouteViewComponent,
-                children: [
-                    {
-                        name: 'device_info',
-                        path: ':device_id',
-                        component: () => import('../pages/admin/devices/DeviceInfo.vue'),
-                        meta: {
-                        },
-                    },
-                ],
-            },
+          {
+            name: 'device_info',
+            path: ':device_id',
+            component: () => import('../pages/admin/devices/DeviceInfo.vue'),
+            meta: {},
+          },
         ],
-    },
-    {
-        path: '/auth',
-        component: AuthLayout,
-        children: [
-            {
-                name: 'login',
-                path: 'login',
-                component: () => import('../pages/auth/login/Login.vue'),
-            },
-            {
-                name: 'signup',
-                path: 'signup',
-                component: () => import('../pages/auth/signup/Signup.vue'),
-            },
-            {
-                name: 'recover-password',
-                path: 'recover-password',
-                component: () => import('../pages/auth/recover-password/RecoverPassword.vue'),
-            },
-            {
-                path: '',
-                redirect: { name: 'login' },
-            },
-        ],
-    },
-    {
-        path: '/404',
-        component: Page404Layout,
-        children: [
-            {
-                name: 'not-found-advanced',
-                path: 'not-found-advanced',
-                component: () => import('../pages/404-pages/VaPageNotFoundSearch.vue'),
-            },
-            {
-                name: 'not-found-simple',
-                path: 'not-found-simple',
-                component: () => import('../pages/404-pages/VaPageNotFoundSimple.vue'),
-            },
-            {
-                name: 'not-found-custom',
-                path: 'not-found-custom',
-                component: () => import('../pages/404-pages/VaPageNotFoundCustom.vue'),
-            },
-            {
-                name: 'not-found-large-text',
-                path: '/pages/not-found-large-text',
-                component: () => import('../pages/404-pages/VaPageNotFoundLargeText.vue'),
-            },
-        ],
-    },
+      },
+    ],
+  },
+  {
+    path: '/auth',
+    component: AuthLayout,
+    children: [
+      {
+        name: 'login',
+        path: 'login',
+        component: () => import('../pages/auth/login/Login.vue'),
+      },
+      {
+        name: 'signup',
+        path: 'signup',
+        component: () => import('../pages/auth/signup/Signup.vue'),
+      },
+      {
+        name: 'recover-password',
+        path: 'recover-password',
+        component: () => import('../pages/auth/recover-password/RecoverPassword.vue'),
+      },
+      {
+        path: '',
+        redirect: { name: 'login' },
+      },
+    ],
+  },
+  {
+    path: '/404',
+    component: Page404Layout,
+    children: [
+      {
+        name: 'not-found-advanced',
+        path: 'not-found-advanced',
+        component: () => import('../pages/404-pages/VaPageNotFoundSearch.vue'),
+      },
+      {
+        name: 'not-found-simple',
+        path: 'not-found-simple',
+        component: () => import('../pages/404-pages/VaPageNotFoundSimple.vue'),
+      },
+      {
+        name: 'not-found-custom',
+        path: 'not-found-custom',
+        component: () => import('../pages/404-pages/VaPageNotFoundCustom.vue'),
+      },
+      {
+        name: 'not-found-large-text',
+        path: '/pages/not-found-large-text',
+        component: () => import('../pages/404-pages/VaPageNotFoundLargeText.vue'),
+      },
+    ],
+  },
 ]
 
 const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition
@@ -110,7 +108,7 @@ const router = createRouter({
       document.querySelector('.app-layout__page')?.scrollTo(0, 0)
     }
   },
-    routes,
+  routes,
 })
 
 export default router

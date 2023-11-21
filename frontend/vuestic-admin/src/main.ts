@@ -8,13 +8,13 @@ import vuesticGlobalConfig from './services/vuestic-ui/global-config'
 import App from './App.vue'
 
 import { createPinia } from 'pinia'
-import piniaPluginPersistedState from "pinia-plugin-persistedstate"
+import piniaPluginPersistedState from 'pinia-plugin-persistedstate'
 
 const app = createApp(App)
 
-const pinia = createPinia();
+const pinia = createPinia()
 pinia.use(piniaPluginPersistedState)
-app.use(pinia);
+app.use(pinia)
 
 app.use(router)
 app.use(i18n)

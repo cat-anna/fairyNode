@@ -1,6 +1,6 @@
 <template>
   <div class="tree-view-advanced-preview">
-    <div class="tree-view-advanced-preview__buttons">
+    <!-- <div class="tree-view-advanced-preview__buttons">
       <va-button class="mr-2" @click="expandAll">EXPAND ALL</va-button>
       <va-button @click="collapseAll">COLLAPSE ALL</va-button>
     </div>
@@ -11,23 +11,20 @@
           <va-icon color="backgroundPrimary" :name="expanded ? 'remove' : 'add'" />
         </div>
       </template>
-    </va-tree-view>
+    </va-tree-view> -->
   </div>
 </template>
 
 <script setup>
+  /*
   import { ref } from 'vue'
-
   const nodes = [
     {
       id: 1,
       label: 'Electronics',
       children: [
         { id: 2, label: 'Cellphones' },
-        {
-          id: 3,
-          label: 'Camera Body Kits',
-        },
+        { id: 3, label: 'Camera Body Kits' },
         { id: 6, label: 'External HDDs' },
       ],
     },
@@ -105,6 +102,8 @@
   const collapseAll = () => {
     expanded.value = []
   }
+
+  */
 </script>
 
 <style lang="scss">

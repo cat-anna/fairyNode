@@ -1,4 +1,3 @@
-
 // function fetchData() {
 //     // loading.value = true;
 //     // I prefer to use fetch
@@ -39,7 +38,7 @@
 //       });
 //   }
 
-var base_url = "/api"
+const base_url = '/api'
 
 class HttpError {
   message: string
@@ -60,40 +59,37 @@ export interface GenericResult {
 
 class HttpHandler {
   get_json(path: string) {
-    let url = base_url + path;
+    const url = base_url + path
     // console.log("GET " + url)
     return fetch(url, {
       method: 'get',
       headers: {
-        'content-type': 'application/json'
+        'content-type': 'application/json',
+      },
+    }).then((response: Response) => {
+      if (response.ok) {
+        return response.json()
       }
+      throw new HttpError('Something went wrong', response.status, response.statusText)
     })
-      .then((response: Response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new HttpError('Something went wrong', response.status, response.statusText);
-      })
   }
 
   post_json(path: string, data: object) {
-    let url = base_url + path;
-    console.log("POST " + url)
+    const url = base_url + path
+    console.log('POST ' + url)
     return fetch(url, {
       method: 'post',
       body: JSON.stringify(data),
       headers: {
-        'content-type': 'application/json'
+        'content-type': 'application/json',
+      },
+    }).then((response) => {
+      if (response.ok) {
+        return response.json()
       }
+      throw new HttpError('Something went wrong', response.status, response.statusText)
     })
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new HttpError('Something went wrong', response.status, response.statusText);
-      })
   }
-
 }
 
 export default new HttpHandler()

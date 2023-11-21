@@ -1,83 +1,86 @@
-
 <template>
-    <OrbitSpinner v-if="!idle" :size="16" />
-    <va-button v-if="!editing && idle" @click="beginEdit" plain>
-        <va-icon :name='"material-icons-edit"' />
-    </va-button>
+  <OrbitSpinner v-if="!idle" :size="16" />
+  <va-button v-if="!editing && idle" plain @click="beginEdit">
+    <va-icon :name="'material-icons-edit'" />
+  </va-button>
 
-
-    <va-input v-if="editing" v-model="pending_value" class="mb-6" style="width: 200px;">
-        <template #prepend>
-            <va-button plain @click="applyEdit"><va-icon :name='"material-icons-done"' /></va-button>
-        </template>
-        <template #append>
-            <va-button plain @click="cancelEdit"><va-icon :name='"material-icons-cancel"' /></va-button>
-        </template>
-    </va-input>
+  <va-input v-if="editing" v-model="pendingValue" class="mb-6" style="width: 200px">
+    <template #prepend>
+      <va-button plain @click="applyEdit"><va-icon :name="'material-icons-done'" /></va-button>
+    </template>
+    <template #append>
+      <va-button plain @click="cancelEdit"><va-icon :name="'material-icons-cancel'" /></va-button>
+    </template>
+  </va-input>
 </template>
 
-<style></style>
-
 <script lang="ts">
-import { useI18n } from 'vue-i18n'
-import deviceService from '../../../../services/fairyNode/DeviceService'
-import { OrbitSpinner } from 'epic-spinners'
-import { useToast } from 'vuestic-ui'
+  import { useI18n } from 'vue-i18n'
+  import deviceService from '../../../../services/fairyNode/DeviceService'
+  import { OrbitSpinner } from 'epic-spinners'
+  import { useToast } from 'vuestic-ui'
+  import { defineComponent } from 'vue'
 
-export default {
+  export default defineComponent({
     components: {
-        OrbitSpinner,
+      OrbitSpinner,
     },
     props: {
-        device_id: String,
-        node_id: String,
-        prop_id: String,
-        value: String
+      deviceId: { type: String, required: true },
+      nodeId: { type: String, required: true },
+      propId: { type: String, required: true },
+      value: { type: String, required: true },
     },
-    emits: ["changed"],
+    emits: ['changed'],
     setup(Properties, { emit }) {
-        const { init, close, closeAll } = useToast()
-        const { t } = useI18n()
-        return { t, emit, toastShow: init, }
+      const { init } = useToast()
+      const { t } = useI18n()
+      return { t, emit, toastShow: init }
     },
     data() {
-        return {
-            idle: true,
-            editing: false,
-            pending_value: "",
-        }
+      return {
+        idle: true,
+        editing: false,
+        pendingValue: '',
+      }
     },
     methods: {
-        beginEdit() {
-            this.pending_value = ""
-            if (this.value != null) {
-                this.pending_value = this.value
-            }
-            this.editing = true
-        },
-        cancelEdit() {
-            this.editing = false
-        },
-        applyEdit() {
-            if (this.device_id && this.node_id && this.prop_id) {
-                this.idle = false
-                deviceService.setProperty(this.device_id, this.node_id, this.prop_id, this.pending_value)
-                    .then(() => this.toastShow({
-                        message: this.t("deviceInfo.nodes.setSuccess"),
-                        color: 'success'
-                    }))
-                    .catch(() => this.toastShow({
-                        message: this.t("deviceInfo.nodes.setFailure"),
-                        color: 'warning'
-                    }))
-                    .finally(() => {
-                        this.idle = true
-                        this.emit('changed')
-                    })
-            }
-            this.editing = false
-        },
-    }
-}
+      beginEdit() {
+        this.pendingValue = ''
+        if (this.value != null) {
+          this.pendingValue = this.value
+        }
+        this.editing = true
+      },
+      cancelEdit() {
+        this.editing = false
+      },
+      applyEdit() {
+        if (this.deviceId && this.nodeId && this.propId) {
+          this.idle = false
+          deviceService
+            .setProperty(this.deviceId, this.nodeId, this.propId, this.pendingValue)
+            .then(() =>
+              this.toastShow({
+                message: this.t('deviceInfo.nodes.setSuccess'),
+                color: 'success',
+              }),
+            )
+            .catch(() =>
+              this.toastShow({
+                message: this.t('deviceInfo.nodes.setFailure'),
+                color: 'warning',
+              }),
+            )
+            .finally(() => {
+              this.idle = true
+              this.emit('changed')
+            })
+        }
+        this.editing = false
+      },
+    },
+  })
 </script>
 
+<style></style>

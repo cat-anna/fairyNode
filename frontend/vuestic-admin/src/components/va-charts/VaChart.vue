@@ -4,14 +4,14 @@
 
 <script setup lang="ts">
   import { computed, ref } from 'vue'
-  import type { TChartOptions } from 'vue-chartjs/dist/types'
   import { chartTypesMap } from './vaChartConfigs'
   import { TChartData } from '../../data/types'
-  import 'chartjs-adapter-luxon';
+  import { ChartOptions } from 'chart.js'
+  import 'chartjs-adapter-luxon'
 
   const props = defineProps<{
     data: TChartData
-    options?: TChartOptions<'line' | 'bar' | 'bubble' | 'doughnut' | 'pie'>
+    options?: ChartOptions<'line' | 'bar' | 'bubble' | 'doughnut' | 'pie'>
     type: keyof typeof chartTypesMap
   }>()
 

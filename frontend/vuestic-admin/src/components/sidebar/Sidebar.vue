@@ -30,25 +30,16 @@
 
   const items = ref(NavigationRoutes.routes)
 
-  import deviceService from '../../services/fairyNode/DeviceService'
-
-  deviceService.list().then(function(data) {
-    let r: any[] = []
-    data.forEach(function(e){
-      r.push({
-        name: 'device_info',
-        rawDisplayName: e.name,
-        params: {
-          device_id: e.device_id,
-        },
-      })
+  function refreshRoutes() {
+    items.value.forEach((route: any) => {
+      if (route.childrenFunc) {
+        route.childrenFunc(route).then((c: any) => (route.children = c))
+      }
     })
-    r.sort(function(a,b) {
-      return a.rawDisplayName.toLowerCase().localeCompare(b.rawDisplayName.toLowerCase());
-    })
-    items.value[1].children = r
-  })
+  }
 
+  refreshRoutes()
+  // const refreshRoutesTimer = setInterval(refreshRoutes, 30 * 1000)
 </script>
 
 <style lang="scss">

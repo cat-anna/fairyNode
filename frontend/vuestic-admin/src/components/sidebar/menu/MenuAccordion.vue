@@ -20,7 +20,7 @@
       <template v-for="(child, index) in route.children" :key="index">
         <va-sidebar-item :active="isRouteActive(child)" :to="{ name: child.name, params: child.params }">
           <va-sidebar-item-content>
-            <div class="va-sidebar-item__icon" ></div>
+            <div class="va-sidebar-item__icon"></div>
 
             <va-sidebar-item-title v-if="child.displayName">
               {{ t(child.displayName) }}
@@ -28,7 +28,6 @@
             <va-sidebar-item-title v-if="child.rawDisplayName">
               {{ child.rawDisplayName }}
             </va-sidebar-item-title>
-
           </va-sidebar-item-content>
         </va-sidebar-item>
       </template>
@@ -63,8 +62,7 @@
   // }
 
   function isRouteActive(item: INavigationRoute) {
-    return item.name === useRoute().name &&
-            JSON.stringify(item.params) === JSON.stringify(useRoute().params)
+    return item.name === useRoute().name && JSON.stringify(item.params) === JSON.stringify(useRoute().params)
   }
 
   function isItemExpanded(item: INavigationRoute): boolean {
