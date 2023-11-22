@@ -7,13 +7,7 @@
         </h2>
       </va-card-title>
       <va-card-content class="grid grid-cols-12 gap-6 items-start justify-between">
-        <va-button
-          class="col-span-full md:col-span-2"
-          preset="outline"
-          border-color="primary"
-          color="primary"
-          :to="{ name: 'icon-sets' }"
-        >
+        <va-button class="col-span-full md:col-span-2" preset="outline" border-color="primary" color="primary" :to="{ name: 'icon-sets' }">
           {{ t('icons.back') }}
         </va-button>
 
@@ -25,15 +19,7 @@
 
         <div class="icon-set__header__size col-span-full md:col-span-5 flex items-center">
           <span class="m-2 pr-2 icon-set__header__size--smaller" :style="{ color: colors.dark }">A</span>
-          <va-slider
-            v-model="iconSize"
-            class="flex-1"
-            :label-value="`${iconSize}px`"
-            :min="slider.min"
-            :max="slider.max"
-            value-visible
-          >
-          </va-slider>
+          <va-slider v-model="iconSize" class="flex-1" :label-value="`${iconSize}px`" :min="slider.min" :max="slider.max" value-visible> </va-slider>
           <span class="m-2 pl-2 icon-set__header__size--bigger" :style="{ color: colors.dark }">A</span>
         </div>
       </va-card-content>

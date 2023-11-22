@@ -21,18 +21,7 @@
   } from 'chart.js'
   import { TLineChartData } from '../../../data/types'
 
-  ChartJS.register(
-    Colors,
-    TimeScale,
-    Title,
-    Tooltip,
-    Legend,
-    LineElement,
-    LinearScale,
-    PointElement,
-    CategoryScale,
-    Filler,
-  )
+  ChartJS.register(Colors, TimeScale, Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler)
 
   defineProps<{
     chartData: TLineChartData

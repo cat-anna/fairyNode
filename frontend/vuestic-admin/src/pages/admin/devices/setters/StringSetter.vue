@@ -1,5 +1,5 @@
 <template>
-  <OrbitSpinner v-if="!idle" :size="16" />
+  <busy-spinner v-if="!idle" :size="16" />
   <va-button v-if="!editing && idle" plain @click="beginEdit">
     <va-icon :name="'material-icons-edit'" />
   </va-button>
@@ -17,14 +17,11 @@
 <script lang="ts">
   import { useI18n } from 'vue-i18n'
   import deviceService from '../../../../services/fairyNode/DeviceService'
-  import { OrbitSpinner } from 'epic-spinners'
   import { useToast } from 'vuestic-ui'
   import { defineComponent } from 'vue'
 
   export default defineComponent({
-    components: {
-      OrbitSpinner,
-    },
+    // components: { },
     props: {
       deviceId: { type: String, required: true },
       nodeId: { type: String, required: true },

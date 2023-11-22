@@ -5,23 +5,10 @@
     </template>
 
     <va-dropdown-content class="color-dropdown__content pl-8 pr-8 pt-2 pb-2">
-      <va-button-toggle
-        v-model="currentTheme"
-        class="color-dropdown__toggle"
-        :options="themeOptions"
-        outline
-        round
-        grow
-        size="small"
-      />
+      <va-button-toggle v-model="currentTheme" class="color-dropdown__toggle" :options="themeOptions" outline round grow size="small" />
 
       <table class="w-full my-4">
-        <color-dropdown-item
-          v-for="colorName in colorNames"
-          :key="colorName"
-          class="color-picker-dropdown"
-          :color-name="colorName"
-        />
+        <color-dropdown-item v-for="colorName in colorNames" :key="colorName" class="color-picker-dropdown" :color-name="colorName" />
       </table>
     </va-dropdown-content>
   </va-dropdown>

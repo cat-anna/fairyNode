@@ -1,13 +1,6 @@
 <template>
   <form class="login" @submit.prevent="onsubmit">
-    <va-input
-      v-model="email"
-      class="mb-4"
-      type="email"
-      :label="t('auth.email')"
-      :error="!!emailErrors.length"
-      :error-messages="emailErrors"
-    />
+    <va-input v-model="email" class="mb-4" type="email" :label="t('auth.email')" :error="!!emailErrors.length" :error-messages="emailErrors" />
 
     <div class="flex justify-center mt-4">
       <va-button type="submit" class="my-0">{{ t('auth.reset_password') }}</va-button>

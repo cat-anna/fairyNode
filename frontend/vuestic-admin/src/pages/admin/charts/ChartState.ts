@@ -80,13 +80,15 @@ export class ChartState {
   updateFunc?: (b: boolean) => void
   datasets: Array<DatasetState>
   dataDuration: number
+  id: number
 
-  constructor(series: ChartSeries, dataDuration: number) {
+  constructor(series: ChartSeries, dataDuration: number, id: number) {
     this.chartSeries = series
     this.chartData = <TLineChartData>{}
     this.ready = false
     this.datasets = new Array<DatasetState>()
     this.dataDuration = dataDuration
+    this.id = id
 
     this.reload()
   }

@@ -1,11 +1,5 @@
 <template>
-  <svg
-    xmlns:xlink="http://www.w3.org/1999/xlink"
-    class="va-icon-faster"
-    viewBox="0 0 24 24"
-    version="1.1"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg xmlns:xlink="http://www.w3.org/1999/xlink" class="va-icon-faster" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg">
     <!-- Generator: sketchtool 48.2 (47327) - http://www.bohemiancoding.com/sketch -->
     <title>62EBC3B8-A55C-4B01-95A2-52FB8EDD4150</title>
     <defs />

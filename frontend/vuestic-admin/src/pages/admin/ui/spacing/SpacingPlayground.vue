@@ -2,40 +2,16 @@
   <div class="spacing-playground">
     <div class="row">
       <div class="flex xs12 sm6 md4">
-        <va-select
-          v-model="selectedMarginDirection"
-          :options="directionList"
-          :label="t('spacingPlayground.margin')"
-          :max-height="null"
-          no-clear
-        />
+        <va-select v-model="selectedMarginDirection" :options="directionList" :label="t('spacingPlayground.margin')" :max-height="null" no-clear />
       </div>
       <div class="flex xs12 sm6 md2">
-        <va-select
-          v-model="selectedMarginSize"
-          :options="sizesList"
-          :label="t('spacingPlayground.value')"
-          :max-height="null"
-          no-clear
-        />
+        <va-select v-model="selectedMarginSize" :options="sizesList" :label="t('spacingPlayground.value')" :max-height="null" no-clear />
       </div>
       <div class="flex xs12 sm6 md4">
-        <va-select
-          v-model="selectedPaddingDirection"
-          :options="directionList"
-          :label="t('spacingPlayground.padding')"
-          :max-height="null"
-          no-clear
-        />
+        <va-select v-model="selectedPaddingDirection" :options="directionList" :label="t('spacingPlayground.padding')" :max-height="null" no-clear />
       </div>
       <div class="flex xs12 sm6 md2">
-        <va-select
-          v-model="selectedPaddingSize"
-          :options="sizesList"
-          :label="t('spacingPlayground.value')"
-          :max-height="null"
-          no-clear
-        />
+        <va-select v-model="selectedPaddingSize" :options="sizesList" :label="t('spacingPlayground.value')" :max-height="null" no-clear />
       </div>
     </div>
 
@@ -82,15 +58,11 @@
   const selectedPaddingSize = ref('3')
 
   const selectedMarginClass = computed(() => {
-    return selectedMarginDirection.value && selectedMarginSize.value
-      ? `m${selectedMarginDirection.value}-${selectedMarginSize.value}`
-      : ''
+    return selectedMarginDirection.value && selectedMarginSize.value ? `m${selectedMarginDirection.value}-${selectedMarginSize.value}` : ''
   })
 
   const selectedPaddingClass = computed(() => {
-    return selectedPaddingDirection.value && selectedPaddingSize.value
-      ? `p${selectedPaddingDirection.value}-${selectedPaddingSize.value}`
-      : ''
+    return selectedPaddingDirection.value && selectedPaddingSize.value ? `p${selectedPaddingDirection.value}-${selectedPaddingSize.value}` : ''
   })
 </script>
 

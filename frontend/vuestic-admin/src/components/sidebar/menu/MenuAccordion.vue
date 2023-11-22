@@ -71,9 +71,7 @@
     }
 
     const isCurrentItemActive = isRouteActive(item)
-    const isChildActive = !!item.children.find((child) =>
-      child.children ? isItemExpanded(child) : isRouteActive(child),
-    )
+    const isChildActive = !!item.children.find((child) => (child.children ? isItemExpanded(child) : isRouteActive(child)))
 
     return isCurrentItemActive || isChildActive
   }

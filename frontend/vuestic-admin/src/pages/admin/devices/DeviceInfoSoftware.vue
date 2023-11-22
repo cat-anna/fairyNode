@@ -35,18 +35,12 @@
             <tbody>
               <tr v-for="(commit, propKey) in softwareData.commits" :key="propKey">
                 <td>
-                  <VaPopover
-                    v-if="commit.key == softwareData.active"
-                    :message="t('deviceInfo.software.help.commitIsActive')"
-                  >
+                  <VaPopover v-if="commit.key == softwareData.active" :message="t('deviceInfo.software.help.commitIsActive')">
                     <va-icon :name="'material-icons-arrow_forward'" />
                   </VaPopover>
                 </td>
                 <td>
-                  <VaPopover
-                    v-if="commit.key == softwareData.current"
-                    :message="t('deviceInfo.software.help.commitIsCurrent')"
-                  >
+                  <VaPopover v-if="commit.key == softwareData.current" :message="t('deviceInfo.software.help.commitIsCurrent')">
                     <va-icon :name="'material-icons-memory'" />
                   </VaPopover>
                 </td>
@@ -56,19 +50,13 @@
                   </VaPopover>
                 </td>
                 <td>
-                  <VaPopover
-                    v-if="commit.boot_successful"
-                    :message="t('deviceInfo.software.help.commitBootSuccessful')"
-                  >
+                  <VaPopover v-if="commit.boot_successful" :message="t('deviceInfo.software.help.commitBootSuccessful')">
                     <va-icon :name="'material-icons-check'" />
                   </VaPopover>
                 </td>
                 <td>{{ formatting.formatTimestamp(commit.timestamp) }}</td>
                 <td>
-                  <OrbitSpinner
-                    v-if="activationIsBlocked && selectedCommit && selectedCommit.key == commit.key"
-                    :size="16"
-                  />
+                  <busy-spinner v-if="activationIsBlocked && selectedCommit && selectedCommit.key == commit.key" :size="16" />
                 </td>
                 <td>
                   <VaPopover :message="t('deviceInfo.software.help.activateCommit')">
@@ -89,7 +77,7 @@
         </div>
       </va-card-content>
       <va-card-content v-if="fetchingData && softwareData == null">
-        <OrbitSpinner />
+        <busy-spinner />
       </va-card-content>
     </va-card>
   </div>
@@ -103,15 +91,12 @@
   import { DeviceCommitStatus, DeviceCommit } from '../../../services/fairyNode/FirmwareService'
   import formatting from '../../../services/fairyNode/Formatting'
   import dataTypes from '../../../services/fairyNode/DataTypes'
-  import { OrbitSpinner } from 'epic-spinners'
 
   export declare type OptionalDeviceCommit = null | DeviceCommit
   export declare type OptionalDeviceCommitStatus = null | DeviceCommitStatus
 
   export default defineComponent({
-    components: {
-      OrbitSpinner,
-    },
+    // components: {},
     props: {
       deviceId: { type: String, required: true },
     },

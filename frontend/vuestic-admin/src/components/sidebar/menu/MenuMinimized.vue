@@ -1,21 +1,10 @@
 <template>
-  <va-dropdown
-    v-for="(route, idx) in items"
-    :key="idx"
-    v-model="dropdownsValue[idx]"
-    placement="right-start"
-    prevent-overflow
-    :offset="[1, 0]"
-  >
+  <va-dropdown v-for="(route, idx) in items" :key="idx" v-model="dropdownsValue[idx]" placement="right-start" prevent-overflow :offset="[1, 0]">
     <template #anchor>
       <va-sidebar-item :active="isItemChildsActive(route)" :to="route.children ? undefined : { name: route.name }">
         <va-sidebar-item-content>
           <va-icon :name="route.meta.icon" class="va-sidebar-item__icon" />
-          <va-icon
-            v-if="route.children"
-            class="more_icon"
-            :name="dropdownsValue[idx] ? 'chevron_left' : 'chevron_right'"
-          />
+          <va-icon v-if="route.children" class="more_icon" :name="dropdownsValue[idx] ? 'chevron_left' : 'chevron_right'" />
         </va-sidebar-item-content>
       </va-sidebar-item>
     </template>
@@ -68,9 +57,7 @@
 
     let isChildActive = false
     if (item.children) {
-      isChildActive = !!item.children.find((child) =>
-        child.children ? isItemChildsActive(child) : isRouteActive(child),
-      )
+      isChildActive = !!item.children.find((child) => (child.children ? isItemChildsActive(child) : isRouteActive(child)))
     }
 
     return isCurrentItemActive || isChildActive

@@ -47,19 +47,8 @@
       <va-card-title>{{ t('notificationsPage.toasts.title') }}</va-card-title>
       <va-card-content class="grid grid-cols-12 gap-6">
         <div class="py-3 col-span-12 md:col-span-6 flex flex-col gap-4">
-          <va-input
-            v-model="toastText"
-            :label="t('notificationsPage.toasts.textLabel')"
-            class="control-input"
-            required
-          />
-          <va-input
-            v-model="toastDuration"
-            type="number"
-            :label="t('notificationsPage.toasts.durationLabel')"
-            class="control-input"
-            required
-          />
+          <va-input v-model="toastText" :label="t('notificationsPage.toasts.textLabel')" class="control-input" required />
+          <va-input v-model="toastDuration" type="number" :label="t('notificationsPage.toasts.durationLabel')" class="control-input" required />
         </div>
         <div class="flex items-center col-span-12 md:col-span-6">
           <toast-position-picker v-model="toastPosition" />

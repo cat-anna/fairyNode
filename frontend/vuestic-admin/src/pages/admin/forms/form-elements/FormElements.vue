@@ -23,21 +23,13 @@
               </va-input>
             </div>
             <div class="flex md:col-span-4 sm:col-span-6 col-span-12">
-              <va-input v-model="successfulEmail" type="email" label="Email (Validated with success)" success>
-              </va-input>
+              <va-input v-model="successfulEmail" type="email" label="Email (Validated with success)" success> </va-input>
             </div>
             <div class="flex md:col-span-4 sm:col-span-6 col-span-12">
               <va-input v-model="clearableText" placeholder="Input With Clear Button" clearable />
             </div>
             <div class="flex md:col-span-4 sm:col-span-6 col-span-12">
-              <va-input
-                v-model="wrongEmail"
-                type="email"
-                label="Email (Validated)"
-                error
-                :error-messages="errorMessages"
-              >
-              </va-input>
+              <va-input v-model="wrongEmail" type="email" label="Email (Validated)" error :error-messages="errorMessages"> </va-input>
             </div>
             <div class="flex md:col-span-4 sm:col-span-6 col-span-12">
               <va-input v-model="withDescription" placeholder="Text Input (with description)" :messages="messages" />
@@ -62,28 +54,13 @@
               <va-date-input v-model="dateInput.disabled" :label="t('forms.dateTimePicker.disabled')" disabled />
             </div>
             <div class="flex md:col-span-4 sm:col-span-6 col-span-12">
-              <va-date-input
-                v-model="dateInput.multiple"
-                :label="t('forms.dateTimePicker.multiple')"
-                mode="multiple"
-                clearable
-              />
+              <va-date-input v-model="dateInput.multiple" :label="t('forms.dateTimePicker.multiple')" mode="multiple" clearable />
             </div>
             <div class="flex md:col-span-4 sm:col-span-6 col-span-12">
-              <va-date-input
-                v-model="dateInput.range"
-                :label="t('forms.dateTimePicker.range')"
-                mode="range"
-                clearable
-              />
+              <va-date-input v-model="dateInput.range" :label="t('forms.dateTimePicker.range')" mode="range" clearable />
             </div>
             <div class="flex md:col-span-4 sm:col-span-6 col-span-12">
-              <va-date-input
-                v-model="dateInput.simple"
-                :label="t('forms.dateTimePicker.customFirstDay')"
-                first-weekday="Monday"
-                highlight-weekend
-              />
+              <va-date-input v-model="dateInput.simple" :label="t('forms.dateTimePicker.customFirstDay')" first-weekday="Monday" highlight-weekend />
             </div>
           </div>
         </form>
@@ -136,12 +113,7 @@
               <va-select v-model="chosenCountry" :label="t('forms.selects.country')" :options="countriesList" />
             </div>
             <div class="flex md:col-span-6 col-span-12">
-              <va-select
-                v-model="multiSelectCountriesModel"
-                :label="t('forms.selects.countryMulti')"
-                multiple
-                :options="countriesList"
-              />
+              <va-select v-model="multiSelectCountriesModel" :label="t('forms.selects.countryMulti')" multiple :options="countriesList" />
             </div>
             <div class="flex md:col-span-6 col-span-12">
               <va-select
@@ -236,8 +208,7 @@
   const successfulEmail = ref('andrei@dreamsupport.io')
   const wrongEmail = ref('andrei@dreamsupport')
   const messages = ref([
-    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor ' +
-      'incididunt ut labore et dolore magna aliqua.',
+    'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor ' + 'incididunt ut labore et dolore magna aliqua.',
   ])
   const errorMessages = ref(['Field should contain a valid email'])
   const simpleOptions = ref([

@@ -10,6 +10,8 @@ import App from './App.vue'
 import { createPinia } from 'pinia'
 import piniaPluginPersistedState from 'pinia-plugin-persistedstate'
 
+import { OrbitSpinner as BusySpinner } from 'epic-spinners'
+
 const app = createApp(App)
 
 const pinia = createPinia()
@@ -19,6 +21,8 @@ app.use(pinia)
 app.use(router)
 app.use(i18n)
 app.use(createVuestic({ config: vuesticGlobalConfig }))
+
+app.component('BusySpinner', BusySpinner)
 
 if (import.meta.env.VITE_APP_GTM_ENABLED) {
   app.use(

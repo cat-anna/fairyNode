@@ -33,8 +33,8 @@ const routes: Array<RouteRecordRaw> = [
         component: RouteViewComponent,
         children: [
           {
-            name: 'device_info',
-            path: ':device_id',
+            name: 'deviceInfo',
+            path: ':deviceId',
             component: () => import('../pages/admin/devices/DeviceInfo.vue'),
             meta: {},
           },

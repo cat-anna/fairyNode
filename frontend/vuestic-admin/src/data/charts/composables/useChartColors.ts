@@ -9,12 +9,9 @@ export function useChartColors(chartColors = [] as chartColors, alfa = 0.6) {
   const { setHSLAColor, getColor } = useColors()
 
   const generateHSLAColors = (colors: chartColors) =>
-    typeof colors === 'string'
-      ? setHSLAColor(getColor(colors), { a: alfa })
-      : colors.map((color) => setHSLAColor(getColor(color), { a: alfa }))
+    typeof colors === 'string' ? setHSLAColor(getColor(colors), { a: alfa }) : colors.map((color) => setHSLAColor(getColor(color), { a: alfa }))
 
-  const generateColors = (colors: chartColors) =>
-    typeof colors === 'string' ? getColor(colors) : colors.map((color) => getColor(color))
+  const generateColors = (colors: chartColors) => (typeof colors === 'string' ? getColor(colors) : colors.map((color) => getColor(color)))
 
   const generatedHSLAColors = ref(generateHSLAColors(chartColors))
   const generatedColors = ref(generateColors(chartColors))

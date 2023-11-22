@@ -14,13 +14,7 @@
       </div>
     </div>
 
-    <va-data-table
-      :fields="fields"
-      :data="filteredData"
-      :per-page="parseInt(perPage)"
-      clickable
-      @row-clicked="showUser"
-    >
+    <va-data-table :fields="fields" :data="filteredData" :per-page="parseInt(perPage)" clickable @row-clicked="showUser">
       <template #trend="props">
         <va-icon :name="getTrendIcon(props.rowData)" :color="getTrendColor(props.rowData)" />
       </template>

@@ -1,13 +1,6 @@
 <template>
   <va-card :title="t('tables.serverSidePagination')">
-    <va-data-table
-      :fields="fields"
-      :data="items"
-      :loading="loading"
-      :total-pages="totalPages"
-      api-mode
-      @page-selected="readItems"
-    >
+    <va-data-table :fields="fields" :data="items" :loading="loading" :total-pages="totalPages" api-mode @page-selected="readItems">
       <template #avatar="props">
         <img :src="props.rowData.avatar" class="data-table-server-pagination---avatar" />
       </template>

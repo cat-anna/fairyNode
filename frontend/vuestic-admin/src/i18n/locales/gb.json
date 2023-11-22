@@ -81,12 +81,11 @@
   "charts": {
     "options_title": "Options",
     "add_chart": "Add chart",
-    "remove_chart": "remove",
-    "samples": "samples",
-    "tips": {
-      "reload": "Reload this chart",
-      "remove_chart": "Remove this chart"
-    }
+    "remove_chart": "Remove",
+    "move_up": "Move up",
+    "move_down": "Move down",
+    "edit": "Edit chart",
+    "samples": "samples"
   },
   "language": {
     "english": "English"

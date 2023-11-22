@@ -13,9 +13,7 @@
         @click="message.unread = false"
       >
         <img :src="message.details.avatar" class="message-dropdown__item__avatar mr-2" alt="" />
-        <span class="ellipsis" style="max-width: 85%">{{
-          t(`messages.${message.name}`, { name: message.details.name })
-        }}</span>
+        <span class="ellipsis" style="max-width: 85%">{{ t(`messages.${message.name}`, { name: message.details.name }) }}</span>
       </div>
       <div class="grid grid-cols-2 justify-between mt-1">
         <va-button class="mr-2" size="small">{{ t('messages.all') }}</va-button>

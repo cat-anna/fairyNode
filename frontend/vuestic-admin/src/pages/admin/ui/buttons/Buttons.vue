@@ -6,9 +6,7 @@
         <va-button> {{ t('buttons.default') }}</va-button>
         <va-button disabled> {{ t('buttons.disabled') }}</va-button>
         <va-button preset="outline" border-color="primary" color="primary"> {{ t('buttons.outline') }}</va-button>
-        <va-button preset="outline" border-color="primary" color="primary" disabled>
-          {{ t('buttons.disabled') }}</va-button
-        >
+        <va-button preset="outline" border-color="primary" color="primary" disabled> {{ t('buttons.disabled') }}</va-button>
         <va-button preset="plain"> {{ t('buttons.flat') }}</va-button>
         <va-button preset="plain" disabled> {{ t('buttons.disabled') }}</va-button>
       </va-card-content>
@@ -102,13 +100,7 @@
           <va-button> Three</va-button>
           <va-button icon="ion-ios-arrow-down" />
         </va-button-group>
-        <va-button-group
-          class="col-span-12 xl:col-span-6"
-          preset="outline"
-          border-color="primary"
-          color="primary"
-          size="large"
-        >
+        <va-button-group class="col-span-12 xl:col-span-6" preset="outline" border-color="primary" color="primary" size="large">
           <va-button>First</va-button>
           <va-button icon-right="glyphicon-pencil">Second</va-button>
           <va-button>Third</va-button>
@@ -133,29 +125,10 @@
           border-color="danger"
           color="danger"
         />
-        <va-button-toggle
-          v-model="model"
-          class="col-span-12 lg:col-span-6"
-          preset="plain"
-          :options="options"
-          color="gray"
-        />
+        <va-button-toggle v-model="model" class="col-span-12 lg:col-span-6" preset="plain" :options="options" color="gray" />
         <va-button-toggle v-model="model" class="col-span-12 lg:col-span-6" :options="options" color="dark" />
-        <va-button-toggle
-          v-model="model"
-          class="col-span-12 lg:col-span-6"
-          preset="outline"
-          :options="options"
-          border-color="info"
-          color="info"
-        />
-        <va-button-toggle
-          v-model="model"
-          class="col-span-12 lg:col-span-6"
-          preset="plain"
-          :options="options"
-          color="warning"
-        />
+        <va-button-toggle v-model="model" class="col-span-12 lg:col-span-6" preset="outline" :options="options" border-color="info" color="info" />
+        <va-button-toggle v-model="model" class="col-span-12 lg:col-span-6" preset="plain" :options="options" color="warning" />
       </va-card-content>
     </va-card>
 
@@ -163,13 +136,7 @@
       <va-card-title>{{ t('buttons.pagination') }}</va-card-title>
       <va-card-content class="grid grid-cols-12 gap-6">
         <va-pagination v-model="activePage" class="col-span-12 xl:col-span-6" :visible-pages="3" :pages="20" />
-        <va-pagination
-          v-model="activePage"
-          class="col-span-12 xl:col-span-6"
-          :visible-pages="3"
-          :pages="15"
-          color="danger"
-        />
+        <va-pagination v-model="activePage" class="col-span-12 xl:col-span-6" :visible-pages="3" :pages="15" color="danger" />
         <va-pagination v-model="activePage" class="col-span-12 xl:col-span-6" :pages="5" disabled />
         <va-pagination
           v-model="activePage"
@@ -188,16 +155,12 @@
       <va-card-content class="my-3 flex flex-wrap items-center gap-2">
         <va-button-dropdown :label="t('buttons.default')"> {{ t('buttons.content') }}</va-button-dropdown>
         <va-button-dropdown split :label="t('buttons.split')"> {{ t('buttons.content') }}</va-button-dropdown>
-        <va-button-dropdown split split-to="/" :label="t('buttons.splitTo')">
-          {{ t('buttons.content') }}</va-button-dropdown
-        >
+        <va-button-dropdown split split-to="/" :label="t('buttons.splitTo')"> {{ t('buttons.content') }}</va-button-dropdown>
         <va-button-dropdown :label="t('buttons.customIcon')" icon="info" opened-icon="bell_slash">
           {{ t('buttons.content') }}
         </va-button-dropdown>
         <va-button-dropdown disabled :label="t('buttons.disabled')"> {{ t('buttons.content') }}</va-button-dropdown>
-        <va-button-dropdown color="warning" :label="t('buttons.warning')">
-          {{ t('buttons.content') }}</va-button-dropdown
-        >
+        <va-button-dropdown color="warning" :label="t('buttons.warning')"> {{ t('buttons.content') }}</va-button-dropdown>
       </va-card-content>
     </va-card>
   </div>

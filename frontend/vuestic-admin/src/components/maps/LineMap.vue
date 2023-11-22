@@ -10,14 +10,7 @@
   import am5themes_Animated from '@amcharts/amcharts5/themes/Animated'
   import { useColors } from 'vuestic-ui'
 
-  import {
-    planeSVG,
-    useMapData,
-    CityItem,
-    getGeoBounds,
-    generateLineSeriesData,
-    compareStrings,
-  } from '../../data/maps/lineMapData'
+  import { planeSVG, useMapData, CityItem, getGeoBounds, generateLineSeriesData, compareStrings } from '../../data/maps/lineMapData'
 
   const generateLabelText = (city?: string) => (city ? `Flights from ${city}` : '')
 
@@ -67,8 +60,7 @@
     return generateLineSeriesData(item)
   })
 
-  const getItemByMainCityTitle = () =>
-    mapPointSeriesData.value.find(({ title }) => compareStrings(title, mainCity.value))
+  const getItemByMainCityTitle = () => mapPointSeriesData.value.find(({ title }) => compareStrings(title, mainCity.value))
 
   const zoomToGeoBounds = () => {
     const item = getItemByMainCityTitle()

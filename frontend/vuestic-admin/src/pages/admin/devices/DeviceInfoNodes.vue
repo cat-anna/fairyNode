@@ -1,5 +1,5 @@
 <template>
-  <OrbitSpinner v-if="deviceNodeData.length == 0" />
+  <busy-spinner v-if="deviceNodeData.length == 0" />
   <va-card v-for="nodeData in deviceNodeData" :key="nodeData.global_id" class="mb-2">
     <va-card-title>{{ nodeData.name }}</va-card-title>
     <va-card-content>
@@ -89,7 +89,6 @@
   import { DeviceNode, DeviceNodeProperty } from '../../../services/fairyNode/DeviceService'
   import formatting from '../../../services/fairyNode/Formatting'
   import dataTypes from '../../../services/fairyNode/DataTypes'
-  import { OrbitSpinner } from 'epic-spinners'
 
   import BooleanSetter from './setters/BooleanSetter.vue'
   import NumericSetter from './setters/NumericSetter.vue'
@@ -98,14 +97,12 @@
 
   export default defineComponent({
     components: {
-      OrbitSpinner,
       BooleanSetter,
       NumericSetter,
       StringSetter,
       IntegerSetter,
     },
     props: {
-      hardwareId: { type: String, required: true },
       deviceId: { type: String, required: true },
     },
     setup() {

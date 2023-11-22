@@ -2,7 +2,7 @@
   <va-card class="mb-2">
     <va-card-title>{{ t('deviceInfo.details.variables.title') }}</va-card-title>
     <va-card-content>
-      <OrbitSpinner v-if="pending" />
+      <busy-spinner v-if="pending" />
       <span v-if="!valid"> {{ t('deviceInfo.details.variables.invalid') }}</span>
       <div v-if="variablesData != null" class="table-wrapper">
         <table class="va-table va-table--striped va-table--hoverable">
@@ -34,14 +34,11 @@
   import deviceService from '../../../../services/fairyNode/DeviceService'
   import { DeviceVariable } from '../../../../services/fairyNode/DeviceService'
   import dataTypes from '../../../../services/fairyNode/DataTypes'
-  import { OrbitSpinner } from 'epic-spinners'
 
   export declare type OptionalVariablesData = null | DeviceVariable[]
 
   export default defineComponent({
-    components: {
-      OrbitSpinner,
-    },
+    components: {},
     props: {
       deviceId: {
         type: String,

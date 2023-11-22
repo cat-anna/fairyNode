@@ -8,14 +8,7 @@
         <va-input v-model="popover.title" class="mb-8" label="Title" />
         <va-input v-model="popover.message" class="mb-8" label="Message" />
         <div class="popover-example mt-5">
-          <va-popover
-            :icon="popover.icon.icon"
-            :color="popover.color"
-            :title="popover.title"
-            :message="popover.message"
-            placement="right"
-            open
-          >
+          <va-popover :icon="popover.icon.icon" :color="popover.color" :title="popover.title" :message="popover.message" placement="right" open>
             <va-button>
               {{ t('notificationsPage.popovers.showPopover') }}
             </va-button>

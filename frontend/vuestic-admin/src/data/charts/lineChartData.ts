@@ -1,19 +1,6 @@
 import { TLineChartData } from '../types'
 
-const months = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
+const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 const getSize = (minSize = 5) => Math.max(minSize, new Date().getMonth())
 const size = getSize()

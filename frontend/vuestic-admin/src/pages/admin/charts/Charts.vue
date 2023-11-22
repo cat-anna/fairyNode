@@ -1,17 +1,28 @@
 <template>
-  <opts-card @duration-changed="updateChartDuration" />
+  <va-card class="mb-2">
+    <va-card-title>{{ t('charts.options_title') }}</va-card-title>
+    <va-card-content>
+      <duration-selector @duration-changed="updateChartDuration" />
+    </va-card-content>
+  </va-card>
 
   <chart-card
     v-for="(chart, index) in charts"
-    :key="index"
+    :key="chart.id"
     class="mb-2 chart_card"
     :chart-state="chart"
     :index="index"
     :chart-count="charts.length"
     @remove-chart="removeChart"
+    @move-up="moveChartUp"
+    @move-down="moveChartDown"
   />
 
-  <footer-card v-if="seriesInfo.groups" :series-info="seriesInfo.groups" @add-chart="addChart" />
+  <va-card class="mb-2">
+    <va-card-content>
+      <add-chart-drop-down :series-info="seriesInfo.groups" @add-chart="addChart" />
+    </va-card-content>
+  </va-card>
 </template>
 
 <script lang="ts">
@@ -24,17 +35,17 @@
   import { useGlobalStore } from '../../../stores/global-store'
 
   import ChartCard from './ChartCard.vue'
-  import OptsCard from './OptsCard.vue'
-  import FooterCard from './FooterCard.vue'
+  import DurationSelector from './controls/DurationSelector.vue'
+  import AddChartDropDown from './controls/AddChartDropDown.vue'
   import { ChartState } from './ChartState'
 
   export default defineComponent({
     components: {
       ChartCard,
-      OptsCard,
-      FooterCard,
+      DurationSelector,
+      AddChartDropDown,
     },
-    props: {},
+    // props: {},
     setup() {
       const { t } = useI18n()
       const charts = ref(new Array<ShallowReactive<ChartState>>())
@@ -55,7 +66,7 @@
     data() {
       return { timerId: 0 }
     },
-    watch: {},
+    // watch: {},
     mounted() {
       this.refreshSeries()
       if (this.timerId == 0) {
@@ -71,12 +82,15 @@
       }
     },
     methods: {
+      uniqueID(): number {
+        return Math.floor(Math.random() * Date.now())
+      },
       addChart(id: string) {
         if (this.seriesInfo.groups) {
           for (var index in this.seriesInfo.groups) {
             var entry: ChartSeries = this.seriesInfo.groups[index]
             if (entry.id == id) {
-              this.charts.push(shallowReactive(new ChartState(entry, this.chartDuration)))
+              this.charts.push(shallowReactive(new ChartState(entry, this.chartDuration, this.uniqueID())))
               this.UpdateChartsStore()
               return
             }
@@ -112,6 +126,26 @@
       updateChartDuration() {
         this.charts.forEach((e) => e.setDuration(this.chartDuration))
       },
+
+      swap(arr: any, from: number, to: number) {
+        arr.splice(from, 1, arr.splice(to, 1, arr[from])[0])
+      },
+
+      moveChartUp(state: ChartState) {
+        var index = this.charts.indexOf(state)
+        if (index > 0) {
+          this.swap(this.charts, index, index - 1)
+          this.UpdateChartsStore()
+        }
+      },
+      moveChartDown(state: ChartState) {
+        var index = this.charts.indexOf(state)
+        if (index < this.charts.length - 1) {
+          this.swap(this.charts, index, index + 1)
+          this.UpdateChartsStore()
+        }
+      },
+
       refreshSeries() {
         propertyService.chartSeries().then((data) => {
           var sortFunc = function (a: any, b: any) {

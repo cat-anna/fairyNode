@@ -18,10 +18,10 @@ async function getDevicesRoutes(): Promise<INavigationRoute[]> {
 
     data.forEach(function (e) {
       r.push({
-        name: 'device_info',
+        name: 'deviceInfo',
         rawDisplayName: e.name,
         params: {
-          device_id: e.device_id,
+          deviceId: e.device_id,
         },
         meta: { icon: '' },
       } as INavigationRoute)

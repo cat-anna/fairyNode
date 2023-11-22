@@ -29,14 +29,7 @@
           <div class="title mb-4" :style="{ color: colors.danger }">
             {{ t('sliders.labelPlusIcon') }}
           </div>
-          <va-slider
-            v-model="value"
-            color="danger"
-            :label="t('sliders.label')"
-            invert-label
-            icon-prepend="music"
-            track-label-visible
-          />
+          <va-slider v-model="value" color="danger" :label="t('sliders.label')" invert-label icon-prepend="music" track-label-visible />
         </div>
         <div class="flex flex-col col-span-12 lg:col-span-6 xl:col-span-4 mb-2">
           <div class="title mb-4" :style="{ color: colors.primary }">{{ t('sliders.pins') }}</div>
@@ -58,13 +51,7 @@
         </div>
         <div class="flex flex-col col-span-12 lg:col-span-6 xl:col-span-4 mb-2">
           <div class="title mb-4" :style="{ color: colors.info }">{{ t('sliders.withIcons') }}</div>
-          <va-slider
-            v-model="value"
-            color="info"
-            icon-prepend="volume_off"
-            icon-append="volume_up"
-            track-label-visible
-          />
+          <va-slider v-model="value" color="info" icon-prepend="volume_off" icon-append="volume_up" track-label-visible />
         </div>
       </va-card-content>
     </va-card>
@@ -86,14 +73,7 @@
         </div>
         <div class="flex flex-col col-span-12 lg:col-span-6 xl:col-span-4 mb-2">
           <div class="title mb-4" :style="{ color: colors.warning }">{{ t('sliders.label') }}</div>
-          <va-slider
-            v-model="value2"
-            range
-            :label="t('sliders.label')"
-            invert-label
-            color="warning"
-            track-label-visible
-          />
+          <va-slider v-model="value2" range :label="t('sliders.label')" invert-label color="warning" track-label-visible />
         </div>
         <div class="flex flex-col col-span-12 lg:col-span-6 xl:col-span-4 mb-2">
           <div class="title mb-4" :style="{ color: colors.primary }">
@@ -105,15 +85,7 @@
           <div class="title mb-4" :style="{ color: colors.danger }">
             {{ t('sliders.labelPlusIcon') }}
           </div>
-          <va-slider
-            v-model="value2"
-            range
-            color="danger"
-            :label="t('sliders.label')"
-            icon-prepend="music"
-            invert-label
-            track-label-visible
-          />
+          <va-slider v-model="value2" range color="danger" :label="t('sliders.label')" icon-prepend="music" invert-label track-label-visible />
         </div>
         <div class="flex flex-col col-span-12 lg:col-span-6 xl:col-span-4 mb-2">
           <div class="title mb-4" :style="{ color: colors.primary }">{{ t('sliders.pins') }}</div>
@@ -138,14 +110,7 @@
         </div>
         <div class="flex flex-col col-span-12 lg:col-span-6 xl:col-span-4 mb-2">
           <div class="title mb-4" :style="{ color: colors.info }">{{ t('sliders.withIcons') }}</div>
-          <va-slider
-            v-model="value2"
-            range
-            color="info"
-            icon-prepend="volume_off"
-            icon-append="volume_up"
-            track-label-visible
-          />
+          <va-slider v-model="value2" range color="info" icon-prepend="volume_off" icon-append="volume_up" track-label-visible />
         </div>
       </va-card-content>
     </va-card>

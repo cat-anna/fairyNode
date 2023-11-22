@@ -8,13 +8,7 @@
       <div class="settings-dropdown__content-label mt-2 mb-4" :style="{ color: colors.primary }">
         {{ t('dashboard.navigationLayout') }}
       </div>
-      <va-button-toggle
-        v-model="isTopBarProxy"
-        outline
-        :options="options"
-        class="settings-dropdown__control mb-2"
-        size="small"
-      />
+      <va-button-toggle v-model="isTopBarProxy" outline :options="options" class="settings-dropdown__control mb-2" size="small" />
     </va-dropdown-content>
   </va-dropdown>
 </template>

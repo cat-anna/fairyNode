@@ -1,19 +1,15 @@
 <template>
-  <va-card class="mb-2">
-    <va-card-title>{{ t('charts.options_title') }}</va-card-title>
-    <va-card-content>
-      <va-button-toggle v-model="duration" :options="durationTimes" @update:model-value="setDuration" />
-    </va-card-content>
-  </va-card>
+  <va-card-content>
+    <va-button-toggle v-model="duration" :options="durationTimes" @update:model-value="setDuration" />
+  </va-card-content>
 </template>
 
 <script lang="ts">
   import { useI18n } from 'vue-i18n'
   import { defineComponent } from 'vue'
-  // import { OrbitSpinner } from 'epic-spinners'
 
   import { storeToRefs } from 'pinia'
-  import { useGlobalStore } from '../../../stores/global-store'
+  import { useGlobalStore } from '../../../../stores/global-store'
 
   const hour: number = 60 * 60
   const day: number = 24 * hour
@@ -37,10 +33,7 @@
   ]
 
   export default defineComponent({
-    components: {
-      // OrbitSpinner,
-    },
-    props: {},
+    // props: {},
     emits: ['DurationChanged'],
     setup(props, { emit }) {
       const { t } = useI18n()
@@ -55,12 +48,6 @@
         duration: chartDuration,
       }
     },
-    // data() {
-    //   return {}
-    // },
-    // watch: {},
-    // mounted() {},
-    // unmounted() {},
     methods: {
       setDuration(value: number) {
         this.globalStore.setChartDuration(value)

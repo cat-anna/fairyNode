@@ -732,18 +732,7 @@
     },
     {
       "name": "Medical Icons",
-      "icons": [
-        "ambulance",
-        "h-square",
-        "heart",
-        "heartbeat",
-        "medkit",
-        "plus-square",
-        "stethoscope",
-        "user-md",
-        "wheelchair",
-        "wheelchair-alt"
-      ]
+      "icons": ["ambulance", "h-square", "heart", "heartbeat", "medkit", "plus-square", "stethoscope", "user-md", "wheelchair", "wheelchair-alt"]
     }
   ]
 }

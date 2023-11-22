@@ -1,13 +1,6 @@
 <template>
   <form @submit.prevent="onsubmit()">
-    <va-input
-      v-model="email"
-      class="mb-4"
-      type="email"
-      :label="t('auth.email')"
-      :error="!!emailErrors.length"
-      :error-messages="emailErrors"
-    />
+    <va-input v-model="email" class="mb-4" type="email" :label="t('auth.email')" :error="!!emailErrors.length" :error-messages="emailErrors" />
 
     <va-input
       v-model="password"
@@ -19,12 +12,7 @@
     />
 
     <div class="auth-layout__options flex items-center justify-between">
-      <va-checkbox
-        v-model="agreedToTerms"
-        class="mb-0"
-        :error="!!agreedToTermsErrors.length"
-        :error-messages="agreedToTermsErrors"
-      >
+      <va-checkbox v-model="agreedToTerms" class="mb-0" :error="!!agreedToTermsErrors.length" :error-messages="agreedToTermsErrors">
         <template #label>
           <span class="ml-2">
             {{ t('auth.agree') }}

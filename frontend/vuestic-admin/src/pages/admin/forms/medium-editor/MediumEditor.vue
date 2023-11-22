@@ -8,11 +8,10 @@
 
           <p>
             You enter into your favorite local bar looking
-            <span class="default-selection"><b>good</b></span> as hell, but you know the only heads you want to
-            turn—spicy & stylish alpha bitches — are heavily fixated on the D. The hot girl talks to you, but she only
-            wants to be your best friend. Her nonthreatening and attentive best friend. Receiver of sexy selfies,
-            listener of stories. Meanwhile, you attract unwanted attention from straight men, pudgy and greasy moths to
-            your emotionally distant flame.
+            <span class="default-selection"><b>good</b></span> as hell, but you know the only heads you want to turn—spicy & stylish alpha bitches —
+            are heavily fixated on the D. The hot girl talks to you, but she only wants to be your best friend. Her nonthreatening and attentive best
+            friend. Receiver of sexy selfies, listener of stories. Meanwhile, you attract unwanted attention from straight men, pudgy and greasy moths
+            to your emotionally distant flame.
           </p>
 
           <p>

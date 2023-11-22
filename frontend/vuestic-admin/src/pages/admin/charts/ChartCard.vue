@@ -1,29 +1,22 @@
 <template>
   <va-card class="mb-2 chart_card">
     <va-card-title>
-      <div class="w-1/2">{{ chartState.chartSeries.name }}</div>
-      <div class="w-1/4 text-left">
-        <VaPopover>
-          <va-icon name="material-icons-info_outline" />
-          <template #body>
-            <p v-for="line in genInfoMessage()" :key="line">{{ line }}</p>
-          </template>
-        </VaPopover>
-      </div>
-      <div class="w-1/4 text-right">
-        <VaPopover :message="t('charts.tips.remove_chart')" placement="left">
-          <va-button preset="plain" size="small" @click="$emit('removeChart', index)">
-            <va-icon name="material-icons-delete" />
-          </va-button>
-        </VaPopover>
-      </div>
+      <div>{{ chartState.chartSeries.name }}</div>
+      <div class="va-spacer"></div>
+      <VaPopover placement="left">
+        <va-icon name="material-icons-info_outline" />
+        <template #body>
+          <p v-for="line in genInfoMessage()" :key="line">{{ line }}</p>
+        </template>
+      </VaPopover>
+      <chart-options-drop-down @move-up="propagateOptionsAction" @move-down="propagateOptionsAction" @remove-chart="propagateOptionsAction" />
     </va-card-title>
 
     <va-card-content class="chart_content" :class="'chart_count_' + min(chartCount, 3)">
       <div v-if="ready" class="va-chart">
         <Line v-once ref="chartInstance" :options="chartConfig" :data="chartState.chartData" />
       </div>
-      <orbit-spinner v-else />
+      <busy-spinner v-else />
     </va-card-content>
   </va-card>
 </template>
@@ -31,13 +24,12 @@
 <script lang="ts">
   import { useI18n } from 'vue-i18n'
   import { defineComponent, ref, Ref } from 'vue'
-  // import type {  } from 'vue'
-  import { ChartState } from './ChartState'
-  import { OrbitSpinner } from 'epic-spinners'
 
   import { Line } from 'vue-chartjs'
   import { ChartOptions } from 'chart.js'
 
+  import { ChartState } from './ChartState'
+  import ChartOptionsDropDown from './controls/ChartOptionsDropDown.vue'
   import './ChartJsUtils'
 
   const chartConfig: ChartOptions<'line'> = {
@@ -108,8 +100,8 @@
 
   export default defineComponent({
     components: {
-      OrbitSpinner,
       Line,
+      ChartOptionsDropDown,
     },
     props: {
       chartState: {
@@ -125,12 +117,12 @@
         type: Number,
       },
     },
-    emits: ['removeChart'],
-    setup() {
+    emits: ['moveUp', 'moveDown', 'removeChart'],
+    setup(props, { emit }) {
       const { t } = useI18n()
       const chartInstance: Ref<typeof Line | null> = ref(null)
       const ready = ref(false)
-      return { t, chartInstance, chartConfig: chartConfig, ready }
+      return { t, emit, chartInstance, chartConfig: chartConfig, ready }
     },
     watch: {},
     mounted() {
@@ -145,6 +137,9 @@
       },
       reload() {
         this.chartState.reload()
+      },
+      propagateOptionsAction(action: any) {
+        this.emit(action.signal, this.chartState)
       },
       genInfoMessage() {
         var lines: string[] = []

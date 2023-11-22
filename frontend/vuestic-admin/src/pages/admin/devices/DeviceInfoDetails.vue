@@ -21,10 +21,7 @@
       DeviceDetailsSoftware,
     },
     props: {
-      deviceId: {
-        type: String,
-        required: true,
-      },
+      deviceId: { type: String, required: true },
     },
     setup() {
       const { init } = useToast()

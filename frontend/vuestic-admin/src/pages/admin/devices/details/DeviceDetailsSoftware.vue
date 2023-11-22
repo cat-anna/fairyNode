@@ -2,7 +2,7 @@
   <va-card class="mb-2">
     <va-card-title>{{ t('deviceInfo.details.software.title') }}</va-card-title>
 
-    <OrbitSpinner v-if="pending" />
+    <busy-spinner v-if="pending" />
     <span v-if="!valid"> {{ t('deviceInfo.details.software.invalid') }}</span>
 
     <div v-if="valid" class="table-wrapper">
@@ -57,15 +57,12 @@
   import { defineComponent, ref } from 'vue'
   import deviceService from '../../../../services/fairyNode/DeviceService'
   import { DeviceSoftwareInfo } from '../../../../services/fairyNode/DeviceService'
-  import { OrbitSpinner } from 'epic-spinners'
   import formatting from '../../../../services/fairyNode/Formatting'
 
   export declare type OptionalDeviceSoftwareInfo = null | DeviceSoftwareInfo
 
   export default defineComponent({
-    components: {
-      OrbitSpinner,
-    },
+    // components: {},
     props: {
       deviceId: {
         type: String,

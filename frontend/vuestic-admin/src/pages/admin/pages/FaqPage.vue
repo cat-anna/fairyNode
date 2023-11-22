@@ -17,32 +17,32 @@
         <va-accordion class="m-3">
           <va-collapse header="First question">
             <div class="p-4">
-              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur
-              nostrum cumque possimus unde asperiores magnam rem.
+              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur nostrum cumque possimus unde
+              asperiores magnam rem.
             </div>
           </va-collapse>
           <va-collapse header="Second question">
             <div class="p-4">
-              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur
-              nostrum cumque possimus unde asperiores magnam rem.
+              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur nostrum cumque possimus unde
+              asperiores magnam rem.
             </div>
           </va-collapse>
           <va-collapse header="Third question">
             <div class="p-4">
-              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur
-              nostrum cumque possimus unde asperiores magnam rem.
+              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur nostrum cumque possimus unde
+              asperiores magnam rem.
             </div>
           </va-collapse>
           <va-collapse header="Fourth question">
             <div class="p-4">
-              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur
-              nostrum cumque possimus unde asperiores magnam rem.
+              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur nostrum cumque possimus unde
+              asperiores magnam rem.
             </div>
           </va-collapse>
           <va-collapse header="Fifth question">
             <div class="p-4">
-              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur
-              nostrum cumque possimus unde asperiores magnam rem.
+              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Nemo veniam provident voluptates consequuntur nostrum cumque possimus unde
+              asperiores magnam rem.
             </div>
           </va-collapse>
         </va-accordion>

@@ -15,12 +15,7 @@
             </div>
           </div>
 
-          <div
-            v-if="filteredList.length === 2"
-            :key="i"
-            class="py-12 grid grid-cols-12"
-            :class="{ 'sets-list__set__content--middle': i === 1 }"
-          >
+          <div v-if="filteredList.length === 2" :key="i" class="py-12 grid grid-cols-12" :class="{ 'sets-list__set__content--middle': i === 1 }">
             <div class="col-span-2 flex justify-center items-center">
               <va-icon :name="iconName(set, filteredList[0])" />
             </div>

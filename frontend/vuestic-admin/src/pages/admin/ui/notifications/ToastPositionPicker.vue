@@ -1,23 +1,13 @@
 <template>
   <div class="toast-position-picker mr-8">
     <div class="position-boxes-row flex">
-      <div
-        class="position-box"
-        :class="{ selected: isBoxSelected('top-left') }"
-        :style="computedStyle"
-        @click="updatePosition('top-left')"
-      ></div>
+      <div class="position-box" :class="{ selected: isBoxSelected('top-left') }" :style="computedStyle" @click="updatePosition('top-left')"></div>
       <!-- <div class="position-box"
         @click="updatePosition('top-center')"
         :class="{'selected': isBoxSelected('top-center')}"
         :style="computedStyle">
       </div> -->
-      <div
-        class="position-box"
-        :class="{ selected: isBoxSelected('top-right') }"
-        :style="computedStyle"
-        @click="updatePosition('top-right')"
-      ></div>
+      <div class="position-box" :class="{ selected: isBoxSelected('top-right') }" :style="computedStyle" @click="updatePosition('top-right')"></div>
     </div>
     <div class="position-boxes-row flex">
       <div

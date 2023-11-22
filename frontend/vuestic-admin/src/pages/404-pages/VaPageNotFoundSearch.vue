@@ -40,9 +40,7 @@
         .map((category) => {
           return {
             categoryName: category.categoryName,
-            items: category.items.filter(
-              (item) => item.itemName.toUpperCase().search(inputValue.value.toUpperCase()) !== -1,
-            ),
+            items: category.items.filter((item) => item.itemName.toUpperCase().search(inputValue.value.toUpperCase()) !== -1),
           }
         })
         .filter((category) => category.items.length >= 1)

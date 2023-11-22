@@ -1,10 +1,7 @@
 <template>
   <va-dropdown class="notification-dropdown" :offset="[13, 0]" stick-to-edges>
     <template #anchor>
-      <va-icon-notification
-        class="notification-dropdown__icon"
-        :class="{ 'notification-dropdown__icon--unread': !allRead }"
-      />
+      <va-icon-notification class="notification-dropdown__icon" :class="{ 'notification-dropdown__icon--unread': !allRead }" />
     </template>
     <va-dropdown-content class="notification-dropdown__content pl-4 pt-4 pt-2 pb-2">
       <div
@@ -14,12 +11,7 @@
         :class="{ 'notification-dropdown__item--unread': notification.unread }"
         @click="notification.unread = false"
       >
-        <img
-          v-if="notification.details.avatar"
-          class="mr-2 notification-dropdown__item__avatar"
-          :src="notification.details.avatar"
-          alt=""
-        />
+        <img v-if="notification.details.avatar" class="mr-2 notification-dropdown__item__avatar" :src="notification.details.avatar" alt="" />
         <span class="ellipsis" style="max-width: 85%">
           <span v-if="notification.details.name" class="font-bold">{{ notification.details.name }}</span>
           {{ t(`notifications.${notification.name}`, { type: notification.details.type }) }}
@@ -27,15 +19,9 @@
       </div>
       <div class="grid grid-cols-2 justify-between mt-1">
         <va-button class="mr-2" size="small">{{ t('notifications.all') }}</va-button>
-        <va-button
-          class=""
-          size="small"
-          preset="outline"
-          border-color="primary"
-          :disabled="allRead"
-          @click="markAllAsRead"
-          >{{ t('notifications.mark_as_read') }}</va-button
-        >
+        <va-button class="" size="small" preset="outline" border-color="primary" :disabled="allRead" @click="markAllAsRead">{{
+          t('notifications.mark_as_read')
+        }}</va-button>
       </div>
     </va-dropdown-content>
   </va-dropdown>
