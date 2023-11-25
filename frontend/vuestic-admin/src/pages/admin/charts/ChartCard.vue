@@ -1,23 +1,35 @@
 <template>
-  <va-card class="mb-2 chart_card">
-    <va-card-title>
-      <div>{{ chartState.chartSeries.name }}</div>
-      <div class="va-spacer"></div>
-      <VaPopover placement="left">
-        <va-icon name="material-icons-info_outline" />
-        <template #body>
-          <p v-for="line in genInfoMessage()" :key="line">{{ line }}</p>
-        </template>
-      </VaPopover>
-      <chart-options-drop-down @move-up="propagateOptionsAction" @move-down="propagateOptionsAction" @remove-chart="propagateOptionsAction" />
-    </va-card-title>
+  <va-card class="mb-2">
+    <div v-if="editing">
+      <chart-editor :series-id="chartState.getSeriesIdList()" :name="chartState.name" @cancel-edit="cancelEdit" @accept-edit="acceptEdit" />
+    </div>
+    <div v-else>
+      <va-card-title>
+        <div class="text-sm">
+          {{ chartState.name }}
+        </div>
+        <div class="va-spacer"></div>
 
-    <va-card-content class="chart_content" :class="'chart_count_' + min(chartCount, 3)">
-      <div v-if="ready" class="va-chart">
-        <Line v-once ref="chartInstance" :options="chartConfig" :data="chartState.chartData" />
-      </div>
-      <busy-spinner v-else />
-    </va-card-content>
+        <va-popover placement="left">
+          <va-icon name="material-icons-info_outline" color="primary" />
+          <template #body>
+            <p v-for="line in genInfoMessage()" :key="line">{{ line }}</p>
+          </template>
+        </va-popover>
+        <chart-options-drop-down
+          @move-up="propagateOptionsAction"
+          @move-down="propagateOptionsAction"
+          @remove-chart="propagateOptionsAction"
+          @edit="beginChartEdit"
+        />
+      </va-card-title>
+      <va-card-content :class="'chart_count_' + Math.min(chartCount, 3)">
+        <div v-if="ready" class="va-chart">
+          <Line v-once ref="chartInstance" :options="chartConfig" :data="chartState.chartData" />
+        </div>
+        <busy-spinner v-else />
+      </va-card-content>
+    </div>
   </va-card>
 </template>
 
@@ -26,82 +38,18 @@
   import { defineComponent, ref, Ref } from 'vue'
 
   import { Line } from 'vue-chartjs'
-  import { ChartOptions } from 'chart.js'
+  import ChartOptionsDropDown from './controls/ChartOptionsDropDown.vue'
+  import ChartEditor from './controls/ChartEditor.vue'
 
   import { ChartState } from './ChartState'
-  import ChartOptionsDropDown from './controls/ChartOptionsDropDown.vue'
+  import { chartConfig } from './ChartConfig'
   import './ChartJsUtils'
-
-  const chartConfig: ChartOptions<'line'> = {
-    maintainAspectRatio: false,
-    animation: {
-      loop: false,
-    },
-
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          font: {
-            // @ts-ignore
-            color: '#34495e',
-            family: 'sans-serif',
-            size: 14,
-          },
-          usePointStyle: true,
-        },
-      },
-      tooltip: {
-        bodyFont: {
-          size: 14,
-          family: 'sans-serif',
-        },
-        boxPadding: 4,
-      },
-    },
-    elements: {
-      point: {
-        radius: 2,
-        hoverRadius: 5,
-      },
-    },
-    scales: {
-      x: {
-        // @ts-ignore
-        type: 'time',
-        time: {},
-        ticks: {
-          // @ts-ignore
-          fontColor: 'rgb(150, 150, 150)',
-          maxTicksLimit: 10,
-        },
-        scaleLabel: {
-          fontColor: 'rgb(150, 150, 150)',
-          display: true,
-        },
-      },
-      y: {
-        // @ts-ignore
-        type: 'linear',
-        // min: 0,
-        // max: 2000,
-        ticks: {
-          // @ts-ignore
-          fontColor: 'rgb(150, 150, 150)',
-        },
-        scaleLabel: {
-          fontColor: 'rgb(150, 150, 150)',
-          display: true,
-          labelString: 'value',
-        },
-      },
-    },
-  }
 
   export default defineComponent({
     components: {
       Line,
       ChartOptionsDropDown,
+      ChartEditor,
     },
     props: {
       chartState: {
@@ -117,12 +65,13 @@
         type: Number,
       },
     },
-    emits: ['moveUp', 'moveDown', 'removeChart'],
+    emits: ['moveUp', 'moveDown', 'removeChart', 'changed'],
     setup(props, { emit }) {
       const { t } = useI18n()
       const chartInstance: Ref<typeof Line | null> = ref(null)
       const ready = ref(false)
-      return { t, emit, chartInstance, chartConfig: chartConfig, ready }
+      const editing = ref(false)
+      return { t, emit, chartInstance, chartConfig: chartConfig, ready, editing }
     },
     watch: {},
     mounted() {
@@ -132,11 +81,20 @@
       })
     },
     methods: {
-      min(a: any, b: any): any {
-        return a > b ? b : a
-      },
       reload() {
-        this.chartState.reload()
+        // this.chartState.reload()
+      },
+      beginChartEdit() {
+        this.editing = true
+      },
+      cancelEdit() {
+        this.editing = false
+      },
+      acceptEdit(seriesId: string[], newName: string) {
+        console.log(seriesId)
+        this.editing = false
+        this.chartState.reset(seriesId, newName)
+        this.emit('changed', this.chartState)
       },
       propagateOptionsAction(action: any) {
         this.emit(action.signal, this.chartState)
@@ -158,10 +116,6 @@
 </script>
 
 <style lang="scss">
-  // .chart_content {
-  // height: 400px;
-  // }
-
   .chart_count_1 {
     height: 50vh;
   }

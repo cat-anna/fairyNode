@@ -13,6 +13,7 @@ HomieObjectBase.__deps = {
 
 function HomieObjectBase:Init(config)
     self.controller = config.controller
+    self.device = config.device
 
     self.base_topic = config.base_topic
     self.persistent = config.persistent

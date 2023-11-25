@@ -23,6 +23,12 @@ export interface ChartSeriesData {
   from: number
   to: number
   list: ChartSeriesValueEntry[]
+  name: string
+  unit?: string
+  id: string
+  global_id: string
+  datatype: string
+  device?: string
 }
 
 export interface ChartSeriesInfo {

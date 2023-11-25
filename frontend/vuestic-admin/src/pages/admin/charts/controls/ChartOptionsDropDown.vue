@@ -1,5 +1,5 @@
 <template>
-  <va-dropdown trigger="hover" class="mr-2 mb-2" preset="primary" placement="left">
+  <va-dropdown trigger="hover" class="" preset="primary" placement="left">
     <template #anchor>
       <va-button preset="plain" size="small">
         <va-icon name="material-icons-settings" />
@@ -11,7 +11,7 @@
         <va-list>
           <div v-for="(item, index) in optList" :key="index">
             <va-list-item v-if="item.signal" class="flex py-1">
-              <va-popover :message="t(item.hint)" placement="left" :disabled="item.hint == ''">
+              <va-popover :message="(item.hint && t(item.hint)) || ''" placement="left" :disabled="item.hint == ''">
                 <va-button plain @click="handleAction(item)">
                   <va-icon :name="item.icon" />
                   {{ t(item.label) }}
@@ -48,7 +48,7 @@
         type: Array<ChartSeries>,
       },
     },
-    emits: ['moveUp', 'moveDown', 'removeChart'],
+    emits: ['moveUp', 'moveDown', 'removeChart', 'edit'],
     setup(props, { emit }) {
       const { t } = useI18n()
       const optList = ref(Options)

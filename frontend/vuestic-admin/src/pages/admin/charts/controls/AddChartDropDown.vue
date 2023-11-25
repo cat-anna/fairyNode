@@ -1,5 +1,5 @@
 <template>
-  <va-dropdown trigger="hover" class="mr-2 mb-2" preset="primary">
+  <va-dropdown trigger="hover" class="mr-2 mb-2" preset="primary" @open="updateData">
     <template #anchor>
       <va-button>
         <va-icon :name="'material-icons-add'" />
@@ -12,7 +12,7 @@
       <va-scroll-container class="max-h-[400px]" vertical>
         <va-list>
           <va-list-item v-for="series in seriesInfo" :key="series.id" class="flex py-1">
-            <va-button plain @click="$emit('AddChart', series.id)">
+            <va-button plain @click="$emit('AddChart', getChartDesc(series))">
               {{ series.name }}
             </va-button>
           </va-list-item>
@@ -26,23 +26,46 @@
   import { useI18n } from 'vue-i18n'
   import { defineComponent } from 'vue'
   import { ChartSeries } from '../../../../services/fairyNode/PropertyService'
+  import propertyService from '../../../../services/fairyNode/PropertyService'
+  import { ChartDesc } from '../../../../stores/global-store'
 
   export default defineComponent({
-    // components: { },
-    props: {
-      seriesInfo: {
-        required: false,
-        default: undefined,
-        type: Array<ChartSeries>,
-      },
-    },
+    props: {},
     emits: ['AddChart'],
     setup() {
       const { t } = useI18n()
       return { t }
     },
     data() {
-      return {}
+      return {
+        seriesInfo: new Array<ChartSeries>(),
+      }
+    },
+    methods: {
+      getChartDesc(series: ChartSeries): ChartDesc {
+        return {
+          name: series.name || '',
+          seriesId: series.series.map((e) => e.global_id),
+        }
+      },
+      updateData() {
+        if (this.seriesInfo.length > 0) {
+          return
+        }
+
+        propertyService.chartSeries().then((data) => {
+          var sortFunc = function (a: any, b: any) {
+            var a_name = a.name || ''
+            var b_name = b.name || ''
+            return a_name.toLowerCase().localeCompare(b_name.toLowerCase())
+          }
+
+          if (data.groups) {
+            data.groups.sort(sortFunc)
+            this.seriesInfo = data.groups
+          }
+        })
+      },
     },
   })
 </script>

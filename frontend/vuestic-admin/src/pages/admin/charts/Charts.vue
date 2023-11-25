@@ -16,6 +16,7 @@
     @remove-chart="removeChart"
     @move-up="moveChartUp"
     @move-down="moveChartDown"
+    @changed="updateChartsStore"
   />
 
   <va-card class="mb-2">
@@ -32,7 +33,7 @@
   import { ChartSeries, ChartSeriesInfo } from '../../../services/fairyNode/PropertyService'
 
   import { storeToRefs } from 'pinia'
-  import { useGlobalStore } from '../../../stores/global-store'
+  import { useGlobalStore, ChartDesc } from '../../../stores/global-store'
 
   import ChartCard from './ChartCard.vue'
   import DurationSelector from './controls/DurationSelector.vue'
@@ -66,7 +67,6 @@
     data() {
       return { timerId: 0 }
     },
-    // watch: {},
     mounted() {
       this.refreshSeries()
       if (this.timerId == 0) {
@@ -85,34 +85,28 @@
       uniqueID(): number {
         return Math.floor(Math.random() * Date.now())
       },
-      addChart(id: string) {
-        if (this.seriesInfo.groups) {
-          for (var index in this.seriesInfo.groups) {
-            var entry: ChartSeries = this.seriesInfo.groups[index]
-            if (entry.id == id) {
-              this.charts.push(shallowReactive(new ChartState(entry, this.chartDuration, this.uniqueID())))
-              this.UpdateChartsStore()
-              return
-            }
-          }
-        }
+      addChart(desc: ChartDesc) {
+        this.createChart(desc)
+        this.updateChartsStore()
+      },
+      createChart(desc: ChartDesc) {
+        let chartState = new ChartState(desc.seriesId, desc.name, this.chartDuration, this.uniqueID())
+        this.charts.push(shallowReactive(chartState))
       },
       removeChart(index: number) {
         this.charts.splice(index, 1)
-        this.UpdateChartsStore()
+        this.updateChartsStore()
       },
       removeAllCharts() {
         this.charts.length = 0
       },
-      min(a: any, b: any) {
-        return a > b ? b : a
-      },
 
-      UpdateChartsStore() {
-        var lst: string[] = []
+      updateChartsStore() {
+        let lst: ChartDesc[] = []
         this.charts.forEach((e) => {
-          lst.push(e.chartSeries.id)
+          lst.push({ name: e.name, seriesId: e.getSeriesIdList() })
         })
+        console.log(lst)
         this.globalStore.setAddedCharts(lst)
       },
 
@@ -121,7 +115,7 @@
       },
       reloadCharts() {
         this.removeAllCharts()
-        this.addedCharts.forEach((id) => this.addChart(id))
+        this.addedCharts.forEach((id) => this.createChart(id))
       },
       updateChartDuration() {
         this.charts.forEach((e) => e.setDuration(this.chartDuration))
@@ -135,14 +129,14 @@
         var index = this.charts.indexOf(state)
         if (index > 0) {
           this.swap(this.charts, index, index - 1)
-          this.UpdateChartsStore()
+          this.updateChartsStore()
         }
       },
       moveChartDown(state: ChartState) {
         var index = this.charts.indexOf(state)
         if (index < this.charts.length - 1) {
           this.swap(this.charts, index, index + 1)
-          this.UpdateChartsStore()
+          this.updateChartsStore()
         }
       },
 

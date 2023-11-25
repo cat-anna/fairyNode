@@ -41,6 +41,12 @@ function HomieRemoteProperty:GetGlobalId()
     end
 end
 
+function HomieRemoteProperty:GetOwnerDeviceName()
+    if self.device then
+        return self.device:GetName()
+    end
+end
+
 -------------------------------------------------------------------------------------
 
 function HomieRemoteProperty:GetValue()

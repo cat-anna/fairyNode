@@ -1,23 +1,21 @@
 import formatting from '../../../services/fairyNode/Formatting'
 import propertyService from '../../../services/fairyNode/PropertyService'
-import { ChartSeries, ChartSeriesListEntry } from '../../../services/fairyNode/PropertyService'
 import { TLineChartData } from '../../../data/types'
-
 class DatasetState {
-  series: ChartSeriesListEntry
+  seriesId: string
   dataset: any
   owner: any
   lastTimestamp = 0
   ready = false
   dataDuration: number
 
-  constructor(owner: any, series: ChartSeriesListEntry, datasets: Array<any>, dataDuration: number) {
-    this.series = series
+  constructor(owner: any, seriesId: string, datasets: Array<any>, dataDuration: number) {
+    this.seriesId = seriesId
     this.owner = owner
     this.dataDuration = dataDuration
 
     this.dataset = {
-      label: this.series.display_name,
+      label: '',
       data: [],
     }
     datasets.push(this.dataset)
@@ -29,8 +27,13 @@ class DatasetState {
     this.ready = false
     this.owner.datasetChanged()
 
-    propertyService.valueHistoryLast(this.series.global_id, this.dataDuration).then((history) => {
+    propertyService.valueHistoryLast(this.seriesId, this.dataDuration).then((history) => {
       this.dataset.data = formatting.transformChartSeries(history.list)
+      if (history.device) {
+        this.dataset.label = history.device + ' ' + history.name
+      } else {
+        this.dataset.label = history.name
+      }
 
       const last = history.list.at(-1)
       if (last) this.lastTimestamp = last.timestamp
@@ -47,7 +50,7 @@ class DatasetState {
   }
 
   update() {
-    propertyService.valueHistory(this.series.global_id, this.lastTimestamp).then((update) => {
+    propertyService.valueHistory(this.seriesId, this.lastTimestamp).then((update) => {
       const filtered = update.list.filter((e) => this.lastTimestamp < e.timestamp)
       if (filtered.length == 0) {
         return
@@ -74,7 +77,7 @@ class DatasetState {
 }
 
 export class ChartState {
-  chartSeries: ChartSeries
+  name: string
   chartData: TLineChartData
   ready: boolean
   updateFunc?: (b: boolean) => void
@@ -82,31 +85,38 @@ export class ChartState {
   dataDuration: number
   id: number
 
-  constructor(series: ChartSeries, dataDuration: number, id: number) {
-    this.chartSeries = series
+  constructor(seriesId: string[], name: string, dataDuration: number, id: number) {
+    this.name = name
     this.chartData = <TLineChartData>{}
     this.ready = false
     this.datasets = new Array<DatasetState>()
     this.dataDuration = dataDuration
     this.id = id
 
-    this.reload()
+    this.reset(seriesId, name)
   }
 
   async update() {
     this.datasets.forEach((e) => e.update())
   }
 
-  reload() {
+  getSeriesIdList(): string[] {
+    const ret: string[] = []
+    this.datasets.forEach((set) => ret.push(set.seriesId))
+    return ret
+  }
+
+  reset(seriesId: string[], name: string) {
+    this.name = name
     this.chartData.labels = []
     this.chartData.datasets = []
     this.datasets = new Array<DatasetState>()
 
-    this.chartSeries.series.sort((a, b) => {
-      return a.display_name.localeCompare(b.display_name)
+    seriesId.sort((a, b) => {
+      return a.localeCompare(b)
     })
 
-    this.chartSeries.series.forEach((entry) => {
+    seriesId.forEach((entry) => {
       this.datasets.push(new DatasetState(this, entry, this.chartData.datasets, this.dataDuration))
     })
   }

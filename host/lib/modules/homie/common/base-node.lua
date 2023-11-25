@@ -33,6 +33,7 @@ end
 
 function HomieBaseNode:AddProperty(opt)
     opt.controller = self
+    opt.device = self.device
 
     assert(opt.class)
 

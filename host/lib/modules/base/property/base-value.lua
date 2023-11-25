@@ -38,6 +38,12 @@ function BaseValue:GetDatabaseId()
     return string.format("property.value.%s", self:GetGlobalId())
 end
 
+function BaseValue:GetOwnerDeviceName()
+    if self.owner and self.owner.GetOwnerDeviceName then
+        return self.owner:GetOwnerDeviceName()
+    end
+end
+
 -------------------------------------------------------------------------------------
 
 function BaseValue:UpdateDatabase()

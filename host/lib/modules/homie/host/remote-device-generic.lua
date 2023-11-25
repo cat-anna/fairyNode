@@ -172,6 +172,7 @@ function HomieRemoteDevice:HandleNodes(topic, payload)
 
         local opt = {
             controller = self,
+            device = self,
             id = node_id,
 
             class = self:GetNodeClass(node_id),
