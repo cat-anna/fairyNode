@@ -1,22 +1,16 @@
 local http = require "lib/http-code"
+local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------------
 
 local ServiceStatus = {}
 ServiceStatus.__index = ServiceStatus
+ServiceStatus.__tag = "ServiceStatus"
 ServiceStatus.__deps = {
     plantuml = "util/plantuml",
     loader_module = "base/loader-module",
     loader_class = "base/loader-class",
-    -- event_bus = "base/event-bus"
-    -- loader_package = "base/loader-package",
 }
-
--------------------------------------------------------------------------------------
-
-function ServiceStatus:Tag()
-    return "ServiceStatus"
-end
 
 -------------------------------------------------------------------------------------
 
@@ -108,7 +102,10 @@ end
 -------------------------------------------------------------------------------------
 
 function ServiceStatus:GetStatus()
-    return http.OK, {}  --, { url = self:EncodedStateDiagram() }
+    return http.OK, {
+        table = tablex.keys(self.stat_modules),
+        -- graph = nil,
+    }
 end
 
 -------------------------------------------------------------------------------------
@@ -133,20 +130,22 @@ end
 
 -------------------------------------------------------------------------------------
 
-function ServiceStatus:GetStatModules()
-    return http.OK, { modules = self.stat_modules }
+function ServiceStatus:GetTablesList()
+    return http.OK, tablex.keys(self.stat_modules)
 end
 
-function ServiceStatus:GetModuleStats(request, module_name)
-    local result
+function ServiceStatus:GetModuleTable(request, module_name)
     local mod_name = self.stat_modules[module_name]
     if mod_name then
         local module = self.loader_module:GetModule(mod_name)
         if module and module.GetStatistics then
-            return http.OK, { table = module:GetStatistics() }
+            local r = module:GetStatistics()
+            if module.Tag then
+                r.tag = module:Tag()
+            end
+            return http.OK, r
         end
     end
-
     return http.BadRequest
 end
 
@@ -177,10 +176,6 @@ function ServiceStatus:StartModule()
 
     self.stat_modules = stat_modules
 end
-
--------------------------------------------------------------------------------------
-
-ServiceStatus.EventTable = { }
 
 -------------------------------------------------------------------------------------
 

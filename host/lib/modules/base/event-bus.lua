@@ -256,7 +256,11 @@ function EventBus:GetStatistics()
     table.insert(header, 1, "event_id")
     table.sort(r, function(a,b) return a[4] > b[4] end)
 
-    return { header = header, data = r }
+    return {
+        title = "Event bus",
+        header = header,
+        data = r
+    }
 end
 
 -------------------------------------------------------------------------------

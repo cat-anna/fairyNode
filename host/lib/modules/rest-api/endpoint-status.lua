@@ -11,42 +11,15 @@ return {
 -------------------------------------------------------------------------------------
         {
             method = "GET",
-            path = "/stats",
+            path = "/table",
             produces = "application/json",
-            service_method = "GetStatModules",
+            service_method = "GetTablesList",
         },
         {
             method = "GET",
-            path = "/stats/{[./]+}",
+            path = "/table/{[./]+}",
             produces = "application/json",
-            service_method = "GetModuleStats",
+            service_method = "GetModuleTable",
         },
--------------------------------------------------------------------------------------
-        {
-            method = "GET",
-            path = "/modules/graph/text",
-            produces = "text/plain",
-            service_method = "GetModuleGraphText",
-        },
-        {
-            method = "GET",
-            path = "/modules/graph/url",
-            produces = "application/json",
-            service_method = "GetModuleGraphUrl",
-        },
--------------------------------------------------------------------------------------
-        {
-            method = "GET",
-            path = "/classes/graph/text",
-            produces = "text/plain",
-            service_method = "GetClassesGraphText",
-        },
-        {
-            method = "GET",
-            path = "/classes/graph/url",
-            produces = "application/json",
-            service_method = "GetClassesGraphUrl",
-        },
--------------------------------------------------------------------------------------
     }
 }

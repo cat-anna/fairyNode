@@ -54,7 +54,6 @@ export default {
       meta: {
         icon: 'vuestic-iconset-graph',
       },
-      // childrenFunc: getDevicesRoutes,
     },
     {
       name: 'devices',
@@ -63,6 +62,23 @@ export default {
         icon: 'vuestic-iconset-ui-elements',
       },
       childrenFunc: getDevicesRoutes,
+    },
+    {
+      name: 'server',
+      displayName: 'menu.server',
+      meta: {
+        icon: 'material-icons-kitchen',
+      },
+      children: [
+        {
+          name: 'debug_info',
+          displayName: 'server.debug.title',
+        },
+        // {
+        //   name: 'medium-editor',
+        //   displayName: 'menu.mediumEditor',
+        // },
+      ],
     },
   ] as INavigationRoute[],
 }

@@ -12,7 +12,8 @@
   "menu": {
     "dashboard": "Dashboard",
     "devices": "Devices",
-    "charts": "Charts"
+    "charts": "Charts",
+    "server": "Server"
   },
   "deviceInfo": {
     "title": "Device info",
@@ -95,6 +96,11 @@
     "move_down": "Move down",
     "edit": "Edit chart",
     "samples": "samples"
+  },
+  "server": {
+    "debug": {
+      "title": "Debug info"
+    }
   },
   "language": {
     "english": "English"

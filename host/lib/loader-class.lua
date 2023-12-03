@@ -281,7 +281,11 @@ function ClassLoader:GetStatistics()
 
     end
 
-    return { header = header, data = r }
+    return {
+        title = "Class loader",
+        header = header,
+        data = r
+    }
 end
 
 -------------------------------------------------------------------------------

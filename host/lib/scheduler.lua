@@ -232,7 +232,11 @@ function Scheduler:GetStatistics()
     })
 
     table.sort(r, function(a,b) return a[4] < b[4] end)
-    return { header = header, data = r }
+    return {
+        title = "Scheduler",
+        header = header,
+        data = r
+    }
 end
 
 -------------------------------------------------------------------------------

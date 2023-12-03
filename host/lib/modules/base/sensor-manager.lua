@@ -184,6 +184,7 @@ function SensorManager:GetStatistics()
     -- end
 
     return {
+        title = "Sensor manager",
         header = header,
         data = r,
     }

@@ -40,6 +40,19 @@ const routes: Array<RouteRecordRaw> = [
           },
         ],
       },
+      {
+        name: 'server',
+        path: 'server',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'debug_info',
+            path: 'debug_info',
+            component: () => import('../pages/admin/server/ServerDebugInfo.vue'),
+            meta: {},
+          },
+        ],
+      },
     ],
   },
   {

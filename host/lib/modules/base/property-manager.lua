@@ -296,7 +296,11 @@ function PropertyManager:GetStatistics()
         end
     end
 
-    return { header = header, data = r }
+    return {
+        title = "Property manager",
+        header = header,
+        data = r
+    }
 end
 
 -------------------------------------------------------------------------------
