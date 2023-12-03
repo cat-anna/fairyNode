@@ -66,12 +66,12 @@ function HandleStatTable(div_id, data) {
 }
 
 function refresh() {
-    QueryGet("/status/modules/graph/url", function (data) { HandleGraph("ModuleGraphDiv", data) })
-    QueryGet("/status/classes/graph/url", function (data) { HandleGraph("ClassesGraphDiv", data) })
-    QueryGet("/status/stats/scheduler", function (data) { HandleStatTable("SchedulerStats", data) })
-    QueryGet("/status/stats/base_event_bus", function (data) { HandleStatTable("EventBusStats", data) })
-    QueryGet("/status/stats/base_property_manager", function (data) { HandleStatTable("PropertyManagerStats", data) })
-    QueryGet("/status/stats/base_loader_class", function (data) { HandleStatTable("ClassLoaderStats", data) })
+    QueryGet("/api/status/modules/graph/url", function (data) { HandleGraph("ModuleGraphDiv", data) })
+    QueryGet("/api/status/classes/graph/url", function (data) { HandleGraph("ClassesGraphDiv", data) })
+    QueryGet("/api/status/stats/scheduler", function (data) { HandleStatTable("SchedulerStats", data) })
+    QueryGet("/api/status/stats/base_event_bus", function (data) { HandleStatTable("EventBusStats", data) })
+    QueryGet("/api/status/stats/base_property_manager", function (data) { HandleStatTable("PropertyManagerStats", data) })
+    QueryGet("/api/status/stats/base_loader_class", function (data) { HandleStatTable("ClassLoaderStats", data) })
 }
 
 function FairyNodeStart() {

@@ -93,7 +93,8 @@
         let chartState = new ChartState(desc.seriesId, desc.name, this.chartDuration, this.uniqueID())
         this.charts.push(shallowReactive(chartState))
       },
-      removeChart(index: number) {
+      removeChart(state: ChartState) {
+        var index = this.charts.indexOf(state)
         this.charts.splice(index, 1)
         this.updateChartsStore()
       },
