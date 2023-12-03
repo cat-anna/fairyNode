@@ -72,6 +72,15 @@
           "root": "Root fs",
           "config": "Configuration"
         }
+      },
+      "actions": {
+        "title": "Actions",
+        "busy": "Device is busy with previous action",
+        "confirm": "Do you really want to execute this action?",
+        "command_send": "Action executed",
+        "command_failed": "Failed to execute action",
+
+        "restart": "Restart"
       }
     },
     "setter": {

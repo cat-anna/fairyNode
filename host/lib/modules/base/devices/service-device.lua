@@ -20,6 +20,10 @@ end
 function DeviceService:Init()
 end
 
+function DeviceService:Tag()
+    return "DeviceService"
+end
+
 -------------------------------------------------------------------------------
 
 function DeviceService:GetDeviceList()
@@ -131,6 +135,32 @@ function DeviceService:SetDevicePropertyValue(request, device, node, property)
 end
 
 -------------------------------------------------------------------------------------
+
+local CommandTable = {
+    restart = {
+        func_name = "Restart"
+    }
+}
+
+function DeviceService:TriggerDeviceCommand(request, dev_id)
+    local dev = self.homie_host:GetDevice(dev_id)
+
+    local handler = CommandTable[request.command]
+    if not handler then
+        printf(self, "Command %s is not defined", request.command)
+        return http.BadRequest, { success = false }
+    end
+
+    local func = dev[handler.func_name]
+    if not func then
+        printf(self, "Command %s is not supported by device", request.command)
+        return http.MethodNotAllowed, { success = false }
+    end
+
+    printf(self, "Triggering command %s for %s", request.command, dev_id)
+    func(dev)
+    return http.OK, { success = true }
+end
 
 -------------------------------------------------------------------------------------
 

@@ -77,6 +77,10 @@ export class DeviceService extends RestServiceBase {
     return this.post_json('/' + device_id + '/property/' + node_id + '/' + property_id + '/set', { value: value })
   }
 
+  sendCommand(device_id: string, command: string): Promise<GenericResult> {
+    return this.post_json('/' + device_id + '/command', { command: command })
+  }
+
   getStatusColor(status: string): string {
     if (status === 'ready') {
       return 'success'

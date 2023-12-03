@@ -1,4 +1,5 @@
 <template>
+  <device-details-actions :device-id="deviceId" />
   <device-details-software :device-id="deviceId" />
   <device-details-variables :device-id="deviceId" />
 </template>
@@ -14,11 +15,13 @@
 
   import DeviceDetailsVariables from './details/DeviceDetailsVariables.vue'
   import DeviceDetailsSoftware from './details/DeviceDetailsSoftware.vue'
+  import DeviceDetailsActions from './details/DeviceDetailsActions.vue'
 
   export default defineComponent({
     components: {
       DeviceDetailsVariables,
       DeviceDetailsSoftware,
+      DeviceDetailsActions,
     },
     props: {
       deviceId: { type: String, required: true },
