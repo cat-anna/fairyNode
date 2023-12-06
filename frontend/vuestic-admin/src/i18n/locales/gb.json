@@ -81,7 +81,8 @@
         "command_send": "Action executed",
         "command_failed": "Failed to execute action",
 
-        "restart": "Restart"
+        "restart": "Restart",
+        "delete_device": "Delete device"
       }
     },
     "setter": {

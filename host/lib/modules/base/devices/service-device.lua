@@ -164,4 +164,20 @@ end
 
 -------------------------------------------------------------------------------------
 
+function DeviceService:DeleteDevice(request, device)
+    local dev = self.homie_host:GetDevice(device)
+    if not dev then
+        printf(self, "Cannot remove non-existing device '%s'", device)
+        return http.BadRequest, {}
+    end
+
+    if not dev:DeleteDevice() then
+        return http.ServiceUnavailable, {}
+    end
+
+    return http.OK, {}
+end
+
+-------------------------------------------------------------------------------------
+
 return DeviceService

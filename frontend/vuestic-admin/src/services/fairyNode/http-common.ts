@@ -63,7 +63,7 @@ class HttpHandler {
     // console.log("GET " + url)
     return fetch(url, {
       method: 'get',
-      headers: { },
+      headers: {},
     }).then((response: Response) => {
       if (response.ok) {
         return response.json()
@@ -77,7 +77,7 @@ class HttpHandler {
     // console.log("GET " + url)
     return fetch(url, {
       method: 'get',
-      headers: { },
+      headers: {},
     }).then((response: Response) => {
       if (response.ok) {
         return response.text()

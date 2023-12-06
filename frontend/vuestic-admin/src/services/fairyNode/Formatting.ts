@@ -8,7 +8,7 @@ export interface ChartPoint {
 class Formatting {
   public formatSeconds(duration: number): string {
     if (duration == null) {
-      return '&lt;?&gt;'
+      return ''
     }
 
     let hours = Math.floor(duration / 3600)

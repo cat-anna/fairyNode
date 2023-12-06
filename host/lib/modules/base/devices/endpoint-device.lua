@@ -39,6 +39,7 @@ local device = {
         rest.GET_JSON("/{[^/]+}/variables", "GetDeviceVariables"),
         rest.GET_JSON("/{[^/]+}/software", "GetDeviceSoftwareInfo"),
         rest.POST_JSON("/{[^/]+}/command", "TriggerDeviceCommand"),
+        rest.POST_JSON("/{[^/]+}/delete", "DeleteDevice"),
 
         rest.POST_JSON("/{[^/]+}/property/{[^/]+}/{[^/]+}/set", "SetDevicePropertyValue"),
     }

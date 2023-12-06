@@ -80,6 +80,9 @@ export class DeviceService extends RestServiceBase {
   sendCommand(device_id: string, command: string): Promise<GenericResult> {
     return this.post_json('/' + device_id + '/command', { command: command })
   }
+  deleteDevice(device_id: string): Promise<GenericResult> {
+    return this.post_json('/' + device_id + '/delete', { device_id: device_id })
+  }
 
   getStatusColor(status: string): string {
     if (status === 'ready') {
