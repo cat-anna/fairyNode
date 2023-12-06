@@ -63,12 +63,24 @@ class HttpHandler {
     // console.log("GET " + url)
     return fetch(url, {
       method: 'get',
-      headers: {
-        'content-type': 'application/json',
-      },
+      headers: { },
     }).then((response: Response) => {
       if (response.ok) {
         return response.json()
+      }
+      throw new HttpError('Something went wrong', response.status, response.statusText)
+    })
+  }
+
+  get_text(path: string) {
+    const url = base_url + path
+    // console.log("GET " + url)
+    return fetch(url, {
+      method: 'get',
+      headers: { },
+    }).then((response: Response) => {
+      if (response.ok) {
+        return response.text()
       }
       throw new HttpError('Something went wrong', response.status, response.statusText)
     })

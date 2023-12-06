@@ -21,7 +21,6 @@ local CONFIG_KEY_SENSOR_SLOW_INTERVAL =   "sensor.interval.slow"
 -------------------------------------------------------------------------------
 
 local SensorManager = {}
-SensorManager.__stats = true
 SensorManager.__deps = {
     property_manager = "base/property-manager"
 }
@@ -139,7 +138,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function SensorManager:GetStatistics()
+function SensorManager:GetDebugTable()
     local header = {
     --     "what",
     --     "global_id",

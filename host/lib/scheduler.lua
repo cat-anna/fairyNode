@@ -15,7 +15,6 @@ local max = math.max
 
 local Scheduler = {}
 Scheduler.__index = Scheduler
-Scheduler.__stats = true
 Scheduler.__name = "Scheduler"
 
 function Scheduler.Push(func)
@@ -173,7 +172,7 @@ function Scheduler:EnableStatistics(enable)
     end
 end
 
-function Scheduler:GetStatistics()
+function Scheduler:GetDebugTable()
     if not self.stats then
         return
     end

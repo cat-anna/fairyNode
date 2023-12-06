@@ -43,6 +43,8 @@ function PlantUml:Init() end
 PlantUml.Format = {
     svg = "svg",
     png = "png",
+    dark_svg = "dsvg",
+    dark_png = "dpng",
 }
 
 function PlantUml:EncodeUrl(diagram_text, format)
@@ -53,7 +55,10 @@ function PlantUml:EncodeUrl(diagram_text, format)
         diagram_text = tostring(diagram_text)
     end
     local out = zlib_wrap.compress(diagram_text)
-    return self.config[CONFIG_KEY_PLANTUML_HOST] .. "/" .. format .. "/~1" .. plantuml_encode(out)
+    return
+    -- self.config[CONFIG_KEY_PLANTUML_HOST]
+    "https://www.plantuml.com/plantuml"
+    .. "/" .. format .. "/~1" .. plantuml_encode(out)
 end
 
 -------------------------------------------------------------------------------------

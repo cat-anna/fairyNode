@@ -44,8 +44,8 @@ function Debugging:CollectDebugStats()
 
     self.loader_module:EnumerateModules(
         function(name, module)
-            if module.GetStatistics then
-                local stats = module:GetStatistics()
+            if module.GetDebugTable then
+                local stats = module:GetDebugTable()
                 l:WriteObject(ExtractObjectTag(module), stats)
             end
         end)

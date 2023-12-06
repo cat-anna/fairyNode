@@ -14,7 +14,6 @@ local CONFIG_KEY_MODULE_PATHS = "loader.module.paths"
 
 local ClassLoader = {}
 ClassLoader.__index = ClassLoader
-ClassLoader.__stats = true
 ClassLoader.__name = "ClassLoader"
 ClassLoader.__config = {
     [CONFIG_KEY_MODULE_PATHS] = { mode = "merge", type = "string-table", default = { } },
@@ -259,7 +258,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function ClassLoader:GetStatistics()
+function ClassLoader:GetDebugTable()
     local header = {
         "class",
         "type",
@@ -286,6 +285,34 @@ function ClassLoader:GetStatistics()
         header = header,
         data = r
     }
+end
+
+function ClassLoader:GetDebugGraph(graph)
+    local function Count(v)
+        local r = 0
+        for _,_ in pairs(v) do r = r+1 end
+        return r
+    end
+
+    self:EnumerateClasses(function (name, class_meta)
+        local desc = {
+            string.format("Name: %s", class_meta.metatable.__name or "?"),
+        }
+
+        if (not class_meta.interface) then
+            table.append(desc, string.format("Instances: %d", Count(class_meta.instances)))
+        else
+            table.append(desc, "Interface")
+        end
+
+        graph:Node({
+            name = name,
+            description = desc,
+            alias = name,
+            from = { class_meta.base },
+            type = class_meta.interface and graph.NodeType.interface or graph.NodeType.class
+        })
+    end)
 end
 
 -------------------------------------------------------------------------------

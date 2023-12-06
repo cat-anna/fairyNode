@@ -1,7 +1,8 @@
 <template>
   <busy-spinner v-if="statsContent == null" />
   <div v-else>
-    <debug-info-table v-for="item in statsContent.table" :key="item" :table-id="item" />
+    <debug-info-table v-for="item in statsContent.table" :key="item.key" :table-id="item.key" :module-id="item.value" />
+    <debug-info-graph v-for="item in statsContent.graph" :key="item.key" :graph-id="item.key" :module-id="item.value" />
   </div>
 </template>
 
@@ -12,12 +13,14 @@
   import { StatsContent } from '../../../services/fairyNode/StatusService'
 
   import DebugInfoTable from './debug-info/DebugInfoTable.vue'
+  import DebugInfoGraph from './debug-info/DebugInfoGraph.vue'
 
   export declare type OptionalStatsContent = StatsContent | undefined
 
   export default defineComponent({
     components: {
       DebugInfoTable,
+      DebugInfoGraph,
     },
     setup() {
       const statsContent = ref(null)
@@ -50,7 +53,10 @@
       async getData() {
         this.statsContent = await statusService.getStatusContent()
         this.statsContent.table.sort(function (a, b) {
-          return a.toLowerCase().localeCompare(b.toLowerCase())
+          return a.key.toLowerCase().localeCompare(b.key.toLowerCase())
+        })
+        this.statsContent.graph.sort(function (a, b) {
+          return a.key.toLowerCase().localeCompare(b.key.toLowerCase())
         })
       },
     },

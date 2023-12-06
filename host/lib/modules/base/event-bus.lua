@@ -19,7 +19,6 @@ local CONFIG_KEY_EVENT_BUS_LOG_ENABLE = "module.event-bus.log.enable"
 -------------------------------------------------------------------------------
 
 local EventBus = {}
-EventBus.__stats = true
 EventBus.__deps = {
     loader_module = "base/loader-module",
     loader_class = "base/loader-class",
@@ -230,7 +229,7 @@ function EventBus:EnableStatistics(enable)
     end
 end
 
-function EventBus:GetStatistics()
+function EventBus:GetDebugTable()
     if not self.stats then
         return
     end

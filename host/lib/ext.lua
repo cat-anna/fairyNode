@@ -100,11 +100,11 @@ function table.filter(t, functor)
     return r
 end
 
-function table.keys(t)
-    local r = {}
-    for k, _ in pairs(t or {}) do
-        table.insert(r, k)
-    end
+table.keys = tablex.keys
+
+function table.count(v)
+    local r = 0
+    for _,_ in pairs(v) do r = r+1 end
     return r
 end
 
@@ -116,8 +116,20 @@ function table.shallow_copy(t)
     return r
 end
 
-function table.append(src, v)
-    for _, v in ipairs(v or {}) do
+function table.flatten_map(t)
+    local r = { }
+    for k,v in pairs(t) do
+        table.insert(r, { key = k, value = v, })
+    end
+    return r
+end
+
+function table.append(src, arg, ...)
+    local t = {arg, ...}
+    if (#t == 1) and (type(arg) == "table") then
+        t = arg
+    end
+    for _, v in ipairs(t) do
         src[#src + 1] = v
     end
     return src

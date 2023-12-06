@@ -23,7 +23,6 @@ local PROPERTY_MODE_PASSIVE = "passive"
 
 local PropertyManager = {}
 PropertyManager.__name = "PropertyManager"
-PropertyManager.__stats = true
 PropertyManager.__deps = { }
 PropertyManager.__config = {
 }
@@ -252,7 +251,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function PropertyManager:GetStatistics()
+function PropertyManager:GetDebugTable()
     local header = {
         "what",
         "global_id",

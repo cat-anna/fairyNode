@@ -21,5 +21,25 @@ return {
             produces = "application/json",
             service_method = "GetModuleTable",
         },
+-------------------------------------------------------------------------------------
+        {
+            method = "GET",
+            path = "/graph",
+            produces = "application/json",
+            service_method = "GetGraphsList",
+        },
+        {
+            method = "GET",
+            path = "/graph/{[./]+}/text",
+            produces = "text/plain",
+            service_method = "GetModuleGraphText",
+        },
+        {
+            method = "GET",
+            path = "/graph/{[./]+}/url",
+            produces = "text/plain",
+            service_method = "GetModuleGraphUrl",
+        },
+-------------------------------------------------------------------------------------
     }
 }

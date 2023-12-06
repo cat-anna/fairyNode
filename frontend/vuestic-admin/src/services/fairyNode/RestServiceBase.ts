@@ -7,6 +7,9 @@ export class RestServiceBase {
   protected get_json(url: string) {
     return http.get_json('/' + this.service_name + url)
   }
+  protected get_text(url: string) {
+    return http.get_text('/' + this.service_name + url)
+  }
   protected post_json(url: string, data: object) {
     return http.post_json('/' + this.service_name + url, data)
   }

@@ -1,7 +1,13 @@
 import { RestServiceBase } from './RestServiceBase'
 
+export interface StringStringPair {
+  key: string
+  value: string
+}
+
 export interface StatsContent {
-  table: string[]
+  table: Array<StringStringPair>
+  graph: Array<StringStringPair>
 }
 
 export declare type StatsTableEntry = string | number
@@ -12,6 +18,9 @@ export interface StatsTable {
   header: string[]
   data: StatsTableEntry[][]
 }
+
+import { useGlobalStore } from '../../stores/global-store'
+const globalStore = useGlobalStore()
 
 export class StatusService extends RestServiceBase {
   constructor() {
@@ -27,6 +36,13 @@ export class StatusService extends RestServiceBase {
   }
   getStatusTable(id: string): Promise<StatsTable> {
     return this.get_json('/table/' + id)
+  }
+
+  getStatusGraphUrl(id: string): Promise<string> {
+    return this.get_text('/graph/' + id + '/url?colors=' + globalStore.currentTheme)
+  }
+  getStatusGraphText(id: string): Promise<string> {
+    return this.get_text('/graph/' + id + '/text?colors=' + globalStore.currentTheme)
   }
 }
 

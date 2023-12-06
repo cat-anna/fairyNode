@@ -4,6 +4,7 @@ local uuid = require "uuid"
 local copas = require "copas"
 local path = require "pl.path"
 local config_handler = require "lib/config-handler"
+local tablex = require "pl.tablex"
 require "lib/ext"
 
 -------------------------------------------------------------------------------
@@ -382,6 +383,49 @@ function ModuleLoader:Init()
     self.update_task = scheduler:CreateTask(
         self, "module loader", 1, func
     )
+end
+
+-------------------------------------------------------------------------------
+
+function ModuleLoader:GetDebugTable()
+    local header = {
+        "module",
+        "type",
+        "initialized",
+        "needs_reload",
+        "timestamp",
+    }
+
+    local r = { }
+
+    for _,id in ipairs(table.sorted_keys(self.loaded_modules)) do
+        local p = self.loaded_modules[id]
+
+        table.insert(r, {
+            p.name,
+            p.type,
+            p.initialized,
+            p.needs_reload,
+            p.timestamp
+        })
+    end
+
+    return {
+        title = "Module loader",
+        header = header,
+        data = r
+    }
+end
+
+function ModuleLoader:GetDebugGraph(graph)
+    self:EnumerateModules(function (name, instance)
+        graph:Node({
+            name = name,
+            alias = name,
+            from = tablex.values(instance.__deps or {}),
+            type = graph.NodeType.entity
+        })
+    end)
 end
 
 -------------------------------------------------------------------------------
