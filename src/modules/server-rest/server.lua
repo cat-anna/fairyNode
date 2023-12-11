@@ -1,16 +1,16 @@
 local copas = require "copas"
 local file = require "pl.file"
-local http = require "lib/http-code"
-local JSON = require "json"
+local http = require "fairy_node/http-code"
 local lfs = require "lfs"
-local modules = require "lib/loader-module"
+local loader_module = require "fairy_node/loader-module"
 local path = require "pl.path"
-local restserver = require "lib/rest/restserver"
-local scheduler = require "lib/scheduler"
+local scheduler = require "fairy_node/scheduler"
+local restserver = require "modules/server-rest/restserver"
 
 -------------------------------------------------------------------------------
 
 local function ConcatRequest(args, sep)
+    local JSON = require "json"
     local t = {}
     for _,v in ipairs(args) do
         if type(v) == "table" then
@@ -29,40 +29,21 @@ end
 
 -------------------------------------------------------------------------------
 
-local CONFIG_KEY_REST_LOG_ENABLE = "rest.log.enable"
-local CONFIG_KEY_REST_ENDPOINT_LIST = "rest.endpoint.list"
-local CONFIG_KEY_REST_ENDPOINT_PATHS = "rest.endpoint.paths"
-local CONFIG_KEY_REST_PORT = "rest.port"
-local CONFIG_KEY_REST_HOST = "rest.host"
-local CONFIG_KEY_MODULE_PATHS = "loader.module.paths"
-
--------------------------------------------------------------------------------
-
 local RestServer = {}
-RestServer.__index = RestServer
-RestServer.__deps = {
-    loader_module = "base/loader-module"
-}
-RestServer.__config = {
-    [CONFIG_KEY_REST_ENDPOINT_LIST] = { mode = "merge", type = "string-table", default = { } },
-    [CONFIG_KEY_REST_ENDPOINT_PATHS] = { mode = "merge", type = "string-table", default = { } },
-
-    [CONFIG_KEY_REST_PORT] = { type = "integer", default = 8000 },
-    [CONFIG_KEY_REST_HOST] = { type = "string", default = "0.0.0.0" },
-
-    [CONFIG_KEY_MODULE_PATHS] = { mode = "merge", type = "string-table", default = { } },
-}
+RestServer.__tag = "RestServer"
+RestServer.__type = "module"
+RestServer.__deps = { }
 
 -------------------------------------------------------------------------------
 
 function RestServer:FindEndpoint(endpoint_name)
-    for _,endpoint_path in ipairs(self.config[CONFIG_KEY_REST_ENDPOINT_PATHS]) do
-        local full = endpoint_path .. "/" .. endpoint_name .. ".lua"
-        if path.isfile(full) then
-            return path.normpath(full)
-        end
-    end
-    for _,endpoint_path in ipairs(self.config[CONFIG_KEY_MODULE_PATHS]) do
+    -- for _,endpoint_path in ipairs(self.config.endpoint_paths) do
+    --     local full = endpoint_path .. "/" .. endpoint_name .. ".lua"
+    --     if path.isfile(full) then
+    --         return path.normpath(full)
+    --     end
+    -- end
+    for _,endpoint_path in ipairs(self.config.module_paths) do
         local full = endpoint_path .. "/" .. endpoint_name .. ".lua"
         if path.isfile(full) then
             return path.normpath(full)
@@ -85,7 +66,7 @@ function RestServer:AddEndpoint(endpoint_name, endpoint_file)
         assert(resource)
         assert(not self.endpoints[resource])
 
-        local module = self.loader_module:LoadModule(endpoint_def.service)
+        local module = loader_module:LoadModule(endpoint_def.service)
 
         self.endpoints[resource] = {
             file = endpoint_file,
@@ -100,13 +81,16 @@ function RestServer:AddEndpoint(endpoint_name, endpoint_file)
             end
         end
 
-        self.server:add_resource(endpoint_def.resource,endpoint_def.endpoints)
+        self.server:add_resource(endpoint_def.resource, endpoint_def.endpoints)
         printf(self, "Registered endpoint /%s service:%s", endpoint_def.resource, endpoint_def.service)
     end
 end
 
 function RestServer:LoadEndpoints()
-    for _,endpoint_name in ipairs(self.config[CONFIG_KEY_REST_ENDPOINT_LIST]) do
+    local config_handler = require "fairy_node/config-handler"
+    local endpoints = config_handler:QueryConfigItem("module.rest-server.endpoint.list")
+
+    for _,endpoint_name in ipairs(endpoints) do
         local endpoint_file = self:FindEndpoint(endpoint_name)
         if not endpoint_file then
             printf(self, "failed to find source for endpoint %s", endpoint_name)
@@ -121,14 +105,14 @@ end
 
 function RestServer:InitServer()
     copas.sleep(0.1)
-    local port = self.config[CONFIG_KEY_REST_PORT]
-    local host = self.config[CONFIG_KEY_REST_HOST]
+    local port = self.config.rest_port
+    local host = self.config.rest_host
     local server = restserver:new()
     self.server = server
     server:port(port)
     server:host(host)
     server:response_headers({
-        ["Access-Control-Allow-Origin"] = "*"
+        -- ["Access-Control-Allow-Origin"] = "*"
     })
     self:LoadEndpoints()
     printf(self, "Starting server initialized on port %s:%d", host, port)
@@ -144,7 +128,7 @@ function RestServer:ExecuteServer(task)
     copas.sleep(1)
     if self.server then
         print(self, "Server started")
-        self.server:enable("lib.rest.restserver.xavante"):start(HttpLogger)
+        self.server:enable("modules.server-rest.xavante"):start(HttpLogger)
         print(self, "Server stopped")
         self.server = nil
         self.server_task = nil
@@ -195,7 +179,7 @@ end
 -------------------------------------------------------------------------------
 
 function RestServer:Tag()
-    return "RestServer"
+    return
 end
 
 function RestServer:BeforeReload()
@@ -204,19 +188,21 @@ end
 function RestServer:AfterReload()
 end
 
-function RestServer:Init()
+function RestServer:Init(opt)
+    RestServer.super.Init(self, opt)
+
     self.endpoints = { }
-    self.logger = require("lib/logger"):New("http-access", CONFIG_KEY_REST_LOG_ENABLE)
-    copas.addthread(function()
-        copas.sleep(0.1)
-        self:InitServer()
-    end)
+    self.logger = require("fairy_node/logger"):New("rest-server")
 end
 
 function RestServer:PostInit()
 end
 
 function RestServer:StartModule()
+    copas.addthread(function()
+        copas.sleep(0.1)
+        self:InitServer()
+    end)
     if not self.server_task then
         self.server_task = scheduler:CreateTask(
             self,

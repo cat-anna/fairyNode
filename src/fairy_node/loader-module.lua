@@ -1,11 +1,9 @@
 
-local lfs = require "lfs"
 local uuid = require "uuid"
-local copas = require "copas"
 local path = require "pl.path"
-local config_handler = require "fairy_node/config-handler"
 local tablex = require "pl.tablex"
 
+local config_handler = require "fairy_node/config-handler"
 local loader_class = require "fairy_node/loader-class"
 local scheduler = require "fairy_node/scheduler"
 
@@ -55,7 +53,7 @@ function ModuleLoader:InstantiateModule(mod_def)
     end
 
     local opt = {
-        config = config_handler:Query(mod_def.definition.config or { })
+        config = mod_def.configuration,
     }
 
     mod_def.instance = loader_class:CreateObject(mod_def.class_name, opt)
@@ -199,6 +197,12 @@ function ModuleLoader:LoadBaseModule(name)
     mod_def.class_name = string.format("modules/%s/%s", name, name)
 
     config_handler:AttachModuleParameters(name, definition.parameters)
+    mod_def.configuration = config_handler:Query(mod_def.definition.config or { })
+
+    if definition.exported_config then
+        config_handler:SetPackageConfig(name, definition.exported_config)
+    end
+
 
     local instance
     if definition.has_master_module then
@@ -222,20 +226,29 @@ function ModuleLoader:LoadSubModule(name, mod_name, sub_name)
         return self:LoadModule(name)
     end
 
+    if self.loaded_modules[name] then
+        return self.loaded_modules[name].instance
+    end
+
     local definition = self.known_modules[mod_name]
     if (not definition) or (not definition.submodules[sub_name]) then
         print(self, "Unknown submodule:", name)
         return
     end
 
+    local parent = self.loaded_modules[mod_name]
+    assert(parent)
+
     if self.verbose then
-        printf(self, "Loading module %s", name)
+        printf(self, "Loading sub-module %s", name)
     end
 
     local mod_def = self:InitModule(name)
     mod_def.definition = definition
     mod_def.submodule = true
     mod_def.class_name = "modules/" .. name
+    mod_def.parent = parent
+    mod_def.configuration = parent.configuration
 
     return self:InstantiateModule(mod_def)
 end

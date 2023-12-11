@@ -8,12 +8,14 @@ M.depends = { }
 M.config = { }
 
 local config = require("modules/fairy_node/config")
+M.config = config.config
 M.parameters = config.parameters
 
 M.submodules = {
-    ["event-bus"] = {
-        mandatory = true,
-    }
+    ["event-bus"] = { mandatory = true, },
+    ["error-manager"] = { mandatory = true, },
+
+    ["storage"] = { mandatory = false, }
 }
 
 return M

@@ -97,8 +97,13 @@ end
 function ConfigHandler:QueryConfigItem(config_item, query_args)
     if type(query_args) == "string" then
         config_item = query_args
-        query_args = self.parameter_definitions[query_args]
-        assert(type(query_args) == "table")
+        local def = self.parameter_definitions[query_args]
+        assert(type(def) == "table")
+        query_args = def
+    end
+
+    if query_args == nil then
+        query_args = self.parameter_definitions[config_item]
     end
 
     query_args = query_args or {}

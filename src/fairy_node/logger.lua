@@ -21,7 +21,6 @@ local lua_print = print
 
 local CONFIG_KEY_LOG_PATH = "logger.path"
 local CONFIG_KEY_LOG_ENABLE = "logger.enable"
-local CONFIG_KEY_DEBUG_LOG_ENABLE = "debug"
 
 -------------------------------------------------------------------------------
 
@@ -92,6 +91,7 @@ function LoggerObject:Start()
     end
 
     self.config = config_handler:Query(self.__config)
+
     if (not self.config[CONFIG_KEY_LOG_ENABLE]) or
        (self.enable_key and (not self.config[self.enable_key])) then
         self:Stop()
@@ -118,6 +118,7 @@ function LoggerObject:Start()
 end
 
 function LoggerObject:Stop()
+    printf(self, "Stopping")
     if self.file then
         self.file:close()
         self.file = nil
@@ -190,10 +191,13 @@ local Logger = { }
 Logger.__index = Logger
 Logger.active_loggers = table.weak()
 
-function Logger:Create(name, enable_key)
+function Logger:Create(name)
     if self.active_loggers[name] then
         return self.active_loggers[name]
     end
+
+    local enable_key = string.format("logger.module.%s.enable", name)
+
     local l = setmetatable({
         uuid = uuid(),
         enable_key = enable_key,
@@ -202,12 +206,9 @@ function Logger:Create(name, enable_key)
         __config = {
             [CONFIG_KEY_LOG_ENABLE] = { type = "boolean", default = true },
             [CONFIG_KEY_LOG_PATH] = { type = "string", default = "." },
+            [enable_key] = { type = "boolean", default = false }
         }
     }, LoggerObject)
-
-    if enable_key then
-        l.__config[enable_key] = { type = "boolean", default = false }
-    end
 
     l.name = name or l.uuid
 
@@ -269,10 +270,12 @@ end
 function Logger:Start()
     local cache = self.default_logger.file:GetCache()
     self.default_logger:Start()
-    for _,v in ipairs(cache) do
-        self.default_logger.file:write(v)
+    if self.default_logger.file then
+        for _,v in ipairs(cache) do
+            self.default_logger.file:write(v)
+        end
+        self.default_logger.file:flush()
     end
-    self.default_logger.file:flush()
 end
 
 function Logger:DefaultLogger()
@@ -282,4 +285,3 @@ end
 -------------------------------------------------------------------------------
 
 return setmetatable({ }, Logger)
-

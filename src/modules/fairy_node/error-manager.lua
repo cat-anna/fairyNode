@@ -5,9 +5,10 @@ local coxpcall = require "coxpcall"
 -------------------------------------------------------------------------------
 
 local ErrorManager = {}
-ErrorManager.__name = "ErrorManager"
+ErrorManager.__tag = "ErrorManager"
+ErrorManager.__type = "module"
 ErrorManager.__deps = {
-    event_bus = "base/event-bus",
+    event_bus = "fairy_node/event-bus",
 }
 ErrorManager.__config = { }
 
@@ -23,7 +24,9 @@ function ErrorManager:AfterReload()
     -- self.timers:RegisterTimer("trigger_fail", 10)
 end
 
-function ErrorManager:Init()
+function ErrorManager:Init(opt)
+    ErrorManager.super.Init(self, opt)
+
     self.active_errors = { }
     SetErrorReporter(self)
 end
@@ -35,10 +38,10 @@ function ErrorManager:TestFail()
 end
 
 function ErrorManager:UpdateActiveErrors()
-    self.event_bus:PushEvent({
-        event = "error-reporter.active_errors",
-        active_errors = self.active_errors,
-    })
+    -- self.event_bus:PushEvent({
+    --     event = "error-reporter.active_errors",
+    --     active_errors = self.active_errors,
+    -- })
 end
 
 function ErrorManager:OnError(info)
@@ -57,10 +60,10 @@ end
 
 -------------------------------------------------------------------------------
 
-ErrorManager.EventTable = {
-    ["homie-client.state.ready"] = ErrorManager.UpdateActiveErrors,
-    ["timer.trigger_fail"] = ErrorManager.TestFail
-}
+-- ErrorManager.EventTable = {
+--     ["homie-client.state.ready"] = ErrorManager.UpdateActiveErrors,
+--     ["timer.trigger_fail"] = ErrorManager.TestFail
+-- }
 
 -------------------------------------------------------------------------------
 

@@ -74,7 +74,8 @@ function ClassLoader:ReloadClass(class)
     end
 
     local new_mt = dofile(class.file)
-    assert(new_mt.__type == "class" or new_mt.__type == "interface" or new_mt.__type == "module")
+    local valid_type = new_mt.__type == "class" or new_mt.__type == "interface" or new_mt.__type == "module"
+    assert(valid_type, "Module/Object has invalid type ")
 
     if not new_mt.__index then
         new_mt.__index = new_mt

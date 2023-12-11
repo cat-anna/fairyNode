@@ -3,37 +3,19 @@ local json = require "dkjson"
 local file = require "pl.file"
 local path = require "pl.path"
 local pl_dir = require "pl.dir"
-local fs = require "lib/fs"
+local fs = require "fairy_node/fs"
 
 -------------------------------------------------------------------------------
 
-local CONFIG_KEY_SERVER_STORAGE_CACHE_PATH =  "module.server-storage.cache.path"
-local CONFIG_KEY_SERVER_STORAGE_CACHE_TTL =   "module.server-storage.cache.ttl"
-local CONFIG_KEY_SERVER_STORAGE_RWDATA_PATH = "module.server-storage.rw.path"
-local CONFIG_KEY_SERVER_STORAGE_RODATA_PATH = "module.server-storage.ro.paths"
-local CONFIG_KEY_LOG_PATH = "logger.path"
+local Storage = {}
+Storage.__tag = "Storage"
+Storage.__deps = { }
 
 -------------------------------------------------------------------------------
 
-local ServerStorage = {}
-ServerStorage.__deps = { }
-ServerStorage.__config = {
-    [CONFIG_KEY_SERVER_STORAGE_CACHE_TTL] =   { type = "number", default = 86400 },
-    [CONFIG_KEY_SERVER_STORAGE_CACHE_PATH] =  { type = "string", required = true },
-    [CONFIG_KEY_SERVER_STORAGE_RWDATA_PATH] = { type = "string", required = true },
-    [CONFIG_KEY_SERVER_STORAGE_RODATA_PATH] = { type = "string-table", default = { } },
-    [CONFIG_KEY_LOG_PATH] = { type = "string", required = true },
-}
+function Storage:BeforeReload() end
 
--------------------------------------------------------------------------------
-
-function ServerStorage:Tag()
-    return "ServerStorage"
-end
-
-function ServerStorage:BeforeReload() end
-
-function ServerStorage:AfterReload()
+function Storage:AfterReload()
     if self.config.debug then
         self.json_args = { indent = true }
     else
@@ -43,24 +25,25 @@ function ServerStorage:AfterReload()
     pl_dir.makepath(self:GetStoragePath())
 end
 
-function ServerStorage:Init()
+function Storage:Init(opt)
+    Storage.super.Init(self, opt)
 end
 
 -------------------------------------------------------------------------------
 
-function ServerStorage:GetCachePath()
-    return self.config[CONFIG_KEY_SERVER_STORAGE_CACHE_PATH]
+function Storage:GetCachePath()
+    return self.config.storage_cache_path
 end
 
-function ServerStorage:GetCacheTTL()
-    return self.config[CONFIG_KEY_SERVER_STORAGE_CACHE_TTL]
+function Storage:GetCacheTTL()
+    return self.config.storage_cache_ttl
 end
 
-function ServerStorage:CacheFilePath(id)
+function Storage:CacheFilePath(id)
     return string.format("%s/%s",self:GetCachePath(), id)
 end
 
-function ServerStorage:UpdateCache(id, data)
+function Storage:UpdateCache(id, data)
     local r = SafeCall(function()
         if self.config.verbose then
             print(self, "Update cache:", id)
@@ -70,14 +53,14 @@ function ServerStorage:UpdateCache(id, data)
     if not r then print(self, "failed to write cache", id) end
 end
 
-function ServerStorage:AddCache(id, source_file)
+function Storage:AddCache(id, source_file)
     SafeCall(function()
         print(self, "Add cache:", id)
         file.copy(source_file, self:CacheFilePath(id))
     end)
 end
 
-function ServerStorage:GetCacheFilePath(id)
+function Storage:GetCacheFilePath(id)
     local file_name = self:CacheFilePath(id)
     local attr = lfs.attributes(file_name)
 
@@ -89,12 +72,12 @@ function ServerStorage:GetCacheFilePath(id)
     return file_name
 end
 
-function ServerStorage:CacheFileExists(id)
+function Storage:CacheFileExists(id)
     local attr = lfs.attributes(self:CacheFilePath(id))
     return attr and attr.mode == "file"
 end
 
-function ServerStorage:GetFromCache(id)
+function Storage:GetFromCache(id)
     local result
     SafeCall(function()
         local file_name = self:CacheFilePath(id)
@@ -125,7 +108,7 @@ function ServerStorage:GetFromCache(id)
     return result
 end
 
-function ServerStorage:CheckCache()
+function Storage:CheckCache()
     local total_size = 0
     local entry_count = 0
     for file in lfs.dir(self:GetCachePath() .. "/") do
@@ -153,22 +136,22 @@ end
 
 -------------------------------------------------------------------------------
 
-function ServerStorage:GetStoragePath()
-    return self.config[CONFIG_KEY_SERVER_STORAGE_RWDATA_PATH]
+function Storage:GetStoragePath()
+    return self.config.storage_rwdata_path
 end
 
-function ServerStorage:StorageFile(id)
+function Storage:StorageFile(id)
     return string.format("%s/%s", self:GetStoragePath(), id)
 end
 
-function ServerStorage:AddFileToStorage(id, source_file)
+function Storage:AddFileToStorage(id, source_file)
     SafeCall(function()
         print(self, "Add file to storage:", id)
         file.copy(source_file, self:StorageFile(id))
     end)
 end
 
-function ServerStorage:GetStoredFilePath(id)
+function Storage:GetStoredFilePath(id)
     local file_name = self:StorageFile(id)
     local attr = lfs.attributes(file_name)
 
@@ -180,14 +163,14 @@ function ServerStorage:GetStoredFilePath(id)
     return file_name
 end
 
-function ServerStorage:GetObjectFromStorage(id)
+function Storage:GetObjectFromStorage(id)
     local r = self:GetFromStorage(id)
     if r then
         return json.decode(r)
     end
 end
 
-function ServerStorage:GetFromStorage(id)
+function Storage:GetFromStorage(id)
     local result
     SafeCall(function()
         local file_name = self:StorageFile(id)
@@ -205,7 +188,7 @@ function ServerStorage:GetFromStorage(id)
     return result
 end
 
-function ServerStorage:FindStorageFiles(regex)
+function Storage:FindStorageFiles(regex)
     local result = { }
     regex = regex or ".*"
     for file in lfs.dir(self:GetStoragePath() .. "/") do
@@ -223,30 +206,30 @@ function ServerStorage:FindStorageFiles(regex)
     return result
 end
 
-function ServerStorage:StorageFileExists(id)
+function Storage:StorageFileExists(id)
     local attr = lfs.attributes(self:StorageFile(id))
     return attr and attr.mode == "file"
 end
 
-function ServerStorage:WriteStorage(id, data)
+function Storage:WriteStorage(id, data)
     SafeCall(function()
         print(self, "Write storage:", id)
         file.write(self:StorageFile(id), tostring(data))
     end)
 end
 
-function ServerStorage:RemoveFromStorage(id)
+function Storage:RemoveFromStorage(id)
     SafeCall(function()
         print(self, "Remove from storage:", id)
         os.remove(self:StorageFile(id))
     end)
 end
 
-function ServerStorage:WriteObjectToStorage(id, data)
+function Storage:WriteObjectToStorage(id, data)
     return self:WriteStorage(id, json.encode(data, self.json_args))
 end
 
-function ServerStorage:CheckStorage()
+function Storage:CheckStorage()
     if self.storage_sensor then
         local r = fs.CountFilesInFolder(self:GetStoragePath())
         self.storage_sensor:UpdateValues {
@@ -258,8 +241,8 @@ end
 
 -------------------------------------------------------------------------------
 
-function ServerStorage:GetRoFilePath(name)
-    for _,base_path in ipairs(self.config[CONFIG_KEY_SERVER_STORAGE_RODATA_PATH]) do
+function Storage:GetRoFilePath(name)
+    for _,base_path in ipairs(self.config.storage_rodata_path) do
         local full = base_path .. "/" .. name
         local att = lfs.attributes(full)
         if att ~= nil then
@@ -269,17 +252,17 @@ function ServerStorage:GetRoFilePath(name)
     return nil
 end
 
-function ServerStorage:RoFileExists(name)
+function Storage:RoFileExists(name)
     return self:GetFilePath(name) ~= nil
 end
 
 -------------------------------------------------------------------------------
 
-function ServerStorage:GetLogPath()
-    return self.config[CONFIG_KEY_LOG_PATH]
+function Storage:GetLogPath()
+    return self.config.logger_path
 end
 
-function ServerStorage:CheckLogs()
+function Storage:CheckLogs()
     if self.storage_sensor then
         local r = fs.CountFilesInFolder(self:GetLogPath())
         self.storage_sensor:UpdateValues {
@@ -291,7 +274,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function ServerStorage:InitProperties(manager)
+function Storage:InitProperties(manager)
     self.storage_sensor = manager:RegisterSensor{
         owner = self,
         proxy = true,
@@ -312,7 +295,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function ServerStorage:SensorReadoutSlow()
+function Storage:SensorReadoutSlow()
     self:CheckCache()
     self:CheckStorage()
     self:CheckLogs()
@@ -320,4 +303,4 @@ end
 
 -------------------------------------------------------------------------------
 
-return ServerStorage
+return Storage

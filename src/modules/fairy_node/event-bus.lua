@@ -45,7 +45,9 @@ function EventBus:AfterReload()
     loader_class:RegisterWatcher(self:Tag(), self)
 end
 
-function EventBus:Init()
+function EventBus:Init(opt)
+    EventBus.super.Init(self, opt)
+
     self.event_queue = {}
     self.subscriptions = table.weak()
 
