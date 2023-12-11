@@ -1,9 +1,7 @@
-local scheduler = require "lib/scheduler"
-local copas = require "copas"
+local scheduler = require "fairy_node/scheduler"
 
 -------------------------------------------------------------------------------
 
-local timestamp = os.timestamp
 local verbose = false
 
 -------------------------------------------------------------------------------
@@ -16,27 +14,15 @@ end
 
 -------------------------------------------------------------------------------
 
-local CONFIG_KEY_MQTT_LOG_ENABLE = "module.mqtt-client.log.enable"
-local CONFIG_KEY_MQTT_BACKEND = "module.mqtt-client.backend"
-
--------------------------------------------------------------------------------
-
 local MqttClient = {}
-MqttClient.__index = MqttClient
+MqttClient.__type = "module"
+MqttClient.__tag = "MqttClient"
 MqttClient.__deps = {
-    event_bus = "base/event-bus",
-    loader_class = "base/loader-class",
-}
-MqttClient.__config = {
-    -- [CONFIG_KEY_MQTT_LOG_ENABLE] = { type = "boolean", default = false },
-    [CONFIG_KEY_MQTT_BACKEND] = { type = "string", default = "auto", },
+    event_bus = "fairy_node/event-bus",
+    loader_class = "fairy_node/loader-class",
 }
 
 -------------------------------------------------------------------------------
-
-function MqttClient:Tag()
-    return "MqttClient"
-end
 
 function MqttClient:BeforeReload()
 end
@@ -51,12 +37,14 @@ function MqttClient:AfterReload()
     end
 end
 
-function MqttClient:Init()
+function MqttClient:Init(opt)
+    MqttClient.super.Init(self, opt)
+
     self.subscriptions = { }
     self.cache = { }
     self.regex_watchers = { }
     self:SelectMqttBackend()
-    self.logger = require("lib/logger"):New("mqtt", CONFIG_KEY_MQTT_LOG_ENABLE)
+    self.logger = require("fairy_node/logger"):New("mqtt-client")
 end
 
 -------------------------------------------------------------------------------
@@ -69,8 +57,10 @@ function MqttClient:SetLastWill(message)
 end
 
 function MqttClient:SelectMqttBackend()
+    assert(self.config.backend == "auto")
+
     -- self.mqtt_backend_class = "mqtt/mqtt-backend-mosquitto"
-    self.mqtt_backend_class = "mqtt/mqtt-backend-mqtt"
+    self.mqtt_backend_class = "modules/mqtt-client/mqtt-backend-mqtt"
     printf(self, "Selected mqtt backend: %s", self.mqtt_backend_class)
 end
 
@@ -79,6 +69,7 @@ function MqttClient:CreateMqttBackend()
     printf(self, "Initializing mqtt backend: %s", self.mqtt_backend_class)
 
     local data = {
+        config = self.config,
         target = self,
         last_will = self.last_will,
     }

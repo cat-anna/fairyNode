@@ -1,7 +1,9 @@
 local copas = require "copas"
 local uuid = require "uuid"
-local scheduler = require "lib/scheduler"
-local logger = require "lib/logger"
+local scheduler = require "fairy_node/scheduler"
+local logger = require "fairy_node/logger"
+local loader_class = require "fairy_node/loader-class"
+local loader_module = require "fairy_node/loader-module"
 
 -------------------------------------------------------------------------------
 
@@ -14,18 +16,11 @@ local setmetatable = setmetatable
 
 -------------------------------------------------------------------------------
 
-local CONFIG_KEY_EVENT_BUS_LOG_ENABLE = "module.event-bus.log.enable"
-
--------------------------------------------------------------------------------
-
 local EventBus = {}
-EventBus.__deps = {
-    loader_module = "base/loader-module",
-    loader_class = "base/loader-class",
-}
-EventBus.__config = {
-    -- [CONFIG_KEY_EVENT_BUS_LOG_ENABLE] = { type = "boolean", default = false },
-}
+EventBus.__tag = "event-bus"
+EventBus.__type = "module"
+EventBus.__deps = { }
+EventBus.__config = { }
 
 -------------------------------------------------------------------------------
 
@@ -42,16 +37,12 @@ end
 
 -------------------------------------------------------------------------------
 
-function EventBus:Tag()
-    return "EventBus"
-end
-
 function EventBus:BeforeReload()
 end
 
 function EventBus:AfterReload()
-    self.loader_module:RegisterWatcher(self:Tag(), self)
-    self.loader_class:RegisterWatcher(self:Tag(), self)
+    loader_module:RegisterWatcher(self:Tag(), self)
+    loader_class:RegisterWatcher(self:Tag(), self)
 end
 
 function EventBus:Init()
@@ -69,7 +60,7 @@ function EventBus:Init()
         function (s, task) s:ProcessAllEvents() end
     )
 
-    self.logger = logger:New("event-bus", CONFIG_KEY_EVENT_BUS_LOG_ENABLE)
+    self.logger = logger:New("event-bus")
     self:InvalidateHandlerCache()
 end
 
@@ -139,7 +130,7 @@ function EventBus:ProcessEvent(event_info)
         local entry = { }
         self.handler_cache[event_info.event] = entry
 
-        self.loader_module:EnumerateModules(
+        loader_module:EnumerateModules(
             function(name, module)
                 self:ApplyEvent(name, module, event_info, run_stats, entry)
             end

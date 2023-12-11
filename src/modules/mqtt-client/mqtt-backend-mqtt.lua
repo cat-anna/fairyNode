@@ -1,6 +1,6 @@
 local mqtt = require "mqtt"
 local copas = require "copas"
-local scheduler = require "lib/scheduler"
+local scheduler = require "fairy_node/scheduler"
 
 -------------------------------------------------------------------------------
 
@@ -8,29 +8,14 @@ local timestamp = os.timestamp
 
 -------------------------------------------------------------------------------
 
-local CONFIG_KEY_MQTT_HOST = "module.mqtt.host.url"
-local CONFIG_KEY_MQTT_PORT = "module.mqtt.host.port"
-local CONFIG_KEY_MQTT_KEEP_ALIVE = "module.mqtt.host.keep_alive"
-local CONFIG_KEY_MQTT_USER = "module.mqtt.user.name"
-local CONFIG_KEY_MQTT_PASSWORD = "module.mqtt.user.password"
-
--------------------------------------------------------------------------------
-
-local MqttBackend = {}
-MqttBackend.__index = MqttBackend
+local MqttBackend = { }
 MqttBackend.__type = "class"
-MqttBackend.__deps = { }
-MqttBackend.__config = {
-    [CONFIG_KEY_MQTT_HOST] = { type = "string", required = true, },
-    [CONFIG_KEY_MQTT_PORT] = { type = "integer", default = 1883, },
-    [CONFIG_KEY_MQTT_KEEP_ALIVE] = { type = "integer", required = false, default = 10 },
-    [CONFIG_KEY_MQTT_USER] = { type = "string", required = true },
-    [CONFIG_KEY_MQTT_PASSWORD] = { type = "string", required = true },
-}
 
 -------------------------------------------------------------------------------
 
 function MqttBackend:Init(config)
+    MqttBackend.super.Init(self, config)
+
     self.connected = false
     self.target = config.target
     self.last_will = config.last_will
@@ -82,13 +67,13 @@ function MqttBackend:ResetClient()
         return
     end
 
-    local uri = string.format("%s:%d", self.config[CONFIG_KEY_MQTT_HOST], self.config[CONFIG_KEY_MQTT_PORT])
+    local uri = string.format("%s:%d", self.config.mqtt_host, self.config.mqtt_port)
     printf(self, "Connecting to %s", uri)
     local mqtt_client = mqtt.client{
         uri = uri,
-        username = self.config[CONFIG_KEY_MQTT_USER],
-        password = self.config[CONFIG_KEY_MQTT_PASSWORD],
-        keep_alive = self.config[CONFIG_KEY_MQTT_KEEP_ALIVE],
+        username = self.config.user,
+        password = self.config.password,
+        keep_alive = self.config.keep_alive,
         clean = true,
         reconnect = true,
         version = mqtt.v311,
@@ -113,7 +98,7 @@ function MqttBackend:RestartPingTask()
     self.ping_task = scheduler:CreateTask(
         self,
         "Mqtt ping",
-        self.config[CONFIG_KEY_MQTT_KEEP_ALIVE],
+        self.config.keep_alive,
         function(owner, task)
             if owner.mqtt_client then
                 owner.mqtt_client:send_pingreq()
