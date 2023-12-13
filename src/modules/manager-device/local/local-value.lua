@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------------
 
 local LocalValue = { }
-LocalValue.__base = "base/property/base-value"
+LocalValue.__base = "modules/manager-device/base-value"
 LocalValue.__type = "class"
 LocalValue.__name = "LocalValue"
 

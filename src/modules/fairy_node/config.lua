@@ -1,3 +1,4 @@
+local socket = require "socket"
 
 local M = { }
 
@@ -18,6 +19,7 @@ M.config = {
 
     debug = "debug",
     verbose = "verbose",
+    hostname = "hostname",
 
     logger_path = "logger.path",
     logger_enable = "logger.enable",
@@ -32,6 +34,7 @@ M.config = {
 M.parameters = {
     [M.config.debug] = { type = "boolean", default = false, },
     [M.config.verbose] = { type = "boolean", default = false, },
+    [M.config.hostname] = { type = "string", default = socket.dns.gethostname(), },
 
     [M.config.path_fairy_node] = { type="string", },
 

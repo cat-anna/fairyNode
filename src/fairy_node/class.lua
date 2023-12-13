@@ -2,6 +2,7 @@
 -------------------------------------------------------------------------------------
 
 local function MakeInstance(this, obj)
+    assert(this)
     obj = setmetatable(obj or {}, { __index = this })
     if obj.Init then
         obj:Init()

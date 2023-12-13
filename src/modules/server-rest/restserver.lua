@@ -153,7 +153,7 @@ local function wsapi_handler_with_self(self, wsapi_env)
    end
    local wres = response.new(res.config.status, response_headers)
    if self.logger then
-      self.logger("Response", res.config.status, #output)
+      self.logger("Response", tostring(res.config.status), #output)
    end
    wres:write(output)
    return wres:finish()
@@ -191,13 +191,17 @@ function restserver.new()
    return server
 end
 
-function restserver.response()
+function restserver.response(status)
    local res = {
       config = {},
    }
    add_setter(res, "status")
    add_setter(res, "entity")
    add_setter(res, "content_type")
+
+   if code then
+      res:status(status)
+   end
    return res
 end
 

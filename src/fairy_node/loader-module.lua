@@ -37,7 +37,10 @@ function ModuleLoader:UpdateObjectDeps(object)
     local deps = object:GetAllObjectDependencies()
 
     for member, dep_name in pairs(deps) do
-        object[member] = self:LoadModule(dep_name)
+        -- print(self, "Resolving dependency", dep_name)
+        local obj = self:LoadModule(dep_name)
+        -- print(self, "Resoled dependency", dep_name, obj)
+        object[member] = obj
     end
 
     return true
@@ -148,9 +151,7 @@ end
 
 function ModuleLoader:EnumerateModules(functor)
     for k, v in pairs(self.loaded_modules) do
-        if v.initialized then
-            SafeCall(functor, k, v.instance)
-        end
+        SafeCall(functor, k, v.instance)
     end
 end
 
@@ -204,9 +205,8 @@ function ModuleLoader:LoadBaseModule(name)
     end
 
 
-    local instance
     if definition.has_master_module then
-        instance = self:InstantiateModule(mod_def)
+        self:InstantiateModule(mod_def)
     else
         print(self, "Skipping creation of instance of", mod_def.name)
         mod_def.status = ModuleStatus.Ready
@@ -218,7 +218,7 @@ function ModuleLoader:LoadBaseModule(name)
         end
     end
 
-    return instance
+    return mod_def.instance
 end
 
 function ModuleLoader:LoadSubModule(name, mod_name, sub_name)
@@ -250,7 +250,9 @@ function ModuleLoader:LoadSubModule(name, mod_name, sub_name)
     mod_def.parent = parent
     mod_def.configuration = parent.configuration
 
-    return self:InstantiateModule(mod_def)
+    self:InstantiateModule(mod_def)
+
+    return mod_def.instance
 end
 
 function ModuleLoader:LoadModule(name)

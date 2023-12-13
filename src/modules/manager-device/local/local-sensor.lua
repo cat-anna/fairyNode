@@ -1,6 +1,6 @@
 
 local LocalSensor = { }
-LocalSensor.__base = "base/property/local-property"
+LocalSensor.__base = "modules/manager-device/local-property"
 LocalSensor.__type = "class"
 LocalSensor.__name = "LocalSensor"
 

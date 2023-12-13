@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------------
 
 local PropertySensorProxy = { }
-PropertySensorProxy.__base = "base/property/local-property"
+PropertySensorProxy.__base = "modules/manager-device/local-property"
 PropertySensorProxy.__type = "class"
 PropertySensorProxy.__name = "PropertySensorProxy"
 

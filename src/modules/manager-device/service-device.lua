@@ -1,34 +1,21 @@
-local http = require "lib/http-code"
-local scheduler = require "lib/scheduler"
+local http = require "fairy_node/http-code"
+local scheduler = require "fairy_node/scheduler"
 local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------
 
 local DeviceService = {}
+DeviceService.__tag = "DeviceService"
+DeviceService.__type = "module"
 DeviceService.__deps = {
-    homie_host = "homie/homie-host"
+    device_manager = "manager-device",
 }
-
--------------------------------------------------------------------------------
-
-function DeviceService:BeforeReload()
-end
-
-function DeviceService:AfterReload()
-end
-
-function DeviceService:Init()
-end
-
-function DeviceService:Tag()
-    return "DeviceService"
-end
 
 -------------------------------------------------------------------------------
 
 function DeviceService:GetDeviceList()
     local r = {}
-    for id, dev in pairs(self.homie_host.devices) do
+    for id, dev in pairs(self.device_manager.devices) do
         table.insert(r, {
             device_id = id,
             hardware_id = dev:GetHardwareId(),
@@ -40,7 +27,7 @@ end
 
 function DeviceService:GetDevicesSummary()
     local r = {}
-    for id, dev in pairs(self.homie_host.devices) do
+    for id, dev in pairs(self.device_manager.devices) do
         table.insert(r, {
             device_id = id,
             hardware_id = dev:GetHardwareId(),
@@ -55,7 +42,7 @@ function DeviceService:GetDevicesSummary()
 end
 
 function DeviceService:GetDeviceVariables(request, dev_name)
-    local device = self.homie_host.devices[dev_name]
+    local device = self.device_manager.devices[dev_name]
     if not device then
         return http.NotFound
     end
@@ -73,7 +60,7 @@ function DeviceService:GetDeviceVariables(request, dev_name)
 end
 
 function DeviceService:GetDeviceSoftwareInfo(request, dev_name)
-    local device = self.homie_host.devices[dev_name]
+    local device = self.device_manager.devices[dev_name]
     if not device then
         return http.NotFound
     end
@@ -86,7 +73,7 @@ function DeviceService:GetDeviceSoftwareInfo(request, dev_name)
 end
 
 function DeviceService:GetDeviceNodesSummary(request, dev_name)
-    local device = self.homie_host.devices[dev_name]
+    local device = self.device_manager.devices[dev_name]
     if not device then
         return http.NotFound
     end
@@ -102,7 +89,7 @@ function DeviceService:SetDevicePropertyValue(request, device, node, property)
         return http.NotAcceptable, { success = false }
     end
 
-    local dev = self.homie_host:GetDevice(device)
+    local dev = self.device_manager:GetDevice(device)
     if not dev then
         return http.BadRequest, { success = false }
     end
@@ -143,7 +130,7 @@ local CommandTable = {
 }
 
 function DeviceService:TriggerDeviceCommand(request, dev_id)
-    local dev = self.homie_host:GetDevice(dev_id)
+    local dev = self.device_manager:GetDevice(dev_id)
 
     local handler = CommandTable[request.command]
     if not handler then
@@ -165,7 +152,7 @@ end
 -------------------------------------------------------------------------------------
 
 function DeviceService:DeleteDevice(request, device)
-    local dev = self.homie_host:GetDevice(device)
+    local dev = self.device_manager:GetDevice(device)
     if not dev then
         printf(self, "Cannot remove non-existing device '%s'", device)
         return http.BadRequest, {}

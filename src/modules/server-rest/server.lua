@@ -6,16 +6,16 @@ local loader_module = require "fairy_node/loader-module"
 local path = require "pl.path"
 local scheduler = require "fairy_node/scheduler"
 local restserver = require "modules/server-rest/restserver"
+local json = require "rapidjson"
 
 -------------------------------------------------------------------------------
 
 local function ConcatRequest(args, sep)
-    local JSON = require "json"
     local t = {}
     for _,v in ipairs(args) do
         if type(v) == "table" then
             local r = pcall(function()
-                table.insert(t, JSON.encode(v))
+                table.insert(t, json.encode(v))
             end)
             if not r then
                 table.insert(t, "<?>")
@@ -60,13 +60,24 @@ function RestServer:AddEndpoint(endpoint_name, endpoint_file)
     end
 
     assert(type(load_result[1]) ~= "boolean")
-    for _,endpoint_def in ipairs(load_result) do
+    for _,endpoint_def_func in ipairs(load_result) do
+        local endpoint_def
+        if type(endpoint_def_func) == "function" then
+            local builder = require("modules/server-rest/builder-endpoint"):New()
+            endpoint_def_func(builder)
+            endpoint_def = builder.resource
+
+        else
+            endpoint_def = endpoint_def_func
+        end
+
         assert(endpoint_def)
         local resource = endpoint_def.resource
         assert(resource)
         assert(not self.endpoints[resource])
 
         local module = loader_module:LoadModule(endpoint_def.service)
+        assert(module)
 
         self.endpoints[resource] = {
             file = endpoint_file,
@@ -95,7 +106,7 @@ function RestServer:LoadEndpoints()
         if not endpoint_file then
             printf(self, "failed to find source for endpoint %s", endpoint_name)
         else
-            printf(self, "Adding endpoint %s", endpoint_name)
+            -- printf(self, "Adding endpoint %s", endpoint_name)
             self:AddEndpoint(endpoint_name, endpoint_file)
         end
     end
@@ -151,6 +162,7 @@ function RestServer:HandlerModule(module_name, module, handler_name)
             local handler = (module or {})[handler_name]
             if not handler then
                 print(string.format("No handler for request : %s.%s(%s)", module_name, handler_name, ConcatRequest(args, "; ")))
+                code = http.InternalServerError
                 return
             end
             table.insert(args, request.params or {})
@@ -164,7 +176,7 @@ function RestServer:HandlerModule(module_name, module, handler_name)
             result = msg
         end
 
-        -- print(string.format("REST-RESPONSE: Code:%d body:%s bytes", code, (type(result) == "string" and result:len() or JSON.encode(result):len())))
+        -- print(string.format("REST-RESPONSE: Code:%d body:%s bytes", code, (type(result) == "string" and result:len() or json.encode(result):len())))
         local response = restserver.response()
         response:status(code)
         response:entity(result)
@@ -178,15 +190,6 @@ end
 
 -------------------------------------------------------------------------------
 
-function RestServer:Tag()
-    return
-end
-
-function RestServer:BeforeReload()
-end
-
-function RestServer:AfterReload()
-end
 
 function RestServer:Init(opt)
     RestServer.super.Init(self, opt)

@@ -3,7 +3,7 @@ local fs = require "fairy_node/fs"
 -- local uuid = require "uuid"
 local path = require "pl.path"
 local config_handler = require "fairy_node/config-handler"
--- local json = require "json"
+-- local json = require "rapidjson"
 
 -------------------------------------------------------------------------------
 

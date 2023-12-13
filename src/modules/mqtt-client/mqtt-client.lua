@@ -173,9 +173,9 @@ end
 -------------------------------------------------------------------------------
 
 function MqttClient:OnMqttMessage(backend, message)
-    if verbose then
-        printf(self, "Message %s ", tostring(message))
-    end
+    -- if verbose then
+    --     printf(self, "Message %s ", tostring(message))
+    -- end
 
     local topic = message.topic
     local payload = message.payload

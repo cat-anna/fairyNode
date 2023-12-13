@@ -4,4 +4,5 @@ return {
     verbose = false,
     config = { },
     packages = { },
+    modules = { },
 }

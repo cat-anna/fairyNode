@@ -1,4 +1,4 @@
-local json = require "json"
+local json = require "rapidjson"
 -- local tablex = require "pl.tablex"
 local file = require "pl.file"
 -- local pretty = require "pl.pretty"

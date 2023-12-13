@@ -1,9 +1,9 @@
 
 local tablex = require "pl.tablex"
-local scheduler = require "lib/scheduler"
-local loader_class = require "lib/loader-class"
-local loader_module = require "lib/loader-module"
-local config_handler = require "lib/config-handler"
+local scheduler = require "fairy_node/scheduler"
+local loader_class = require "fairy_node/loader-class"
+local loader_module = require "fairy_node/loader-module"
+local config_handler = require "fairy_node/config-handler"
 local pretty = require "pl.pretty"
 -- local stringx = require "pl.stringx"
 -- local uuid = require "uuid"
@@ -22,7 +22,7 @@ local CONFIG_KEY_SENSOR_SLOW_INTERVAL =   "sensor.interval.slow"
 
 local SensorManager = {}
 SensorManager.__deps = {
-    property_manager = "base/property-manager"
+    property_manager = "modules/manager-device-manager"
 }
 SensorManager.__config = {
     [CONFIG_KEY_SENSOR_FAST_INTERVAL] = { type = "integer", default = 5 * 60 },

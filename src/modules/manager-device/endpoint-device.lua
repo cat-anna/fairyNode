@@ -11,7 +11,6 @@ function rest.POST(arg)
     return arg
 end
 
-
 function rest.GET_JSON(path, service_method)
     return rest.GET({
         produces = "application/json",
@@ -30,7 +29,7 @@ function rest.POST_JSON(path, service_method)
 end
 
 local device = {
-    service = "base/devices/service-device",
+    service = "manager-device/service-device",
     resource = "device",
     endpoints = {
         rest.GET_JSON("/", "GetDeviceList"),
@@ -45,15 +44,7 @@ local device = {
     }
 }
 
-local dashboard = {
-    service = "base/devices/service-device",
-    resource = "dashboard",
-    endpoints = {
-        rest.GET_JSON("/summary", "GetDevicesSummary"),
-    }
-}
-
-return device, dashboard
+return device
 
 -- {
 --     method = "GET",

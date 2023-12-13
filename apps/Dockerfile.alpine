@@ -1,17 +1,10 @@
-# FROM node:lts-alpine AS build_box
-
-# RUN mkdir -p /service/frontend/vuestic-admin
-# WORKDIR /service/frontend/vuestic-admin
-# COPY frontend/vuestic-admin /service/frontend/vuestic-admin
-# RUN NODE_ENV=dev npm install
-# RUN npm run build
-
-FROM alpine:latest AS service
+FROM alpine:latest
 
 RUN apk --update add \
+    tzdata \
+    zlib \
     lua5.3 \
     luarocks5.3 \
-    lua5.3-cjson \
     lua5.3-coxpcall lua5.3-copas \
     lua5.3-filesystem \
     lua5.3-md5 lua5.3-basexx lua5.3-b64 \
@@ -21,52 +14,30 @@ RUN apk --update add \
     lua5.3-pty \
     lua5.3-posix \
     lua5.3-luassert \
+    lua5.3-rapidjson \
     lua5.3-lzlib
 
-    # lua5.3-mosquitto lua5.3-lzmq lua5.3-mpack lua5.3-luasrcdiet
-    # lua5.3-posixtz lua5.3-luatz lua5.3-yaml lua5.3-lyaml lua5.3-cliargs
-    # lua5.3-system
-    # lua5.3-bit32 lua5.3-bitop \
-    # luarocks-5.3 install lua-log && \
-    # luarocks-5.3 install luazip && \
-    # zziplib zziplib-dev zlib-dev
-    # luarocks-5.3 install lua-zlib  && \
-
 RUN \
-    apk --update add mongo-c-driver zlib git && \
-    apk --update add musl-dev lua5.3-dev gcc mongo-c-driver-dev && \
+    apk --update add git musl-dev lua5.3-dev gcc && \
     luarocks-5.3 install ansicolors && \
     luarocks-5.3 install crc32 && \
-    luarocks-5.3 install lua-mongo && \
-    luarocks-5.3 install luajson && \
     luarocks-5.3 install luamqtt && \
-    luarocks-5.3 install restserver  && \
-    luarocks-5.3 install restserver-xavante  && \
-    luarocks-5.3 install wsapi && \
-    luarocks-5.3 install wsapi-xavante && \
-    luarocks-5.3 install xavante && \
     apk del '*-dev' gcc && \
     true
 
-RUN mkdir -p /service/run /service/fairyNode/frontend/
-
-RUN apk --update add nginx supervisor
-RUN mkdir -p /service
-
-RUN apk --update add tzdata
 ENV TZ=Europe/Warsaw
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# COPY --from=build_box /service/frontend/vuestic-admin/dist /service/fairyNode/frontend/vuestic-admin
-# COPY host/ /service/fairyNode/host
-# COPY projects/ /service/fairyNode/projects
-# COPY frontend/index.html  /service/fairyNode/frontend/index.html
-# COPY frontend/simple /service/fairyNode/frontend/simple
-# COPY host/docker/*.conf host/docker/*.lua /service/
+RUN mkdir -p /service
 
-EXPOSE 8080/tcp
-WORKDIR /service
-ENTRYPOINT ["supervisord","-c","/service/supervisor.conf"]
+# lua5.3-mosquitto lua5.3-lzmq lua5.3-mpack lua5.3-luasrcdiet
+# lua5.3-posixtz lua5.3-luatz lua5.3-yaml lua5.3-lyaml lua5.3-cliargs
+# lua5.3-system
+# lua5.3-bit32 lua5.3-bitop \
+# luarocks-5.3 install lua-log && \
+# luarocks-5.3 install luazip && \
+# zziplib zziplib-dev zlib-dev
+# luarocks-5.3 install lua-zlib  && \
 
 # apk del luarocks5.3 lua5.3-dev gcc git mongo-c-driver-dev && \
 # lua5.3-busted lua5.3-say lua5.3-term \

@@ -11,11 +11,13 @@ local socket = require "socket"
 -------------------------------------------------------------------------------
 
 local unpack = table.unpack
+local insert = table.insert
 local concat = table.concat
 local format = string.format
 local string_timestamp = os.string_timestamp
 local type = type
 local lua_print = print
+local debug_getinfo = debug.getinfo
 
 -------------------------------------------------------------------------------
 
@@ -91,6 +93,7 @@ function LoggerObject:Start()
     end
 
     self.config = config_handler:Query(self.__config)
+    self.debug = self.config.debug
 
     if (not self.config[CONFIG_KEY_LOG_ENABLE]) or
        (self.enable_key and (not self.config[self.enable_key])) then
@@ -101,7 +104,7 @@ function LoggerObject:Start()
     pl_dir.makepath(self.config[CONFIG_KEY_LOG_PATH])
     local timestamp = DateFormat:tostring(os.time())
     if self.config.debug then
-        timestamp = DateFormat:tostring(0)
+        timestamp = "debug"
     end
     local file_path = path.abspath(format("%s/%s_%s_%s.log",
         self.config[CONFIG_KEY_LOG_PATH],
@@ -131,16 +134,24 @@ function LoggerObject:Enabled()
 end
 
 function LoggerObject:WriteLog(severity, tag, message)
-    local line
+    local line = {
+        format("%s %-5s", string_timestamp(), severity),
+    }
 
-    if tag then
-        line = format("%s %-5s %s: %s\n", string_timestamp(), severity, tag, message)
-    else
-        line = format("%s %-5s %s\n", string_timestamp(), severity, message)
+    if self.debug then
+        local dbg_info = debug_getinfo(4)
+        insert(line, string.format("%s:%d", path.basename(dbg_info.source), dbg_info.currentline))
     end
 
-    StreamWrite(self.file, line)
-    StreamWrite(self.output, line)
+    if tag then
+        insert(line, tag)
+    end
+
+    insert(line, message)
+
+    local str_line = concat(line, " ") .. "\n"
+    StreamWrite(self.file, str_line)
+    StreamWrite(self.output, str_line)
 end
 
 function LoggerObject:FormatLog(severity, tag, fmt, args)

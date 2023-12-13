@@ -1,7 +1,7 @@
 
 local M = { }
 
-M.name = "REST server"
+M.name = "Server REST api"
 -- M.description = ""
 M.depends = { }
 M.config = {
@@ -26,7 +26,10 @@ M.submodules = {
     ["server"] = { mandatory = true, },
 }
 
--- M.exported_config = {
--- }
+M.exported_config = {
+    ["module.rest-server.endpoint.list"] = {
+        "server-rest/endpoint-api",
+    }
+}
 
 return M

@@ -39,6 +39,9 @@ function Object:Init(config)
     self.config = config.config
 end
 
+function Object:Finalize()
+end
+
 function Object:Tag()
     local tag = self.__tag
     if not tag then

@@ -1,6 +1,6 @@
 
 local LocalProperty = { }
-LocalProperty.__base = "base/property/base-property"
+LocalProperty.__base = "modules/manager-device/base-property"
 LocalProperty.__type = "class"
 LocalProperty.__name = "LocalProperty"
 
@@ -33,7 +33,7 @@ end
 
 function LocalProperty:AddValue(new_value)
     new_value.global_id = string.format("%s.%s", self.global_id, new_value.id)
-    new_value.class = new_value.class or "base/property/local-value"
+    new_value.class = new_value.class or "modules/manager-device/local-value"
 
     LocalProperty.super.AddValue(self, new_value)
 end

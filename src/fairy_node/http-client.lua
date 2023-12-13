@@ -3,7 +3,7 @@ local copas = require "copas"
 local copas_http = require("copas.http")
 local ltn12 = require("ltn12")
 local tablex = require "pl.tablex"
-local json = require "json"
+local json = require "rapidjson"
 
 -------------------------------------------------------------------------------------
 
