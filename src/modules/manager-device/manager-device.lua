@@ -1,10 +1,5 @@
 
-local tablex = require "pl.tablex"
-local scheduler = require "fairy_node/scheduler"
 local loader_class = require "fairy_node/loader-class"
-local loader_module = require "fairy_node/loader-module"
--- local stringx = require "pl.stringx"
--- local uuid = require "uuid"
 
 -------------------------------------------------------------------------------
 
@@ -99,7 +94,6 @@ end
 
 function DeviceManager:GetDebugTable()
     local header = {
-        "id",
         "global_id",
         "group",
         "name",
@@ -127,7 +121,6 @@ function DeviceManager:GetDebugTable()
     for _,id in ipairs(table.sorted_keys(self.devices)) do
         local dev = self.devices[id]
         table.insert(r, {
-            dev:GetId(),
             dev:GetGlobalId(),
             dev:GetGroup(),
             dev:GetName(),

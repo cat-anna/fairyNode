@@ -1,5 +1,4 @@
-
-local loader_class = require "fairy_node/loader-class"
+local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------------
 
@@ -73,6 +72,19 @@ function BaseComponent:GetProperty(key)
 end
 
 -------------------------------------------------------------------------------------
+
+function BaseComponent:GetSummary()
+    local properties = { }
+    for k,v in pairs(self.properties) do
+        properties[k] = v:GetSummary()
+    end
+    return {
+        name = self:GetName(),
+        id = self:GetId(),
+        global_id = self:GetGlobalId(),
+        properties = tablex.values(properties)
+    }
+end
 
 function BaseComponent:DeleteAllProperties()
     for _,v in ipairs(table.keys(self.properties)) do

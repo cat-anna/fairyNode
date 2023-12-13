@@ -47,7 +47,6 @@ end
 
 -------------------------------------------------------------------------------------
 
-
 -- function HomieRemoteProperty:SetValue(value, timestamp)
 --     -- TODO
 

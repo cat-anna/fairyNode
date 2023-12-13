@@ -3,7 +3,11 @@
     <va-card-title>{{ t('deviceInfo.details.software.title') }}</va-card-title>
 
     <busy-spinner v-if="pending" />
-    <span v-if="!valid"> {{ t('deviceInfo.details.software.invalid') }}</span>
+    <span v-if="!valid">
+      <va-card-content>
+        {{ t('deviceInfo.details.software.invalid') }}
+      </va-card-content>
+    </span>
 
     <div v-if="valid" class="table-wrapper">
       <va-card-content v-if="data && data.fairy_node">

@@ -1,10 +1,5 @@
 
-local tablex = require "pl.tablex"
-local scheduler = require "fairy_node/scheduler"
 local loader_class = require "fairy_node/loader-class"
-local loader_module = require "fairy_node/loader-module"
--- local stringx = require "pl.stringx"
--- local uuid = require "uuid"
 
 -------------------------------------------------------------------------------
 
@@ -94,7 +89,6 @@ end
 
 function ComponentManager:GetDebugTable()
     local header = {
-        "id",
         "global_id",
         "type",
         "started",
@@ -113,7 +107,6 @@ function ComponentManager:GetDebugTable()
     --     -- print(self, id)
         local p = self.components_by_id[id]
         table.insert(r, {
-            p:GetId(),
             p:GetGlobalId(),
             p:GetType(),
             check(p:IsStarted()),

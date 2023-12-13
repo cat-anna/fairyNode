@@ -25,6 +25,21 @@ end
 
 -------------------------------------------------------------------------------------
 
+function BaseProperty:GetSummary()
+    local v,t = self:GetValue()
+    return {
+        datatype = self:GetDatatype(),
+        global_id = self:GetGlobalId(),
+        id = self:GetId(),
+        name = self:GetName(),
+        unit = self:GetUnit(),
+        value = v,
+        timestamp = t,
+    }
+end
+
+-------------------------------------------------------------------------------------
+
 function BaseProperty:IsStarted()
     return self.started
 end

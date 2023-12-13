@@ -14,17 +14,9 @@ HomieHost.__deps = {
     mqtt = "mqtt-client",
     device_manager = "manager-device",
 }
-HomieHost.__config = {
-}
+HomieHost.__config = { }
 
 ------------------------------------------------------------------------------
-
-function HomieHost:BeforeReload()
-    -- self.mqtt:StopWatching(self)
-end
-
-function HomieHost:AfterReload()
-end
 
 function HomieHost:Init(opt)
     HomieHost.super.Init(self, opt)
@@ -59,6 +51,7 @@ function HomieHost:AddDevice(topic, payload, timestamp)
 
     if self.config.hostname == device_name then
         print(self, "Skipping local device", device_name)
+        return
     end
 
     if self.devices[device_name] then
@@ -93,7 +86,7 @@ end
 
 function HomieHost:CreateDevice(homie_version, device_name, device_mode)
     local mode_class = {
-        -- client  = "modules/homie-host/remote-device-fairy-node",
+        client  = "modules/homie-host/remote-homie-device-fairy-node",
         generic = "modules/homie-host/remote-homie-device",
     }
 

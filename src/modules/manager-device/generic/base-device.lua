@@ -1,3 +1,4 @@
+local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------------
 
@@ -81,6 +82,9 @@ function BaseDevice:GetGroup()
     return self.group
 end
 
+function BaseDevice:IsFairyNodeDevice()
+end
+
 -------------------------------------------------------------------------------------
 
 function BaseDevice:ComponentKeys()
@@ -105,6 +109,37 @@ function BaseDevice:GetComponents()
 end
 
 -------------------------------------------------------------------------------------
+
+function BaseDevice:GetProperty(component, property)
+    local c = self:GetComponent(component)
+    if c then
+        return c:GetProperty(property)
+    end
+end
+
+function BaseDevice:GetPropertyValue(component, property)
+    local p = self:GetProperty(component, property)
+    if p then
+        return p:GetValue()
+    end
+end
+
+-------------------------------------------------------------------------------------
+
+function BaseDevice:GetSummary()
+    local components = { }
+    for k,v in pairs(self.components) do
+        components[k] = v:GetSummary()
+    end
+
+    return {
+        name = self:GetName(),
+        id = self:GetId(),
+        global_id = self:GetGlobalId(),
+        components = tablex.values(components)
+    }
+end
+
 
 function BaseDevice:DeleteAllComponents()
     for _,v in ipairs(table.keys(self.components)) do

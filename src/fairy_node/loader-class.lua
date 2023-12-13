@@ -2,6 +2,7 @@ local lfs = require "lfs"
 local fs = require "fairy_node/fs"
 local copas = require "copas"
 local config_handler = require "fairy_node/config-handler"
+local scheduler = require "fairy_node/scheduler"
 local uuid = require "uuid"
 local tablex = require "pl.tablex"
 local loader_module
@@ -229,20 +230,11 @@ function ClassLoader:Init()
 
     loader_module = require "fairy_node/loader-module"
 
-    -- if self.config.debug then
-    --     self.update_thread = copas.addthread(function()
-    --         copas.sleep(1)
-    --         print("CLASS: Loading thread started")
-
-    --         while self.config.debug do
-    --             self:Update()
-    --             copas.sleep(5)
-    --         end
-
-    --         print("CLASS: Loading thread finished")
-    --         self.update_thread = nil
-    --     end)
-    -- end
+    if self.config.debug then
+        self.update_task = scheduler:CreateTask(
+            self, "module loader", 5, function (owner, task) self:Update() end
+        )
+    end
 end
 
 -------------------------------------------------------------------------------

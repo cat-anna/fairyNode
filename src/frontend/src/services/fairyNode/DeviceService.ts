@@ -16,7 +16,6 @@ export interface DeviceNodeProperty {
   name: string
   id: string
   global_id: string
-  property_id: string
   datatype: string
   value: string
   unit: string
@@ -30,6 +29,13 @@ export interface DeviceNode {
   id: string
   global_id: string
   properties: DeviceNodeProperty[]
+}
+
+export interface DeviceSummary {
+  name: string
+  id: string
+  global_id: string
+  components: DeviceNode[]
 }
 
 export declare type PropertyTypes = boolean | number | string
@@ -63,7 +69,7 @@ export class DeviceService extends RestServiceBase {
   list(): Promise<DeviceEntry[]> {
     return this.get_json('')
   }
-  nodesSummary(device_id: string): Promise<DeviceNode[]> {
+  nodesSummary(device_id: string): Promise<DeviceSummary> {
     return this.get_json('/' + device_id + '/summary')
   }
   variables(device_id: string): Promise<DeviceVariable[]> {
