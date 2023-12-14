@@ -24,8 +24,8 @@ function DeviceManager:Init(opt)
 end
 
 function DeviceManager:PostInit()
-    -- self.property_manager.device_manager = self
-    -- self:InitializeLocalDevice()
+    DeviceManager.super.PostInit(self)
+    self:InitializeLocalDevice()
 
     -- self.mongo_connection = loader_module:GetModule("mongo/mongo-connection")
     -- self.database = self:GetManagerDatabase()
@@ -39,12 +39,26 @@ function DeviceManager:PostInit()
 end
 
 function DeviceManager:StartModule()
+    DeviceManager.super.StartModule(self)
+    assert(self.local_device)
+    self.local_device:StartDevice()
 end
 
 -------------------------------------------------------------------------------
 
--- function DeviceManager:InitializeLocalDevice()
--- end
+function DeviceManager:GetLocalDevice()
+    return self.local_device
+end
+
+function DeviceManager:InitializeLocalDevice()
+    assert(self.my_device == nil)
+    self.local_device = self:CreateDevice{
+        class = "modules/manager-device/local/local-device",
+        id = self.config.hostname,
+        name = self.config.hostname,
+        group = "local",
+    }
+end
 
 -------------------------------------------------------------------------------
 
@@ -58,6 +72,7 @@ function DeviceManager:CreateDevice(dev_proto)
     dev_proto.global_id = string.format("%s.%s", dev_proto.group, dev_proto.id)
 
     local dev = loader_class:CreateObject(dev_proto.class, dev_proto)
+    assert(self.devices[dev_proto.id] == nil)
     self.devices[dev_proto.id] = dev
 
     return dev
@@ -84,7 +99,7 @@ end
 
 function DeviceManager:FindDeviceByHardwareId(id)
     for _,v in pairs(self.devices) do
-        if (not v:IsDeleting()) and (v:GetHardwareId() == id) then
+        if (v:GetHardwareId() == id) then
             return v
         end
     end

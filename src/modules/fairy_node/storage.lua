@@ -9,6 +9,7 @@ local fs = require "fairy_node/fs"
 
 local Storage = {}
 Storage.__tag = "Storage"
+Storage.__type = "module"
 Storage.__deps = { }
 
 -------------------------------------------------------------------------------
@@ -274,12 +275,12 @@ end
 
 -------------------------------------------------------------------------------
 
-function Storage:InitProperties(manager)
-    self.storage_sensor = manager:RegisterSensor{
-        owner = self,
-        proxy = true,
-        name = "Server storage",
-        id = "server_storage",
+function Storage:RegisterLocalComponent(local_device)
+    self.storage_sensor = local_device:AddSensor {
+        owner_module = self,
+        name = "Storage",
+        id = "storage",
+
         values = {
             cache_size = { name = "Cache size", datatype = "float", unit = "KiB" },
             cache_entries = { name = "Cache entries", datatype = "integer" },
@@ -295,10 +296,12 @@ end
 
 -------------------------------------------------------------------------------
 
-function Storage:SensorReadoutSlow()
-    self:CheckCache()
-    self:CheckStorage()
-    self:CheckLogs()
+function Storage:SensorReadout(skip_slow)
+    if not skip_slow then
+        self:CheckCache()
+        self:CheckStorage()
+        self:CheckLogs()
+    end
 end
 
 -------------------------------------------------------------------------------

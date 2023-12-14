@@ -1,6 +1,6 @@
-local json = require "json"
-local md5 = require "md5"
-local scheduler = require "lib/scheduler"
+-- local json = require "json"
+-- local md5 = require "md5"
+local scheduler = require "fairy_node/scheduler"
 
 -------------------------------------------------------------------------------------
 
@@ -129,40 +129,34 @@ end
 
 -------------------------------------------------------------------------------------
 
-local SysInfoSensor = { }
-SysInfoSensor.__name = "SysInfoSensor"
+local HealthMonitor = {}
+HealthMonitor.__deps = { }
+HealthMonitor.__tag = "HealthMonitor"
+HealthMonitor.__type = "module"
 
-function SysInfoSensor:Readout()
+-------------------------------------------------------------------------------------
+
+function HealthMonitor:Init(opt)
+    HealthMonitor.super.Init(self, opt)
+    -- self.gc_task = scheduler:CreateTask(
+    --     self,
+    --     "gc",
+    --     1,
+    --     function () collectgarbage() end
+    -- )
 end
 
-function SysInfoSensor:ReadoutFast()
-    local system_uptime = LinuxProcUptime()
-    local mem_info = LinuxProcMemInfo()
-    local self_statm = LinuxProcStatm()
-    local load = LinuxProcLoad()
-    local cpu_usage = self:GetCpuUsage()
-
-    local mem_stat = mem_info.MemAvailable or mem_info.MemFree or
-                            {value = 0}
-
-    self:UpdateValues{
-        lua_mem_usage = LuaMemUsage(),
-
-        process_memory = self_statm.size / 1024,
-        process_cpu_usage = cpu_usage,
-
-        uptime = gettime() - scheduler.AppStartTime,
-        system_uptime = system_uptime.uptime,
-
-        system_memory = mem_stat.value / 1024,
-        system_load = load[1],
-    }
+function HealthMonitor:PostInit()
+    HealthMonitor.super.PostInit(self)
 end
 
-function SysInfoSensor:ReadoutSlow()
+function HealthMonitor:StartModule()
+    HealthMonitor.super.StartModule(self)
 end
 
-function SysInfoSensor:GetCpuUsage()
+-------------------------------------------------------------------------------------
+
+function HealthMonitor:GetCpuUsage()
     local self_stat = LinuxProcSelfStat()
     local proc_stat = LinuxProcStat()
 
@@ -189,44 +183,13 @@ end
 
 -------------------------------------------------------------------------------------
 
-local HealthMonitor = {}
-HealthMonitor.__index = HealthMonitor
-HealthMonitor.__deps = { }
-HealthMonitor.__name = "HealthMonitor"
-
--------------------------------------------------------------------------------------
-
-function HealthMonitor:Tag()
-    return "HealthMonitor"
-end
-
-function HealthMonitor:BeforeReload() end
-
-function HealthMonitor:AfterReload()
-end
-
-function HealthMonitor:Init()
-    self.gc_task = scheduler:CreateTask(
-        self,
-        "gc",
-        1,
-        function () collectgarbage() end
-    )
-end
-
-function HealthMonitor:StartModule()
-end
-
--------------------------------------------------------------------------------------
-
-function HealthMonitor:InitProperties(manager)
-    self.sysinfo_sensor = manager:RegisterSensor{
-        owner = self,
-        class = SysInfoSensor,
+function HealthMonitor:RegisterLocalComponent(local_device)
+    self.sysinfo_sensor = local_device:AddSensor {
+        owner_module = self,
         name = "System info",
         id = "sysinfo",
         values = {
-            errors = { name = "Active errors", datatype = "string" },
+            -- errors = { name = "Active errors", datatype = "string" },
 
             system_uptime = { name = "System uptime", datatype = "float", unit = "s" },
             uptime = { name = "Server uptime", datatype = "float", unit = "s" },
@@ -239,25 +202,56 @@ function HealthMonitor:InitProperties(manager)
             process_cpu_usage = { name = "Process cpu usage", datatype = "float", unit = "%" },
         }
     }
+
 end
 
-function HealthMonitor:UpdateActiveErrors(event)
-    if self.sysinfo_sensor then
-        local error_str = json.encode(event.active_errors)
-        local error_hex = md5.sumhexa(error_str)
+function HealthMonitor:SensorReadout(skip_slow)
+    -- if not self.sysinfo_sensor then
+    --     return
+    -- end
 
-        if self.active_errors_hash ~= error_hex then
-            self.sysinfo_sensor:UpdateValue("errors", error_str)
-            self.active_errors_hash = error_hex
-        end
-    end
+    local system_uptime = LinuxProcUptime()
+    local mem_info = LinuxProcMemInfo()
+    local self_statm = LinuxProcStatm()
+    local load = LinuxProcLoad()
+    local cpu_usage = self:GetCpuUsage()
+
+    local mem_stat = mem_info.MemAvailable or mem_info.MemFree or
+                            {value = 0}
+
+    self.sysinfo_sensor:UpdateValues{
+        lua_mem_usage = LuaMemUsage(),
+
+        process_memory = self_statm.size / 1024,
+        process_cpu_usage = cpu_usage,
+
+        uptime = gettime() - scheduler.AppStartTime,
+        system_uptime = system_uptime.uptime,
+
+        system_memory = mem_stat.value / 1024,
+        system_load = load[1],
+    }
 end
 
 -------------------------------------------------------------------------------------
 
-HealthMonitor.EventTable = {
-    ["error-reporter.active_errors"] = HealthMonitor.UpdateActiveErrors,
-}
+function HealthMonitor:UpdateActiveErrors(event)
+    -- if self.sysinfo_sensor then
+        -- local error_str = json.encode(event.active_errors)
+        -- local error_hex = md5.sumhexa(error_str)
+
+        -- if self.active_errors_hash ~= error_hex then
+        --     self.sysinfo_sensor:UpdateValue("errors", error_str)
+        --     self.active_errors_hash = error_hex
+        -- end
+    -- end
+end
+
+-------------------------------------------------------------------------------------
+
+-- HealthMonitor.EventTable = {
+--     ["error-reporter.active_errors"] = HealthMonitor.UpdateActiveErrors,
+-- }
 
 -------------------------------------------------------------------------------------
 

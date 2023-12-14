@@ -21,6 +21,7 @@ end
 
 function BaseProperty:StopProperty()
     self.started = false
+    self:StopAllTasks()
 end
 
 -------------------------------------------------------------------------------------

@@ -24,6 +24,7 @@ end
 
 function BaseDevice:StartDevice()
     self.started = true
+    self:SetReady(false)
     for _,v in pairs(self.components) do
         if not v:IsStarted() then
             v:StartComponent()
@@ -33,6 +34,7 @@ end
 
 function BaseDevice:StopDevice()
     self.started = false
+    self:StopAllTasks()
     for _,v in pairs(self.properties) do
         if v:IsStarted() then
             v:StopComponent()
@@ -62,6 +64,14 @@ end
 
 -------------------------------------------------------------------------------------
 
+function BaseDevice:GetState()
+    return self:IsReady() and "ready" or "init"
+end
+
+function BaseDevice:IsReady()
+    return self.ready and self.started
+end
+
 function BaseDevice:IsStarted()
     return self.started
 end
@@ -83,6 +93,7 @@ function BaseDevice:GetGroup()
 end
 
 function BaseDevice:IsFairyNodeDevice()
+    return false
 end
 
 -------------------------------------------------------------------------------------
@@ -139,7 +150,6 @@ function BaseDevice:GetSummary()
         components = tablex.values(components)
     }
 end
-
 
 function BaseDevice:DeleteAllComponents()
     for _,v in ipairs(table.keys(self.components)) do

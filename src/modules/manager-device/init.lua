@@ -4,7 +4,9 @@ local M = { }
 M.name = "Device manager"
 -- M.description = ""
 M.depends = { }
-M.config = {}
+M.config = {
+    hostname = "hostname",
+}
 
 M.parameters = {}
 

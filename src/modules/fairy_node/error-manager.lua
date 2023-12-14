@@ -14,21 +14,30 @@ ErrorManager.__config = { }
 
 -------------------------------------------------------------------------------
 
-function ErrorManager:BeforeReload()
-end
+-- function ErrorManager:AfterReload()
+--     ErrorManager.super.Init(self, opt)
+--     SetErrorReporter(self)
+--     self:UpdateActiveErrors()
 
-function ErrorManager:AfterReload()
-    SetErrorReporter(self)
-    self:UpdateActiveErrors()
-
-    -- self.timers:RegisterTimer("trigger_fail", 10)
-end
+--     -- self.timers:RegisterTimer("trigger_fail", 10)
+-- end
 
 function ErrorManager:Init(opt)
     ErrorManager.super.Init(self, opt)
 
     self.active_errors = { }
     SetErrorReporter(self)
+end
+
+-------------------------------------------------------------------------------
+
+function ErrorManager:SetError()
+end
+
+function ErrorManager:ClearError()
+end
+
+function ErrorManager:ClearAllErrors()
 end
 
 -------------------------------------------------------------------------------

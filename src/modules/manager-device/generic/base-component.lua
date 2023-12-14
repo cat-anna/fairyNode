@@ -35,6 +35,7 @@ end
 
 function BaseComponent:StopComponent()
     self.started = false
+    self:StopAllTasks()
     for _,v in pairs(self.properties) do
         if v:IsStarted() then
             v:StopProperty()

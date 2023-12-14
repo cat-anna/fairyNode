@@ -1,49 +1,55 @@
 
+local LocalSensorValue = { }
+LocalSensorValue.__base = "modules/manager-device/generic/base-property"
+LocalSensorValue.__type = "class"
+LocalSensorValue.__name = "LocalSensorValue"
 
 -------------------------------------------------------------------------------------
 
-local LocalValue = { }
-LocalValue.__base = "modules/manager-device/base-value"
-LocalValue.__type = "class"
-LocalValue.__name = "LocalValue"
-
--------------------------------------------------------------------------------------
-
-function LocalValue:Init(config)
-    LocalValue.super.Init(self, config)
+function LocalSensorValue:Init(config)
+    LocalSensorValue.super.Init(self, config)
 
     self.datatype = config.datatype
     self.unit = config.unit
     self.value = config.value
     self.timestamp = config.timestamp
+
+    self:TestError(self.datatype, "Datatype is not set")
+    self:TestError(self.unit, "Unit is not set")
 end
 
--- function LocalValue:PostInit()
---     LocalValue.super.PostInit(self)
--- end
+function LocalSensorValue:StartProperty()
+    LocalSensorValue.super.StartProperty(self)
+    self:SetReady(true)
+end
+
+function LocalSensorValue:StopProperty()
+    LocalSensorValue.super.StopProperty(self)
+    self:SetReady(false)
+end
 
 -------------------------------------------------------------------------------------
 
-function LocalValue:GetValue()
+function LocalSensorValue:GetValue()
     return self.value, self.timestamp
 end
 
-function LocalValue:GetDatatype()
+function LocalSensorValue:GetDatatype()
     if not self.datatype then
         print(self, "Datatype is not set!")
     end
     return self.datatype or "string"
 end
 
-function LocalValue:GetUnit()
+function LocalSensorValue:GetUnit()
     return self.unit
 end
 
 -------------------------------------------------------------------------------------
 
-function LocalValue:Update(updated_value, timestamp)
+function LocalSensorValue:UpdateValue(updated_value, timestamp)
     timestamp = timestamp or os.timestamp()
-    if (self.value == updated_value) and (timestamp - (self.timestamp or 0) < 60 * 60) then
+    if self.value == updated_value then
         return false
     end
 
@@ -57,4 +63,4 @@ end
 
 -------------------------------------------------------------------------------------
 
-return LocalValue
+return LocalSensorValue

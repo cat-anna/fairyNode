@@ -26,25 +26,4 @@ end
 
 -------------------------------------------------------------------------------------
 
-function Module:GetErrorManager()
-    if not self.error_manager then
-        self.error_manager = require "fairy_node/loader-module"
-    end
-    return self.error_manager
-end
-
-function Module:SetError(id, message)
-    return self:GetErrorManager():SetModuleError(self, id, message)
-end
-
-function Module:ClearError(id)
-    return self:GetErrorManager():ClearModuleError(self, id)
-end
-
-function Module:ClearAllErrors()
-    return self:GetErrorManager():ClearAllModuleErrors(self)
-end
-
--------------------------------------------------------------------------------------
-
 return Module

@@ -110,16 +110,8 @@ end
 
 -------------------------------------------------------------------------------------
 
-function ServiceStatus:BeforeReload()
-end
-
-function ServiceStatus:AfterReload()
-end
-
-function ServiceStatus:Init()
-end
-
 function ServiceStatus:StartModule()
+    ServiceStatus.super.StartModule(self)
     self:ReloadDebugInfo()
 end
 

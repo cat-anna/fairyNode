@@ -55,19 +55,11 @@ end
 -------------------------------------------------------------------------------------
 
 function LocalProperty:UpdateValue(id, updated_value, timestamp)
-    local value_object = self.values[id]
-    assert(value_object)
-    return value_object:Update(updated_value, timestamp)
+    -- local value_object = self.values[id]
+    -- assert(value_object)
+    -- return value_object:Update(updated_value, timestamp)
 end
 
-function LocalProperty:UpdateValues(all)
-    local timestamp = os.timestamp()
-    local any = false
-    for k,v in pairs(all) do
-        local r = self:UpdateValue(k, v, timestamp)
-        any = any or r
-    end
-end
 
 -------------------------------------------------------------------------------------
 

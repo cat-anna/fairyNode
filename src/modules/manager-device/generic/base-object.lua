@@ -25,6 +25,10 @@ end
 
 -------------------------------------------------------------------------------------
 
+function BaseObject:SetReady(r)
+    self.ready = r
+end
+
 function BaseObject:IsReady()
     return self.ready
 end

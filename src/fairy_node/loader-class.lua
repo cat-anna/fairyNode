@@ -3,7 +3,6 @@ local fs = require "fairy_node/fs"
 local copas = require "copas"
 local config_handler = require "fairy_node/config-handler"
 local scheduler = require "fairy_node/scheduler"
-local uuid = require "uuid"
 local tablex = require "pl.tablex"
 local loader_module
 
@@ -153,20 +152,19 @@ end
 -------------------------------------------------------------------------------
 
 function ClassLoader:InitObject(class, class_name, object_arg)
-    local obj = {
-        uuid = uuid(),
-    }
+    local obj = setmetatable({ }, class.metatable)
 
-    obj = setmetatable(obj, class.metatable)
-    if class.instances then
-        class.instances[obj.uuid] = obj
+    if not object_arg.config then
+        object_arg.config = config_handler:Query(obj.__config, obj.config)
     end
-
-    obj.config = config_handler:Query(obj.__config, obj.config)
-    loader_module:UpdateObjectDeps(obj)
 
     if obj.Init then
         obj:Init(object_arg)
+    end
+
+    assert(obj.uuid, class_name)
+    if class.instances then
+        class.instances[obj.uuid] = obj
     end
 
     if obj.AfterReload then

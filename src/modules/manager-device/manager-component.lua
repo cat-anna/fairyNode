@@ -23,18 +23,13 @@ function ComponentManager:Init(opt)
 end
 
 function ComponentManager:PostInit()
+    ComponentManager.super.PostInit(self)
     -- self.mongo_connection = loader_module:GetModule("mongo/mongo-connection")
-    self.database = self:GetManagerDatabase()
-
-    -- loader_module:EnumerateModules(
-    --     function(name, module)
-    --         if module.InitProperties then
-    --             module:InitProperties(self)
-    --         end
-    --     end)
+    -- self.database = self:GetManagerDatabase()
 end
 
 function ComponentManager:StartModule()
+    ComponentManager.super.StartModule(self)
 end
 
 -------------------------------------------------------------------------------
@@ -70,7 +65,7 @@ function ComponentManager:DeleteCompnent(component)
 end
 
 -------------------------------------------------------------------------------
-
+--[[
 function ComponentManager:WriteManagerDatabaseEntry(data)
     -- if self.database then
     --     local db_key = { global_id = data.global_id }
@@ -84,7 +79,7 @@ function ComponentManager:GetManagerDatabase()
         return self.mongo_connection:GetCollection(db_id)
     end
 end
-
+--]]
 -------------------------------------------------------------------------------
 
 function ComponentManager:GetDebugTable()

@@ -1,5 +1,8 @@
 local scheduler = require "fairy_node/scheduler"
 local tablex = require "pl.tablex"
+local config_handler = require "fairy_node/config-handler"
+local loader_module = require "fairy_node/loader-module"
+local uuid = require "uuid"
 
 -------------------------------------------------------------------------------------
 
@@ -36,10 +39,19 @@ end
 -------------------------------------------------------------------------------------
 
 function Object:Init(config)
-    self.config = config.config
-end
+    self.uuid = uuid()
+    self.config = config.config or { }
+    loader_module:UpdateObjectDeps(self)
 
-function Object:Finalize()
+    if self.config.debug == nil then
+        self.config.debug = config_handler:QueryConfigItem("debug")
+    end
+    if self.config.verbose == nil then
+        self.config.verbose = config_handler:QueryConfigItem("verbose")
+    end
+
+    self.debug = self.config.debug
+    self.verbose = self.config.verbose
 end
 
 function Object:Tag()
@@ -108,6 +120,12 @@ end
 
 -------------------------------------------------------------------------------------
 
+function Object:StopAllTasks()
+end
+
+function Object:StopTask(name)
+end
+
 function Object:AddTask(name, interval, func)
     self.tasks = self.tasks or { }
 
@@ -120,6 +138,33 @@ function Object:AddTask(name, interval, func)
     self.tasks[name] = task
 
     return task
+end
+
+-------------------------------------------------------------------------------------
+
+function Object:GetErrorManager()
+    if not self.error_manager then
+        self.error_manager = loader_module:LoadModule("fairy_node/error-manager")
+    end
+    return self.error_manager
+end
+
+function Object:SetError(id, message)
+    return self:GetErrorManager():SetError(self, id, message)
+end
+
+function Object:ClearError(id)
+    return self:GetErrorManager():ClearError(self, id)
+end
+
+function Object:ClearAllErrors()
+    return self:GetErrorManager():ClearAllErrors(self)
+end
+
+function Object:TestError(test, id, message)
+    if test then
+        return self:GetErrorManager():SetError(self, id, message)
+    end
 end
 
 -------------------------------------------------------------------------------------
