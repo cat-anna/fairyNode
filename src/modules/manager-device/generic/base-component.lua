@@ -53,20 +53,15 @@ function BaseComponent:GetType()
     return self.component_type
 end
 
+function BaseComponent:GetOwnerDeviceName()
+    return self.owner_device:GetName()
+end
+
 -------------------------------------------------------------------------------------
 
 function BaseComponent:PropertyKeys()
     return table.sorted_keys(self.properties)
 end
-
--- function BaseComponent:ValueGlobalIds()
---     local r = { }
---     for _,p in pairs(self.values) do
---         table.insert(r, p:GetGlobalId())
---     end
---     table.sort(r)
---     return r
--- end
 
 function BaseComponent:GetProperty(key)
     return self.properties[key]

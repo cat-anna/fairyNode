@@ -99,6 +99,13 @@ function Object:Subscribe(target, func)
     return true
 end
 
+function Object:Unsubscribe(target)
+    assert(target)
+    if self.subscriptions then
+        self.subscriptions[target.uuid] = nil
+    end
+end
+
 function Object:CallSubscribers(argument)
     if not self.subscriptions then
         return

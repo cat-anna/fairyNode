@@ -333,35 +333,33 @@ end
 
 -------------------------------------------------------------------------------
 
--- function ModuleLoader:GetDebugTable()
---     local header = {
---         "module",
---         "type",
---         "initialized",
---         "needs_reload",
---         "timestamp",
---     }
+function ModuleLoader:GetDebugTable()
+    local header = {
+        "module",
+        "type",
+        "instance",
+        "status",
+    }
 
---     local r = { }
+    local r = { }
 
---     for _,id in ipairs(table.sorted_keys(self.loaded_modules)) do
---         local p = self.loaded_modules[id]
+    for _,id in ipairs(table.sorted_keys(self.loaded_modules)) do
+        local p = self.loaded_modules[id]
 
---         table.insert(r, {
---             p.name,
---             p.type,
---             p.initialized,
---             p.needs_reload,
---             p.timestamp
---         })
---     end
+        table.insert(r, {
+            p.name,
+            p.type,
+            p.instance and true or false,
+            p.status,
+        })
+    end
 
---     return {
---         title = "Module loader",
---         header = header,
---         data = r
---     }
--- end
+    return {
+        title = "Module loader",
+        header = header,
+        data = r
+    }
+end
 
 -- function ModuleLoader:GetDebugGraph(graph)
 --     self:EnumerateModules(function (name, instance)

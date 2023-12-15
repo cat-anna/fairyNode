@@ -1,8 +1,7 @@
 return {
-    service = "fairy-node/service-ota-host",
+    service = "fairy_node-firmware/service-ota-host",
     resource = "firmware",
     endpoints = {
-
 -------------------------------------------------------------------------------
         {
             method = "POST",

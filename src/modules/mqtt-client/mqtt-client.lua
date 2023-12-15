@@ -1,8 +1,5 @@
 local scheduler = require "fairy_node/scheduler"
-
--------------------------------------------------------------------------------
-
-local verbose = false
+local json = require "rapidjson"
 
 -------------------------------------------------------------------------------
 
@@ -28,8 +25,6 @@ function MqttClient:BeforeReload()
 end
 
 function MqttClient:AfterReload()
-    verbose = self.config.verbose
-
     if self.mqtt_backend and self.mqtt_backend:IsConnected() then
         self:OnMqttConnected()
     else
@@ -144,7 +139,7 @@ function MqttClient:BatchPublish(queue)
         printf(self, "Publish failed, client not created. Dropped %d messages.", #queue)
         return
     end
-    if verbose then
+    if self.verbose then
         printf(self, "Publishing in batch %d messages", #queue)
     end
     for _,v in ipairs(queue) do
@@ -173,9 +168,9 @@ end
 -------------------------------------------------------------------------------
 
 function MqttClient:OnMqttMessage(backend, message)
-    -- if verbose then
-    --     printf(self, "Message %s ", tostring(message))
-    -- end
+    if self.verbose then
+        print(self, "Message", json.encode(message))
+    end
 
     local topic = message.topic
     local payload = message.payload
@@ -241,9 +236,7 @@ function MqttClient:OnMqttDisconnected(backend)
 end
 
 function MqttClient:OnMqttError(backend, code, msg)
-    if self.config.verbose then
-        print(self, "Mqtt client had error")
-    end
+    print(self, "Mqtt client had error")
     self:MqttLog("error", code, msg)
     self.event_bus:PushEvent({ event = "mqtt-client.error", error = err })
 end
@@ -368,6 +361,9 @@ function MqttClient:CallWatchers(watchers, message)
     for uuid,entry in pairs(watchers) do
         if entry.target and entry.handler then
             scheduler.CallLater(function()
+                if self.verbose then
+                    print(self, "Calling handler", entry.target.uuid, entry.handler, json.encode(message))
+                end
                 entry.handler(entry.target, message.topic, message.payload, message.timestamp, message)
             end)
         else
@@ -379,7 +375,7 @@ function MqttClient:CallWatchers(watchers, message)
     end
 
     for _,v in ipairs(expired) do
-        if self.config.verbose then
+        if self.verbose then
             print(self, "Watcher expired", v)
         end
         watchers[v] = nil

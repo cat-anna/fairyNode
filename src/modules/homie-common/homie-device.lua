@@ -17,7 +17,6 @@ HomieGenericDevice.StateDef = require("modules/homie-common/homie-state")
 
 function HomieGenericDevice:Init(config)
     HomieGenericDevice.super.Init(self, config)
-    self.nodes = {}
     self.state = self.StateDef.init
 
     self.homie_controller = config.homie_controller

@@ -26,6 +26,7 @@ function MongoCollection:Tag()
 end
 
 function MongoCollection:Init(config)
+    MongoCollection.super.Init(self, config)
     self.collection_handle = config.collection_handle
     self.name = config.name
 end

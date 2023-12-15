@@ -1,5 +1,5 @@
 return {
-    service = "rest-api/service-property",
+    service = "manager-device/service-property",
     resource = "property",
     endpoints = {
         {

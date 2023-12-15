@@ -17,6 +17,7 @@ RUN \
     luarocks-5.3 install wsapi && \
     luarocks-5.3 install wsapi-xavante && \
     luarocks-5.3 install xavante && \
+    luarocks-5.3 install lua-mongo && \
     apk del '*-dev' gcc && \
     true
 

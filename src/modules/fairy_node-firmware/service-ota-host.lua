@@ -1,10 +1,7 @@
-local http = require "lib/http-code"
-local copas = require "copas"
+local http = require "fairy_node/http-code"
 local file = require "pl.file"
 local pretty = require 'pl.pretty'
-local loader_module = require "lib/loader-module"
 local uuid = require "uuid"
-local json = require "json"
 local tablex = require "pl.tablex"
 
 -------------------------------------------------------------------------------
@@ -16,65 +13,56 @@ end
 
 -------------------------------------------------------------------------------
 
-local CONFIG_KEY_REST_PUBLIC = "rest.public.adress"
-
--------------------------------------------------------------------------------
-
 local ServiceOta = {}
 ServiceOta.__type = "module"
-ServiceOta.__name = "ServiceOta"
+ServiceOta.__tag = "ServiceOta"
 ServiceOta.__deps = {
-    firmware_host = "fairy-node/ota-host",
-    homie_host ="homie/homie-host",
-}
-ServiceOta.__config = {
-    [CONFIG_KEY_REST_PUBLIC] = { type = "string", required = true }
+    firmware_host = "fairy_node-firmware/ota-host",
+    device_manager = "manager-device",
 }
 
 -------------------------------------------------------------------------------
 
-function ServiceOta:BeforeReload() end
-
-function ServiceOta:AfterReload() end
-
-function ServiceOta:Init()
+function ServiceOta:Init(opt)
+    ServiceOta.super.Init(self, opt)
     self.pending_uploads = {}
 end
 
 -------------------------------------------------------------------------------
 
 function ServiceOta:GetDeviceHardwareId(device_id)
-    if self.homie_host then
-        local dev = self.homie_host:GetDevice(device_id)
-        if dev then
-            if not dev:IsFairyNodeDevice() then
-                return
-            end
-            local hw = dev:GetHardwareId()
-            print(device_id, '=>', hw)
-            return hw
-        end
+    local dev = self.device_manager:GetDevice(device_id)
+    if not dev then
+        return device_id
     end
-    return device_id
+    if not dev:IsFairyNodeDevice() then
+        return device_id
+    end
+
+    local hw = dev:GetHardwareId()
+    if self.verbose then
+        print(device_id, '=>', hw)
+    end
+    return hw
 end
 
 -------------------------------------------------------------------------------
 
 function ServiceOta:GetDeviceFirmwareProperties(device_id)
-    if self.homie_host then
-        local result = { }
-        local homie_dev = self.homie_host:FindDeviceByHardwareId(device_id)
-        if homie_dev then
-            -- local fw = homie_dev:GetFirmwareStatus()
-            result.git_commit_id = homie_dev:GetNodeMcuCommitId()
-            result.lfs_size = homie_dev:GetLfsSize()
-        else
-            printf(self, "Failed to find homie device %s", device_id)
-        end
-        return result
-    else
-        printf(self, "No homie host")
+    local dev = self.device_manager:FindDeviceByHardwareId(device_id)
+    if not dev then
+        printf(self, "Failed to find device %s", device_id)
+        return
     end
+    if not dev:IsFairyNodeDevice() then
+        return
+    end
+
+    local result = { }
+    -- local fw = homie_dev:GetFirmwareStatus()
+    result.git_commit_id = dev:GetNodeMcuCommitId()
+    result.lfs_size = dev:GetLfsSize()
+    return result
 end
 
 -------------------------------------------------------------------------------
@@ -167,7 +155,7 @@ function ServiceOta:HandleDeviceOTAUpdateRequest(request, device_id)
 
     local urls = { }
     local any = false
-    local base = self.config[CONFIG_KEY_REST_PUBLIC]
+    local base = self.config.public_address
     assert(base)
 
     for k,v in pairs(ota_info.files or { }) do
@@ -225,14 +213,12 @@ function ServiceOta:ListDevices(request)
         r[v:upper()] = true
     end
 
-    if self.homie_host then
-        for i,v in ipairs(self.homie_host:GetDeviceList()) do
-            local dev = self.homie_host:GetDevice(v)
-            if dev:IsFairyNodeDevice() then
-                local cid = dev:GetHardwareId()
-                if cid then
-                    r[cid:upper()] = true
-                end
+    for i,v in ipairs(self.device_manager:GetDeviceList()) do
+        local dev = self.device_manager:GetDevice(v)
+        if dev:IsFairyNodeDevice() then
+            local cid = dev:GetHardwareId()
+            if cid then
+                r[cid:upper()] = true
             end
         end
     end

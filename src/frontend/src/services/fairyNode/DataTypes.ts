@@ -5,6 +5,9 @@ class DataTypes {
     return property.datatype == 'boolean'
   }
   public parseBooleanProperty(value: string): boolean {
+    if (typeof value == 'boolean') {
+      return value
+    }
     if (value == 'true') return true
     else return false
   }

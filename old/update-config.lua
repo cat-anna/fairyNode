@@ -71,7 +71,7 @@ copas.addthread(function()
     while true do
         mqttloop:iteration()
         copas.sleep(0.1)
-    end 
+    end
 end)
 
 local deviceStatus = {
@@ -86,7 +86,7 @@ copas.addthread(function()
     copas.sleep(5)
     while deviceStatus:IsActive() do
         copas.sleep(1)
-    end 
+    end
     print("Not active, exiting")
     os.exit()
 end)
@@ -126,13 +126,13 @@ function CompareTableKeys(left, right)
         if not both_existing[k] then
             left_only[k] = true
         end
-    end   
+    end
 
     for k,_ in pairs(right) do
         if not both_existing[k] then
             right_only[k] = true
         end
-    end   
+    end
 
     return left_only, both_existing, right_only
 end
@@ -192,7 +192,7 @@ function deviceStatus:GenerateUpdateCommands(deviceCfg)
     local required_cfg = self.project.config
 
     local remove,update,write = CompareTableKeys(deviceCfg, required_cfg)
-   
+
     local updateCommands = {}
 
     for k,_ in pairs(remove) do
@@ -202,11 +202,11 @@ function deviceStatus:GenerateUpdateCommands(deviceCfg)
     for k,_ in pairs(update) do
         print("Will update config ", k)
         table.insert(updateCommands, { what = "Update", name = k, expected = self.project:GetConfigFileContent(k) })
-    end  
+    end
     for k,_ in pairs(write) do
         print("Will write config ", k)
         table.insert(updateCommands, { what = "Write", name = k, expected = self.project:GetConfigFileContent(k) })
-    end       
+    end
 
     self.updateCommands = updateCommands
 
@@ -326,7 +326,7 @@ deviceStatus.outputHandlers = {
 function deviceStatus:HandleStatus(topic, payload)
     if payload == "ready" then
         print("Device is ready, starting...")
-        self.online = true 
+        self.online = true
         self:Command{"help"}
     else
         error("Device is not ready")

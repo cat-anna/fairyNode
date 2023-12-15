@@ -6,7 +6,7 @@ local HomieRemoteProperty = {}
 HomieRemoteProperty.__name = "HomieRemoteProperty"
 HomieRemoteProperty.__base = "modules/homie-common/homie-property"
 HomieRemoteProperty.__type = "class"
--- HomieRemoteProperty.__deps = { }
+HomieRemoteProperty.__deps = { }
 
 -------------------------------------------------------------------------------------
 
@@ -33,38 +33,31 @@ end
 
 -------------------------------------------------------------------------------------
 
--- function HomieRemoteProperty:GetGlobalId()
---     if self.property_handle then
---         return self.property_handle:GetGlobalId()
---     end
--- end
+function HomieRemoteProperty:WantsPersistence()
+    return true
+end
 
--- function HomieRemoteProperty:GetOwnerDeviceName()
---     if self.device then
---         return self.device:GetName()
---     end
--- end
+function HomieRemoteProperty:IsSettable()
+    return self.settable
+end
 
 -------------------------------------------------------------------------------------
 
--- function HomieRemoteProperty:SetValue(value, timestamp)
---     -- TODO
+function HomieRemoteProperty:SetValue(value, timestamp)
+    -- if self.deleting then
+    --     print(self, string.format("Failed to set value %s.%s - deleting device", parent_node.id, property.id))
+    --     return
+    -- end
 
---     -- if self.deleting then
---     --     print(self, string.format("Failed to set value %s.%s - deleting device", parent_node.id, property.id))
---     --     return
---     -- end
+    if not self:IsSettable() then
+        printf(self, "is not settable")
+        return
+    end
 
---     if not self:IsSettable() then
---         printf(self, "is not settable")
---         return
---     end
-
---     value = homie_common.ToHomieValue(self:GetDatatype(), value)
---     self:Publish("set", value)
-
---     printf(self, "Set value '%s'", value)
--- end
+    value = self.Formatting.ToHomieValue(self:GetDatatype(), value)
+    printf(self, "Setting value '%s'", value)
+    self:Publish("set", value)
+end
 
 -------------------------------------------------------------------------------------
 
@@ -96,9 +89,9 @@ function HomieRemoteProperty:HandlePropertyConfigValue(topic, payload)
 
     self[config_name] = payload
 
-    -- if self.config.verbose then
-    --     print(self, string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
-    -- end
+    if self.verbose then
+        print(self, string.format("node %s.%s.%s = %s", node_name, prop_name, config_name, tostring(payload)))
+    end
 end
 
 function HomieRemoteProperty:HandlePropertyValue(topic, payload, receive_timestamp)
@@ -112,11 +105,10 @@ function HomieRemoteProperty:HandlePropertyValue(topic, payload, receive_timesta
     --     changed = false
     -- end
 
-    local old_value = self.value
     local value = payload
 
     if self.datatype then
-        value = self.Formatting.FromHomieValue(self.datatype, payload)
+        value = self.Formatting.FromHomieValue(self:GetDatatype(), payload)
     else
         local num = tonumber(payload)
         if num ~= nil then
@@ -125,13 +117,11 @@ function HomieRemoteProperty:HandlePropertyValue(topic, payload, receive_timesta
         end
     end
 
-    -- if self.config.verbose then
-    --     print(self, string.format("node %s.%s = %s -> %s", node_name, prop_name, self.raw_value or "", payload or ""))
-    -- end
+    if self.verbose then
+        print(self, string.format("node %s.%s = %s -> %s", node_name, prop_name, tostring(self.value), payload))
+    end
 
-    self.value = value
-    self.raw_value = payload
-    self.timestamp = receive_timestamp
+    HomieRemoteProperty.super.SetValue(self, value, receive_timestamp)
 
     -- self:OnValueChanged()
     -- if changed then

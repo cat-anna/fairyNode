@@ -1,4 +1,4 @@
-local http = require "lib/http-code"
+local http = require "fairy_node/http-code"
 local pretty = require "pl.pretty"
 local tablex = require "pl.tablex"
 local md5 = require "md5"
@@ -6,26 +6,26 @@ local md5 = require "md5"
 -------------------------------------------------------------------------------------
 
 local ServiceProperty = {}
-ServiceProperty.__index = ServiceProperty
+ServiceProperty.__tag = "ServiceProperty"
+ServiceProperty.__type = "module"
 ServiceProperty.__deps = {
-    property_manager = "base/property-manager",
+    device_manager = "manager-device",
+    component_manager = "manager-device/manager-component",
+    property_manager = "manager-device/manager-property",
 }
-
--------------------------------------------------------------------------------------
-
-function ServiceProperty:Tag()
-    return "ServiceProperty"
-end
 
 -------------------------------------------------------------------------------------
 
 function ServiceProperty:GetPropertyList(request)
     local r = { }
-    for _,p in pairs(self.property_manager:GetAllProperties()) do
+    for _,p in pairs(self.property_manager:PropertyKeys()) do
         local prop = self.property_manager:GetProperty(p)
-        local src = prop:GetSourceName()
-        r[src] = r[src] or { }
-        r[src][p] = prop:ValueGlobalIds()
+        -- local src = prop:GetSourceName()
+        -- r[src] = r[src] or { }
+        -- r[src][p] = prop:ValueGlobalIds()
+        table.insert(r, {
+            global_id = prop:GetGlobalId(),
+        })
     end
     return http.OK, r
 end
@@ -39,7 +39,7 @@ end
 -------------------------------------------------------------------------------------
 
 function ServiceProperty:GetValueInfo(request, value_id)
-    local v = self.property_manager:GetValue(value_id)
+    local v = self.property_manager:GetProperty(value_id)
     if not v then
         return http.NotFound, { }
     end
@@ -56,7 +56,7 @@ function ServiceProperty:GetValueInfo(request, value_id)
 end
 
 function ServiceProperty:GetValueHistory(request, value_id)
-    local v = self.property_manager:GetValue(value_id)
+    local v = self.property_manager:GetProperty(value_id)
     if not v then
         return http.NotFound, { }
     end
@@ -69,6 +69,10 @@ function ServiceProperty:GetValueHistory(request, value_id)
     end
 
     local result = v:Query(from, to)
+
+    if not result then
+        return http.BadRequest, { }
+    end
 
     result.name = v:GetName()
     result.unit = v:GetUnit()
@@ -105,10 +109,10 @@ function ServiceProperty:ListDataSeries()
     local units = {}
 
     for _, prop in pairs(self.property_manager.properties_by_id) do
-        for _, value in pairs(prop:GetValues()) do
-            local unit = value:GetUnit() or ""
-            local datatype = value:GetDatatype()
-            local value_name = value:GetName()
+        if prop:WantsPersistence() then
+            local unit = prop:GetUnit() or ""
+            local datatype = prop:GetDatatype()
+            local value_name = prop:GetName()
 
             local a = allowed_datatypes[datatype]
             if a == nil then
@@ -121,8 +125,8 @@ function ServiceProperty:ListDataSeries()
 
             if a then
                 local series_id = string.format("%s|%s", unit, value_name)
-                local name = value:GetName()
-                local global_id = value:GetGlobalId()
+                local name = prop:GetName()
+                local global_id = prop:GetGlobalId()
 
                 if not groups[series_id] then
                     groups[series_id] = {
@@ -146,7 +150,8 @@ function ServiceProperty:ListDataSeries()
                     end
                 end
 
-                local display_name = string.format("%s %s", prop:GetSourceName(), value:GetName())
+                --
+                local display_name = string.format("%s %s", prop:GetOwnerDeviceName(), prop:GetName())
 
                 table.insert(groups[series_id].series, {
                     global_id = global_id,
@@ -166,20 +171,6 @@ function ServiceProperty:ListDataSeries()
         groups = tablex.values(groups),
         units = tablex.values(units)
     }
-end
-
--------------------------------------------------------------------------------------
-
-function ServiceProperty:BeforeReload()
-end
-
-function ServiceProperty:AfterReload()
-end
-
-function ServiceProperty:Init()
-end
-
-function ServiceProperty:StartModule()
 end
 
 -------------------------------------------------------------------------------------

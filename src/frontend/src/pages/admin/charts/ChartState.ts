@@ -27,21 +27,31 @@ class DatasetState {
     this.ready = false
     this.owner.datasetChanged()
 
-    propertyService.valueHistoryLast(this.seriesId, this.dataDuration).then((history) => {
-      this.dataset.data = formatting.transformChartSeries(history.list)
-      if (history.device) {
-        this.dataset.label = history.device + ' ' + history.name
-      } else {
-        this.dataset.label = history.name
-      }
+    propertyService
+      .valueHistoryLast(this.seriesId, this.dataDuration)
+      .then((history) => {
+        this.dataset.data = formatting.transformChartSeries(history.list)
+        if (history.device) {
+          this.dataset.label = history.device + ' ' + history.name
+        } else {
+          this.dataset.label = history.name
+        }
 
-      const last = history.list.at(-1)
-      if (last) this.lastTimestamp = last.timestamp
-      else this.lastTimestamp = 0
+        const last = history.list.at(-1)
+        if (last) {
+          this.lastTimestamp = last.timestamp
+        } else {
+          this.lastTimestamp = history.from
+        }
 
-      this.ready = true
-      this.owner.datasetChanged()
-    })
+        this.ready = true
+        this.owner.datasetChanged()
+      })
+      .catch(() => {
+        this.dataset.label = 'Failed to load'
+        this.ready = true
+        this.owner.datasetChanged()
+      })
   }
 
   setDuration(number: number) {

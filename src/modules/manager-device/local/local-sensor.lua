@@ -62,7 +62,7 @@ end
 function LocalSensor:UpdateValue(id, updated_value, timestamp)
     local value_object = self:GetProperty(id)
     assert(value_object)
-    return value_object:UpdateValue(updated_value, timestamp)
+    return value_object:SetValue(updated_value, timestamp)
 end
 
 function LocalSensor:UpdateValues(all)

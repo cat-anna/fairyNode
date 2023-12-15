@@ -65,6 +65,7 @@ function ComponentManager:DeleteCompnent(component)
 end
 
 -------------------------------------------------------------------------------
+
 --[[
 function ComponentManager:WriteManagerDatabaseEntry(data)
     -- if self.database then
@@ -80,6 +81,7 @@ function ComponentManager:GetManagerDatabase()
     end
 end
 --]]
+
 -------------------------------------------------------------------------------
 
 function ComponentManager:GetDebugTable()

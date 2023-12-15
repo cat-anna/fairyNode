@@ -29,13 +29,6 @@ function DeviceManager:PostInit()
 
     -- self.mongo_connection = loader_module:GetModule("mongo/mongo-connection")
     -- self.database = self:GetManagerDatabase()
-
-    -- loader_module:EnumerateModules(
-    --     function(name, module)
-    --         if module.InitProperties then
-    --             module:InitProperties(self)
-    --         end
-    --     end)
 end
 
 function DeviceManager:StartModule()
@@ -55,6 +48,7 @@ function DeviceManager:InitializeLocalDevice()
     self.local_device = self:CreateDevice{
         class = "modules/manager-device/local/local-device",
         id = self.config.hostname,
+        global_id = "local",
         name = self.config.hostname,
         group = "local",
     }
@@ -69,7 +63,10 @@ function DeviceManager:CreateDevice(dev_proto)
 
     printf(self, "Adding device %s of class %s", dev_proto.id, dev_proto.class)
 
-    dev_proto.global_id = string.format("%s.%s", dev_proto.group, dev_proto.id)
+    -- if not dev_proto.global_id then
+    --     dev_proto.global_id = string.format("%s.%s", dev_proto.group, dev_proto.id)
+    -- end
+    dev_proto.global_id = dev_proto.id
 
     local dev = loader_class:CreateObject(dev_proto.class, dev_proto)
     assert(self.devices[dev_proto.id] == nil)
@@ -85,14 +82,7 @@ function DeviceManager:GetDevice(name)
 end
 
 function DeviceManager:GetDeviceList()
-    local r = {}
-    for k,v in pairs(self.devices) do
-        if not v:IsDeleting() then
-            table.insert(r, k)
-        end
-    end
-    table.sort(r)
-    return r
+    return table.sorted_keys(self.devices)
 end
 
 -------------------------------------------------------------------------------

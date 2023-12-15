@@ -189,7 +189,7 @@ function HealthMonitor:RegisterLocalComponent(local_device)
         name = "System info",
         id = "sysinfo",
         values = {
-            -- errors = { name = "Active errors", datatype = "string" },
+            -- errors = { name = "Active errors", datatype = "string", volatile = true },
 
             system_uptime = { name = "System uptime", datatype = "float", unit = "s" },
             uptime = { name = "Server uptime", datatype = "float", unit = "s" },
@@ -202,13 +202,12 @@ function HealthMonitor:RegisterLocalComponent(local_device)
             process_cpu_usage = { name = "Process cpu usage", datatype = "float", unit = "%" },
         }
     }
-
 end
 
 function HealthMonitor:SensorReadout(skip_slow)
-    -- if not self.sysinfo_sensor then
-    --     return
-    -- end
+    if not self.sysinfo_sensor then
+        return
+    end
 
     local system_uptime = LinuxProcUptime()
     local mem_info = LinuxProcMemInfo()

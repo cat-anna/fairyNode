@@ -1,4 +1,5 @@
 local scheduler = require "fairy_node/scheduler"
+local Set = require 'pl.Set'
 
 ------------------------------------------------------------------------------
 
@@ -35,7 +36,6 @@ end
 
 function HomieRemoteDevice:StopDevice()
     HomieRemoteDevice.super.StopDevice(self)
-    self:StopWatching()
 end
 
 ------------------------------------------------------------------------------
@@ -159,15 +159,14 @@ function HomieRemoteDevice:GetNodeClass(node_id)
 end
 
 function HomieRemoteDevice:HandleNodes(topic, payload)
-    if not payload then
-        return
-    end
+    local target = Set(payload:split(","))
+    local existing = Set(table.keys(self.components))
 
-    local nodes = payload:split(",")
-    print(self, "Adding nodes (" .. tostring(#nodes) .. "):", payload)
+    local to_create = target - existing
+    local to_delete = existing - target
+    print(self, "Resetting nodes ->", "+" .. tostring(to_create), "-" .. tostring(to_delete))
 
-    self:DeleteAllComponents()
-    for _,node_id in ipairs(nodes) do
+    for _,node_id in ipairs(Set.values(to_create)) do
         local proto = {
             id = node_id,
             global_id = self:GetGlobalId() .. "." .. node_id,
@@ -178,6 +177,10 @@ function HomieRemoteDevice:HandleNodes(topic, payload)
             class = self:GetNodeClass(node_id),
         }
         self:AddComponent(proto)
+    end
+
+    for _,node_id in ipairs(Set.values(to_delete)) do
+        self:DeleteComponent(node_id)
     end
 end
 

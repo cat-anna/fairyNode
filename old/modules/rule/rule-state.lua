@@ -129,14 +129,14 @@ end
 
 -------------------------------------------------------------------------------------
 
-function RuleState:InitProperties(manager)
-    self.property_object = manager:RegisterLocalProperty{
-        owner = self,
-        ready = true,
-        name = "State rules",
-        id = "state_rules",
-        values = { },
-    }
+function RuleState:RegisterLocalComponent(manager)
+    -- self.property_object = manager:RegisterLocalProperty{
+    --     owner = self,
+    --     ready = true,
+    --     name = "State rules",
+    --     id = "state_rules",
+    --     values = { },
+    -- }
 end
 
 function RuleState:ResetProperty()

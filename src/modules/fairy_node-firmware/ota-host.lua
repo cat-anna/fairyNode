@@ -1,10 +1,6 @@
 local tablex = require "pl.tablex"
-local uuid = require "uuid"
-local loader_module = require "lib/loader-module"
-local scheduler = require "lib/scheduler"
-
-local printf = printf
-local print = print
+local loader_module = require "fairy_node/loader-module"
+local scheduler = require "fairy_node/scheduler"
 
 -------------------------------------------------------------------------------------
 
@@ -44,7 +40,6 @@ local function MakeFwSetKey(device_id, fw_set)
     return sha256(id_text), id_text
 end
 
-
 OTA_FILE_PREFIX = "fairy-node-firmware"
 OTA_IMAGE_PATTERN = OTA_FILE_PREFIX .. ".image.%s.bin"
 
@@ -53,38 +48,36 @@ OTA_IMAGE_PATTERN = OTA_FILE_PREFIX .. ".image.%s.bin"
 local FairyNodeOta = {}
 FairyNodeOta.OTA_COMPONENTS = OTA_COMPONENTS
 FairyNodeOta.OTA_COMPONENT_FILE = OTA_COMPONENT_FILE
-FairyNodeOta.__name = "FairyNodeOta"
+FairyNodeOta.__tag = "FairyNodeOta"
 FairyNodeOta.__type = "module"
 FairyNodeOta.__deps = {
-    storage = "base/server-storage",
-    mongo_connection = "mongo/mongo-connection",
+    storage = "fairy_node/storage",
+    mongo_connection = "mongo-client",
 }
 
 -------------------------------------------------------------------------------------
 
-function FairyNodeOta:Init() end
-
-function FairyNodeOta:BeforeReload() end
-
-function FairyNodeOta:AfterReload() end
+function FairyNodeOta:Init(opt)
+    FairyNodeOta.super.Init(self, opt)
+end
 
 -------------------------------------------------------------------------------
 
 function FairyNodeOta:GetImageDatabase()
     if self.mongo_connection then
-        return self.mongo_connection:GetCollection("firmware.image")
+        return self.mongo_connection:OpenCollection("firmware.image", true)
     end
 end
 
 function FairyNodeOta:GetCommitDatabase()
     if self.mongo_connection then
-        return self.mongo_connection:GetCollection("firmware.commit")
+        return self.mongo_connection:OpenCollection("firmware.commit", true)
     end
 end
 
 function FairyNodeOta:GetDeviceDatabase()
     if self.mongo_connection then
-        return self.mongo_connection:GetCollection("firmware.device")
+        return self.mongo_connection:OpenCollection("firmware.device", true)
     end
 end
 

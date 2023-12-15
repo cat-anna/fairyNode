@@ -68,51 +68,23 @@ end
 
 function HomieBaseProperty:Publish(sub_topic, payload)
     local topic = self:Topic(sub_topic)
-    print(self, "Publishing: " .. topic .. "=" .. payload)
+    if self.verbose then
+        print(self, "Publishing: " .. topic .. "=" .. payload)
+    end
     self.mqtt:Publish(topic, payload, self:IsRetained(), self:GetQos())
 end
 
 -------------------------------------------------------------------------------------
 
-function HomieBaseProperty:GetValue()
-    return self.value, self.timestamp
+function HomieBaseProperty:IsRetained()
+    return self.retained or false
 end
 
-function HomieBaseProperty:GetDatatype()
-    return self.datatype or "string"
+function HomieBaseProperty:GetQos()
+    return self.qos or 0
 end
-
-function HomieBaseProperty:GetUnit()
-    return self.unit or ""
-end
-
--- function HomieBaseProperty:IsSettable()
---     return self.settable or false
--- end
-
--- function HomieBaseProperty:GetPropertyId()
---     return nil
--- end
 
 -------------------------------------------------------------------------------------
-
-
--- function HomieBaseProperty:SetValue(value, timestamp)
---     if self:IsSettable() then
---         self.value = value
---         self.timestamp = timestamp or os.timestamp()
---         self:OnValueChanged()
---     else
---         print(self, "Not settable, cannot assign value")
---     end
---     return self:GetValue()
--- end
-
--------------------------------------------------------------------------------------
-
--- function HomieBaseProperty:OnValueChanged()
---     self:CallSubscribers()
--- end
 
 -- function HomieBaseProperty:AddValueMessage(q)
 --     q = q or { }
@@ -146,32 +118,6 @@ end
 --     end
 
 --     print(self, "TODO HomieBaseProperty:OnHomieValueSet")
--- end
-
--------------------------------------------------------------------------------------
-
--- function HomieBaseProperty:GetSummary()
---     local v,t = self:GetValue()
---     local datatype = self:GetDatatype()
---     if v ~= nil and type(v) ~= "string" then
---         v = homie_common.ToHomieValue(datatype, v)
---     end
---     if type(t) == "number" then
---         t = homie_common.FormatFloat(t)
---     end
---     return {
---         id = self:GetId(),
---         global_id = self:GetGlobalId(),
---         property_id = self:GetPropertyId(),
-
---         name = self:GetName(),
---         unit = self:GetUnit(),
---         datatype = datatype,
---         value = v,
---         timestamp = t,
---         settable = self:IsSettable(),
---         retained = self:IsRetained(),
---     }
 -- end
 
 -------------------------------------------------------------------------------------

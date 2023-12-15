@@ -9,6 +9,7 @@ DeviceService.__tag = "DeviceService"
 DeviceService.__type = "module"
 DeviceService.__deps = {
     device_manager = "manager-device",
+    property_manager = "manager-device/manager-property",
 }
 
 -------------------------------------------------------------------------------
@@ -82,41 +83,41 @@ function DeviceService:GetDeviceNodesSummary(request, dev_name)
     return http.OK, device:GetSummary()
 end
 
-function DeviceService:SetDevicePropertyValue(request, device, node, property)
-    -- if request.value == nil then
+function DeviceService:SetDevicePropertyValue(request, device_id, component_id, property_id)
+    if request.value == nil then
         return http.NotAcceptable, { success = false }
-    -- end
+    end
 
-    -- local dev = self.device_manager:GetDevice(device)
-    -- if not dev then
-    --     return http.BadRequest, { success = false }
-    -- end
+    local dev = self.device_manager:GetDevice(device_id)
+    if not dev then
+        return http.BadRequest, { success = false }
+    end
 
-    -- local node = dev.nodes[node]
-    -- if not node then
-    --     return http.BadRequest, { success = false }
-    -- end
+    local component = dev:GetComponent(component_id)
+    if not component then
+        return http.BadRequest, { success = false }
+    end
 
-    -- local prop = node.properties[property]
-    -- if not prop then
-    --     return http.BadRequest, { success = false }
-    -- end
+    local prop = component:GetProperty(property_id)
+    if not prop then
+        return http.BadRequest, { success = false }
+    end
 
-    -- if not prop:IsSettable() then
-    --     return http.Forbidden, { success = false }
-    -- end
+    if not prop:IsSettable() then
+        return http.Forbidden, { success = false }
+    end
 
-    -- prop:SetValue(request.value)
+    prop:SetValue(request.value)
 
-    -- for i = 1, 100 do
-    --     local v, t = prop:GetValue()
-    --     if v == request.value then
-    --         return http.OK, { success = true }
-    --     end
-    --     scheduler.Sleep(0.1)
-    -- end
+    for i = 1, 100 do
+        local v, t = prop:GetValue()
+        if v == request.value then
+            return http.OK, { success = true }
+        end
+        scheduler.Sleep(0.1)
+    end
 
-    -- return http.GatewayTimeout, { success = false }
+    return http.GatewayTimeout, { success = false }
 end
 
 -------------------------------------------------------------------------------------

@@ -157,7 +157,7 @@
       },
       async getData() {
         if (this.deviceId) {
-          let summary =  await deviceService.nodesSummary(this.deviceId)
+          let summary = await deviceService.nodesSummary(this.deviceId)
           this.deviceNodeData = summary.components
           this.deviceNodeData.sort(function (a, b) {
             return a.name.toLowerCase().localeCompare(b.name.toLowerCase())

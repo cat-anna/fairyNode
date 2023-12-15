@@ -13,6 +13,7 @@ function LocalSensorValue:Init(config)
     self.unit = config.unit
     self.value = config.value
     self.timestamp = config.timestamp
+    self.volatile = config.volatile
 
     self:TestError(self.datatype, "Datatype is not set")
     self:TestError(self.unit, "Unit is not set")
@@ -30,35 +31,8 @@ end
 
 -------------------------------------------------------------------------------------
 
-function LocalSensorValue:GetValue()
-    return self.value, self.timestamp
-end
-
-function LocalSensorValue:GetDatatype()
-    if not self.datatype then
-        print(self, "Datatype is not set!")
-    end
-    return self.datatype or "string"
-end
-
-function LocalSensorValue:GetUnit()
-    return self.unit
-end
-
--------------------------------------------------------------------------------------
-
-function LocalSensorValue:UpdateValue(updated_value, timestamp)
-    timestamp = timestamp or os.timestamp()
-    if self.value == updated_value then
-        return false
-    end
-
-    self.value = updated_value
-    self.timestamp = timestamp
-
-    self:CallSubscribers()
-
-    return true
+function LocalSensorValue:WantsPersistence()
+    return not self.volatile
 end
 
 -------------------------------------------------------------------------------------
