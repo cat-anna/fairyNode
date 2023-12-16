@@ -29,6 +29,9 @@ M.config = {
     storage_cache_ttl = "storage.cache.ttl",
     storage_rwdata_path = "storage.rw.path",
     storage_rodata_path = "storage.ro.paths",
+
+    latitude = "location.latitude",
+    longitude = "location.longitude",
 }
 
 M.parameters = {
@@ -57,6 +60,9 @@ M.parameters = {
     [M.config.storage_cache_path]  = { type = "string", required = true, },
     [M.config.storage_rwdata_path] = { type = "string", required = true, },
     [M.config.storage_rodata_path] = { type = "string-table", default = { }, },
+
+    [M.config.latitude]  = { type = "float", required = false },
+    [M.config.longitude] = { type = "float", required = false },
 }
 
 return M

@@ -11,12 +11,12 @@ function BaseObject:Init(config)
 
     self.name = config.name or "?"
     self.ready = config.ready
+    self.persistence = config.persistence
 
     self.id = config.id
     self.global_id = config.global_id
 
     assert(self.id)
-    assert(self.global_id)
 end
 
 function BaseObject:Tag()
@@ -24,6 +24,10 @@ function BaseObject:Tag()
 end
 
 -------------------------------------------------------------------------------------
+
+function BaseObject:WantsPersistence()
+    return self.persistence
+end
 
 function BaseObject:SetReady(r)
     self.ready = r

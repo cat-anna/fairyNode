@@ -12,6 +12,7 @@ HomieRemoteProperty.__deps = { }
 
 function HomieRemoteProperty:Init(config)
     HomieRemoteProperty.super.Init(self, config)
+    self.persistence = true
 end
 
 function HomieRemoteProperty:StartProperty()
@@ -32,10 +33,6 @@ function HomieRemoteProperty:StopProperty()
 end
 
 -------------------------------------------------------------------------------------
-
-function HomieRemoteProperty:WantsPersistence()
-    return true
-end
 
 function HomieRemoteProperty:IsSettable()
     return self.settable

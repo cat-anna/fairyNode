@@ -45,12 +45,10 @@ end
 -------------------------------------------------------------------------------
 
 function ComponentManager:CreateComponent(comp_proto)
-    assert(comp_proto.id)
     assert(comp_proto.class)
 
-    comp_proto.global_id = string.format("%s.%s", comp_proto.owner_device:GetGlobalId(), comp_proto.id)
-
     local component = loader_class:CreateObject(comp_proto.class, comp_proto)
+    component.global_id = string.format("%s.%s", comp_proto.owner_device:GetGlobalId(), component:GetId())
 
     local gid = component:GetGlobalId()
     assert(self.components_by_id[gid] == nil)
@@ -89,6 +87,7 @@ function ComponentManager:GetDebugTable()
         "global_id",
         "type",
         "started",
+        "persistence",
         "properties",
     }
 
@@ -107,6 +106,7 @@ function ComponentManager:GetDebugTable()
             p:GetGlobalId(),
             p:GetType(),
             check(p:IsStarted()),
+            check(p:WantsPersistence()),
             table.concat(p:PropertyKeys(), ",")
         })
     end

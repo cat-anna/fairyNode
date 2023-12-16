@@ -8,7 +8,11 @@ M.config = {
     hostname = "hostname",
 }
 
-M.parameters = {}
+local SENSOR_LIST_CONFIG = "module.manager-device.local.sensors"
+
+M.parameters = {
+    [SENSOR_LIST_CONFIG]  = { mode = "merge", type = "string-table", default = { } },
+}
 
 M.submodules = {
     ["manager-component"] = { mandatory = true, },

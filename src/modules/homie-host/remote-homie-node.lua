@@ -15,6 +15,7 @@ HomieRemoteNode.__deps = {
 
 function HomieRemoteNode:Init(config)
     HomieRemoteNode.super.Init(self, config)
+    self.persistence = true
 end
 
 function HomieRemoteNode:StartComponent()

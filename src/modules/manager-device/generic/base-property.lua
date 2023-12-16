@@ -90,10 +90,6 @@ function BaseProperty:GetUnit()
     return self.unit
 end
 
-function BaseProperty:WantsPersistence()
-    return false
-end
-
 function BaseProperty:GetDatabaseId()
     return string.format("property.%s", self:GetGlobalId())
 end

@@ -1,5 +1,8 @@
 local tablex = require "pl.tablex"
+local scheduler = require "fairy_node/scheduler"
 local loader_module = require "fairy_node/loader-module"
+local config_handler = require "fairy_node/config-handler"
+local uuid = require "uuid"
 
 -------------------------------------------------------------------------------------
 
@@ -31,11 +34,46 @@ function LocalDevice:StartDevice()
         function () self:DoSensorReadout() end
     )
 
+
+    local sensor_list_config = "module.manager-device.local.sensors"
+    self:ResetLocalSensors(config_handler:QueryConfigItem(sensor_list_config))
+
     LocalDevice.super.StartDevice(self)
 end
 
 function LocalDevice:StopDevice()
     LocalDevice.super.StopDevice(self)
+end
+
+-------------------------------------------------------------------------------------
+
+function LocalDevice:ResetLocalSensors(list)
+    if not list then
+        return
+    end
+
+    for _,class in ipairs(list) do
+        scheduler.CallLater(function ()
+            self:ProbeSensor(class)
+        end)
+    end
+end
+
+function LocalDevice:ProbeSensor(class)
+    if self.verbose then
+        print(self, "Probing sensor", class)
+    end
+
+    local sensor = self:AddSensor({
+        id = uuid(),
+        probe = true,
+        class = class,
+    })
+
+    if sensor.probe_failed then
+        warning(self, "Sensor", class , "probe failed, removing")
+        self:DeleteComponent(sensor:GetId())
+    end
 end
 
 -------------------------------------------------------------------------------------
@@ -65,10 +103,6 @@ function LocalDevice:DoSensorReadout()
 end
 
 function LocalDevice:AddSensor(opt)
-    assert(opt.owner_module)
-    assert(opt.name)
-    assert(opt.id)
-
     if not opt.class then
         opt.class = "modules/manager-device/local/local-sensor"
     end

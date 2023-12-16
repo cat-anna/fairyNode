@@ -67,6 +67,10 @@ function BaseComponent:GetProperty(key)
     return self.properties[key]
 end
 
+function BaseComponent:HasProperties()
+    return #table.keys(self.properties) > 0
+end
+
 -------------------------------------------------------------------------------------
 
 function BaseComponent:GetSummary()

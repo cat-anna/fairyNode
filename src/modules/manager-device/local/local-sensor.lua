@@ -13,13 +13,31 @@ function LocalSensor:Init(config)
     LocalSensor.super.Init(self, config)
 
     self.owner_module = config.owner_module
-    assert(self.owner_module)
+    self.persistence = not config.volatile
+    local values = config.values
 
-    self:ResetValues(config.values)
+
+    if config.probe then
+        local probe_result = self:ProbeSensor()
+        if not probe_result then
+            self.probe_failed = true
+        else
+            values = probe_result.values
+            self.id = probe_result.id
+            self.name = probe_result.name
+            self.persistence = not probe_result.volatile
+        end
+    end
+
+    self.values = values
 end
 
 function LocalSensor:StartComponent()
     LocalSensor.super.StartComponent(self)
+    if self.values then
+        self:ResetValues(self.values or { })
+        self.values = nil
+    end
     self:Readout(false)
 end
 
@@ -31,23 +49,17 @@ end
 
 function LocalSensor:Readout(skip_slow)
     if self.verbose then
-        print(self, "LocalSensor:Readout")
+        print(self, "LocalSensor:Readout skip_slow =", skip_slow)
     end
-    if self.owner_module.SensorReadout then
+    if self.owner_module and self.owner_module.SensorReadout then
         self.owner_module:SensorReadout(skip_slow)
     end
 end
 
-function LocalSensor:ReadoutFast()
-    if self.verbose then
-        print(self, "LocalSensor:ReadoutFast")
-    end
-    if self.owner_module.SensorReadout then
-        self.owner_module:SensorReadout(true)
-    end
-end
-
 -------------------------------------------------------------------------------------
+
+function LocalSensor:ProbeSensor()
+end
 
 function LocalSensor:ResetValues(values)
     self:DeleteAllProperties()
@@ -55,6 +67,7 @@ function LocalSensor:ResetValues(values)
         v.id = k
         v.class = "modules/manager-device/local/local-sensor-value"
         v.owner_module = self.owner_module
+        -- v.
         self:AddProperty(v)
     end
 end

@@ -1,5 +1,6 @@
 
 local loader_class = require "fairy_node/loader-class"
+local scheduler = require "fairy_node/scheduler"
 
 -------------------------------------------------------------------------------
 
@@ -57,18 +58,16 @@ end
 -------------------------------------------------------------------------------
 
 function DeviceManager:CreateDevice(dev_proto)
-    assert(dev_proto.id)
     assert(dev_proto.class)
-    assert(dev_proto.group)
-
-    printf(self, "Adding device %s of class %s", dev_proto.id, dev_proto.class)
 
     -- if not dev_proto.global_id then
     --     dev_proto.global_id = string.format("%s.%s", dev_proto.group, dev_proto.id)
     -- end
-    dev_proto.global_id = dev_proto.id
 
     local dev = loader_class:CreateObject(dev_proto.class, dev_proto)
+    dev.global_id = dev.id
+
+    printf(self, "Adding device %s of class %s", dev_proto.id, dev_proto.class)
     assert(self.devices[dev_proto.id] == nil)
     self.devices[dev_proto.id] = dev
 
@@ -106,6 +105,7 @@ function DeviceManager:GetDebugTable()
         "ready",
         "started",
         "local",
+        "persistence",
         "protocol",
         "hw id",
         "uptime",
@@ -133,6 +133,7 @@ function DeviceManager:GetDebugTable()
             check(dev:IsReady()),
             check(dev:IsStarted()),
             check(dev:IsLocal()),
+            check(dev:WantsPersistence()),
             check(dev:GetConnectionProtocol()),
             check(dev:GetHardwareId()),
             dev:GetUptime(),

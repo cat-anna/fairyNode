@@ -42,13 +42,12 @@ end
 -------------------------------------------------------------------------------
 
 function PropertyManager:CreateProperty(prop_proto)
-    assert(prop_proto.id)
     assert(prop_proto.class)
 
     prop_proto.property_manager = self
 
-    prop_proto.global_id = string.format("%s.%s", prop_proto.owner_component:GetGlobalId(), prop_proto.id)
     local prop = loader_class:CreateObject(prop_proto.class, prop_proto)
+    prop.global_id = string.format("%s.%s", prop_proto.owner_component:GetGlobalId(), prop:GetId())
 
     local gid = prop:GetGlobalId()
     assert(self.properties_by_id[gid] == nil)
@@ -123,6 +122,7 @@ function PropertyManager:GetDebugTable()
         "global_id",
         "type",
         "started",
+        "persistence",
 
         "value",
         "unit",
@@ -147,6 +147,7 @@ function PropertyManager:GetDebugTable()
             p:GetGlobalId(),
             check(p:GetType()),
             check(p:IsStarted()),
+            check(p:WantsPersistence()),
 
             check(v),
             check(p:GetUnit()),

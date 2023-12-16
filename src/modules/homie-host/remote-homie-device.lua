@@ -17,6 +17,7 @@ HomieRemoteDevice.__deps = {
 function HomieRemoteDevice:Init(config)
     HomieRemoteDevice.super.Init(self, config)
     self.variables = { }
+    self.persistence = true
 end
 
 function HomieRemoteDevice:StartDevice()
