@@ -61,6 +61,18 @@ function PropertyManager:DeleteProperty(prop)
     self.properties_by_id[prop:GetGlobalId()] = nil
 end
 
+function PropertyManager:ArePropertiesReady()
+    local all_started = true
+    local all_ready = true
+
+    for k,v in pairs(self.properties_by_id) do
+        all_started = all_started and not v:IsStarted()
+        all_ready = all_ready and not v:IsReady()
+    end
+
+    return all_started, all_ready
+end
+
 -------------------------------------------------------------------------------
 
 function PropertyManager:OpenPropertyDatabase(property)

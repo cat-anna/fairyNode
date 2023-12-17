@@ -51,6 +51,7 @@ function SensorManager:PostInit()
 end
 
 function SensorManager:StartModule()
+    SensorManager.super.StartModule(self)
     self:LoadSensors()
     self:StartTimers()
     self:DoSensorReadout()

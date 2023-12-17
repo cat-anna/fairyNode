@@ -62,18 +62,22 @@ function BaseDevice:GetActiveErrors()
     return { }
 end
 
+function BaseDevice:IsReady()
+    if not self.ready then
+        return false
+    end
+    for k,v in pairs(self.components) do
+        if not v:IsReady() then
+            return false
+        end
+    end
+    return true
+end
+
 -------------------------------------------------------------------------------------
 
 function BaseDevice:GetState()
     return self:IsReady() and "ready" or "init"
-end
-
-function BaseDevice:IsReady()
-    return self.ready and self.started
-end
-
-function BaseDevice:IsStarted()
-    return self.started
 end
 
 function BaseDevice:IsLocal()
@@ -98,6 +102,10 @@ end
 
 -------------------------------------------------------------------------------------
 
+function BaseDevice:GetComponents()
+    return self.components
+end
+
 function BaseDevice:ComponentKeys()
     return table.sorted_keys(self.components)
 end
@@ -113,10 +121,6 @@ end
 
 function BaseDevice:GetComponent(key)
     return self.components[key]
-end
-
-function BaseDevice:GetComponents()
-    return self.components
 end
 
 -------------------------------------------------------------------------------------

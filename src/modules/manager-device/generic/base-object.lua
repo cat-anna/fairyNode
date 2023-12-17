@@ -34,7 +34,11 @@ function BaseObject:SetReady(r)
 end
 
 function BaseObject:IsReady()
-    return self.ready
+    return self.ready and self.started
+end
+
+function BaseObject:IsStarted()
+    return self.started
 end
 
 function BaseObject:GetId()

@@ -106,7 +106,7 @@ function Object:Unsubscribe(target)
     end
 end
 
-function Object:CallSubscribers(argument)
+function Object:CallSubscribers(event, arg)
     if not self.subscriptions then
         return
     end
@@ -116,7 +116,7 @@ function Object:CallSubscribers(argument)
         local func = entry.func
         if target and func then
             -- print(self, "Calling subscription to " .. target:Tag())
-            scheduler.Push(function() func(target, self, argument) end)
+            scheduler.Push(function() func(target, self, event, arg) end)
         end
     end
 end

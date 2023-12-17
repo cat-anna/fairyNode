@@ -149,8 +149,10 @@ function MqttBackend:HandleMessage(msg)
 end
 
 function MqttBackend:PublishMessage(msg)
-    msg.callback = function(...)
-        self:OnPublishConfirmed(msg, ...)
+    if msg.qos > 0 then
+        msg.callback = function(...)
+            self:OnPublishConfirmed(msg, ...)
+        end
     end
     self.mqtt_client:publish(msg)
     copas.sleep(0)

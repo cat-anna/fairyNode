@@ -1,5 +1,3 @@
-local homie_common = require "modules/homie-common/formatting"
-
 -------------------------------------------------------------------------------------
 
 local HomieRemoteProperty = {}
@@ -53,7 +51,7 @@ function HomieRemoteProperty:SetValue(value, timestamp)
 
     value = self.Formatting.ToHomieValue(self:GetDatatype(), value)
     printf(self, "Setting value '%s'", value)
-    self:Publish("set", value)
+    self:Publish("set", value, self:IsRetained())
 end
 
 -------------------------------------------------------------------------------------

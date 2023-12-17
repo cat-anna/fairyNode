@@ -34,4 +34,22 @@ end
 
 -------------------------------------------------------------------------------------
 
+function LocalSensorValue:IsVolatile()
+    return true
+end
+
+function LocalSensorValue:IsSettable()
+    return false
+end
+
+function LocalSensorValue:SetValue(value, timestamp)
+    print(self, "Setting sensor value is not allowed")
+end
+
+function LocalSensorValue:UpdateValue(value, timestamp)
+    LocalSensorValue.super.SetValue(self, value, timestamp)
+end
+
+-------------------------------------------------------------------------------------
+
 return LocalSensorValue

@@ -202,6 +202,7 @@ function RestServer:PostInit()
 end
 
 function RestServer:StartModule()
+    RestServer.super.StartModule(self)
     copas.addthread(function()
         copas.sleep(0.1)
         self:InitServer()

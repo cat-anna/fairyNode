@@ -45,10 +45,6 @@ end
 
 -------------------------------------------------------------------------------------
 
-function BaseComponent:IsStarted()
-    return self.started
-end
-
 function BaseComponent:GetType()
     return self.component_type
 end
@@ -57,7 +53,23 @@ function BaseComponent:GetOwnerDeviceName()
     return self.owner_device:GetName()
 end
 
+function BaseComponent:IsReady()
+    if not self.ready then
+        return false
+    end
+    for k,v in pairs(self.properties) do
+        if not v:IsReady() then
+            return false
+        end
+    end
+    return true
+end
+
 -------------------------------------------------------------------------------------
+
+function BaseComponent:GetProperties()
+    return self.properties
+end
 
 function BaseComponent:PropertyKeys()
     return table.sorted_keys(self.properties)

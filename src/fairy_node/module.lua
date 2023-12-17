@@ -16,6 +16,10 @@ function Module:PostInit()
 end
 
 function Module:StartModule()
+    if self.verbose then
+        print(self, "Starting")
+    end
+    self.started = true
 end
 
 function Module:BeforeReload()

@@ -52,12 +52,12 @@ function BaseProperty:GetOwnerDeviceName()
     return self.owner_component:GetName()
 end
 
-function BaseProperty:IsStarted()
-    return self.started
-end
-
 function BaseProperty:GetType()
     return self.property_type
+end
+
+function BaseProperty:IsVolatile()
+    return self.volatile or false
 end
 
 function BaseProperty:IsSettable()
@@ -70,16 +70,13 @@ end
 
 function BaseProperty:SetValue(value, timestamp)
     timestamp = timestamp or os.timestamp()
-    if self.value == value then
-        return false
-    end
-
+    local changed = self.value == value
     self.value = value
     self.timestamp = timestamp
 
-    self:CallSubscribers()
+    self:CallSubscribers("SetValue", { changed = changed })
 
-    return true
+    return changed
 end
 
 function BaseProperty:GetDatatype()
@@ -99,10 +96,6 @@ function BaseProperty:GetLegacyDatabaseId()
         string.format("property.value.%s", self:GetGlobalId()),
     }
 end
-
--------------------------------------------------------------------------------------
-
-
 
 -------------------------------------------------------------------------------------
 

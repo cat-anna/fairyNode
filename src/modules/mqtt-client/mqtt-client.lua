@@ -80,6 +80,7 @@ end
 -------------------------------------------------------------------------------
 
 function MqttClient:StartModule()
+    MqttClient.super.StartModule(self)
     if not self.mqtt_backend then
         self:CreateMqttBackend()
     end
@@ -87,7 +88,7 @@ end
 
 -------------------------------------------------------------------------------
 
-function MqttClient:MqttLog(action, topic, payload, retain, qos)
+function MqttClient:MqttLog(action, topic, payload, retain, qos, timestamp)
     if self.logger:Enabled() then
         self.logger:WriteCsv{
             tostring(action or ""),
@@ -95,6 +96,7 @@ function MqttClient:MqttLog(action, topic, payload, retain, qos)
             tostring(payload or ""),
             tostring(retain or ""),
             tostring(qos or ""),
+            tostring(timestamp or ""),
         }
     end
 end
@@ -134,18 +136,27 @@ function MqttClient:PublishMessage(msg)
     return self.mqtt_backend:PublishMessage(msg)
 end
 
-function MqttClient:BatchPublish(queue)
+function MqttClient:BatchPublish(queue, callback)
     if not self.mqtt_backend then
-        printf(self, "Publish failed, client not created. Dropped %d messages.", #queue)
+        printf(self, "Batch publish failed, client not created. Dropped %d messages.", #queue)
         return
     end
-    if self.verbose then
-        printf(self, "Publishing in batch %d messages", #queue)
-    end
-    for _,v in ipairs(queue) do
-        self.mqtt_backend:PublishMessage(v)
-    end
+    scheduler.CallLater(function ()
+        if self.verbose then
+            printf(self, "Publishing in batch %d messages", #queue)
+        end
+        for idx, msg in ipairs(queue) do
+            self.mqtt_backend:PublishMessage(msg)
+            if (idx % 10) == 0 then
+                scheduler.Sleep(0.01)
+            end
+        end
+        if callback then
+            callback(self, queue)
+        end
+    end)
 end
+
 function MqttClient:RestoreSubscriptions()
     if not self:IsConnected() then
         return
@@ -200,7 +211,7 @@ function MqttClient:OnMqttMessage(backend, message)
 end
 
 function MqttClient:OnMqttPublished(backend, message)
-    self:MqttLog("publish", message.topic, message.payload, message.retain, message.qos)
+    self:MqttLog("publish", message.topic, message.payload, message.retain, message.qos, message.timestamp)
 
     -- self.event_bus:PushEvent({
     --     silent = true,
@@ -214,7 +225,7 @@ function MqttClient:OnMqttSubscribed(backend, regex)
     local sub = self.subscriptions[regex]
     sub.subscribed = true
     sub.subscription_pending = false
-    self:MqttLog("subscribe", regex)
+    self:MqttLog("subscribed", regex)
     self.event_bus:PushEvent({ event = "mqtt-client.subscribed", regex = regex })
 end
 
@@ -280,6 +291,11 @@ function MqttClient:WatchTopic(target, handler, topics, single_shot)
         topics = { topics }
     end
 
+    if not handler then
+        print(self, "Failed to subscribe to", table.concat(topics, ","))
+        return
+    end
+
     for _,topic in ipairs(topics) do
         if not self.cache[topic] then
             self.cache[topic] = { }
@@ -309,6 +325,11 @@ end
 function MqttClient:WatchRegex(target, handler, topics, single_shot)
     if type(topics) == "string" then
         topics = { topics }
+    end
+
+    if not handler then
+        print(self, "Failed to subscribe to", table.concat(topics, ","))
+        return
     end
 
     for _,mqtt_regex in ipairs(topics) do

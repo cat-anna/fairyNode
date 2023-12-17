@@ -67,21 +67,12 @@ function HomieGenericDevice:Topic(t)
     end
 end
 
-function HomieGenericDevice:PushMessage(q, topic, payload)
-    table.insert(q, {
-        topic = self:Topic(topic),
-        payload = payload,
-        retain = self:IsRetained(),
-        qos = self:GetQos(),
-    })
-    return q
-end
-
 function HomieGenericDevice:BatchPublish(q)
     self.mqtt:BatchPublish(q)
 end
 
-function HomieGenericDevice:Publish(sub_topic, payload)
+function HomieGenericDevice:Publish(sub_topic, payload, retain)
+    retain = (retain or retain == nil) and true or false
     local topic = self:Topic(sub_topic)
     print(self, "Publishing: " .. topic .. "=" .. payload)
     self.mqtt:Publish(topic, payload, self:IsRetained(), self:GetQos())

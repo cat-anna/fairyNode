@@ -29,11 +29,10 @@ function LocalDevice:StartDevice()
         end)
 
     self:AddTask(
-        "sensor readout",
-        10,
+        "Sensor readout",
+        60,
         function () self:DoSensorReadout() end
     )
-
 
     local sensor_list_config = "module.manager-device.local.sensors"
     self:ResetLocalSensors(config_handler:QueryConfigItem(sensor_list_config))

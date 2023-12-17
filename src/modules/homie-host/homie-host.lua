@@ -27,13 +27,16 @@ function HomieHost:Init(opt)
 end
 
 function HomieHost:PostInit()
+    HomieHost.super.PostInit(self)
     self.mqtt:AddSubscription(self, self:Topic("#"))
 end
 
 function HomieHost:StartModule()
-    print(self, "Starting")
+    HomieHost.super.StartModule(self)
     self.mqtt:WatchRegex(self, self.AddDevice, self:Topic("+/$homie"))
 end
+
+------------------------------------------------------------------------------
 
 function HomieHost:Topic(t)
     assert(self.base_topic)
@@ -42,6 +45,10 @@ function HomieHost:Topic(t)
     else
         return string.format("%s/%s", self.base_topic, t)
     end
+end
+
+function HomieHost:SetLocalClient(local_client)
+
 end
 
 ------------------------------------------------------------------------------

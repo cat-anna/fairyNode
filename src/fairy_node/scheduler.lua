@@ -137,7 +137,7 @@ function Scheduler:CancelTask(t)
 end
 
 
-function Scheduler:CreateTaskSequence(owner, name, interval, sequence)
+function Scheduler:CreateTaskSequence(owner, name, interval, sequence, arg)
     local state = {
         owner = owner,
         name = name,
@@ -150,7 +150,7 @@ function Scheduler:CreateTaskSequence(owner, name, interval, sequence)
         local next = state.sequence[state.index]
         if next then
             printf(state.owner, "Starting step %d/%d in sequence %s", state.index, #state.sequence, state.name)
-            next()
+            next(owner, task, arg)
             printf(state.owner, "Completed step %d/%d in sequence %s", state.index, #state.sequence, state.name)
         else
             printf(state.owner, "Task sequence %s is completed", state.name)

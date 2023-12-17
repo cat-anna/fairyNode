@@ -104,14 +104,16 @@ function ClassLoader:ReloadClass(class)
         self:UpdateBase(v)
     end
 
+    local updated = 0
     for _,v in pairs(class.instances) do
-        printf("CLASS: Update mt %s name: %s", class.name, tostring(v))
         setmetatable(v, new_mt)
         loader_module:UpdateObjectDeps(v)
         if v.AfterReload then
             v:AfterReload()
         end
+        updated = updated + 1
     end
+    printf("CLASS: Update mt %s, updated instances: %d", class.name, updated)
 end
 
 -------------------------------------------------------------------------------

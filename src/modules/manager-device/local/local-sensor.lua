@@ -12,6 +12,8 @@ LocalSensor.__name = "LocalSensor"
 function LocalSensor:Init(config)
     LocalSensor.super.Init(self, config)
 
+    assert(self.component_type == "sensor")
+
     self.owner_module = config.owner_module
     self.persistence = not config.volatile
     local values = config.values
@@ -67,7 +69,6 @@ function LocalSensor:ResetValues(values)
         v.id = k
         v.class = "modules/manager-device/local/local-sensor-value"
         v.owner_module = self.owner_module
-        -- v.
         self:AddProperty(v)
     end
 end
@@ -75,7 +76,7 @@ end
 function LocalSensor:UpdateValue(id, updated_value, timestamp)
     local value_object = self:GetProperty(id)
     assert(value_object)
-    return value_object:SetValue(updated_value, timestamp)
+    return value_object:UpdateValue(updated_value, timestamp)
 end
 
 function LocalSensor:UpdateValues(all)
