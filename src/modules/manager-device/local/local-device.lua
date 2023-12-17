@@ -38,6 +38,7 @@ function LocalDevice:StartDevice()
     self:ResetLocalSensors(config_handler:QueryConfigItem(sensor_list_config))
 
     LocalDevice.super.StartDevice(self)
+    self:SetReady(true)
 end
 
 function LocalDevice:StopDevice()

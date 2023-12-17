@@ -1,11 +1,20 @@
 
+local uuid = require "uuid"
+
 -------------------------------------------------------------------------------------
 
-local function MakeInstance(this, obj)
+local function MakeInstance(this, opt)
     assert(this)
-    obj = setmetatable(obj or {}, { __index = this })
+    local obj = {
+        uuid = uuid(),
+    }
+    local mt = {
+        __index = this,
+    }
+
+    setmetatable(obj, mt)
     if obj.Init then
-        obj:Init()
+        obj:Init(opt)
     end
     return obj
 end

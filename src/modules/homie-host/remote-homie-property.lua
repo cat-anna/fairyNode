@@ -1,39 +1,68 @@
+
+local formatting = require("modules/homie-common/formatting")
+
 -------------------------------------------------------------------------------------
 
 local HomieRemoteProperty = {}
 HomieRemoteProperty.__name = "HomieRemoteProperty"
-HomieRemoteProperty.__base = "modules/homie-common/homie-property"
+HomieRemoteProperty.__base = "modules/manager-device/generic/base-property"
 HomieRemoteProperty.__type = "class"
 HomieRemoteProperty.__deps = { }
 
 -------------------------------------------------------------------------------------
 
+function HomieRemoteProperty:Tag()
+    return string.format("%s(%s)", self.__name, self.id)
+end
+
 function HomieRemoteProperty:Init(config)
     HomieRemoteProperty.super.Init(self, config)
     self.persistence = true
+
+    self.mqtt = require("modules/homie-common/homie-mqtt"):New({
+        base_topic = config.base_topic,
+        owner = self,
+    })
 end
 
 function HomieRemoteProperty:StartProperty()
     HomieRemoteProperty.super.StartProperty(self)
 
-    self:WatchTopic("$unit", self.HandlePropertyConfigValue)
-    self:WatchTopic("$name", self.HandlePropertyConfigValue)
-    self:WatchTopic("$datatype", self.HandlePropertyConfigValue)
+    self.mqtt:WatchTopic("$unit", self.HandlePropertyConfigValue)
+    self.mqtt:WatchTopic("$name", self.HandlePropertyConfigValue)
+    self.mqtt:WatchTopic("$datatype", self.HandlePropertyConfigValue)
+    self.mqtt:WatchTopic("$retained", self.HandlePropertyConfigValue)
+    self.mqtt:WatchTopic("$settable", self.HandlePropertyConfigValue)
+    self.mqtt:WatchTopic(nil, self.HandlePropertyValue)
 
-    self:WatchTopic("$retained", self.HandlePropertyConfigValue)
-    self:WatchTopic("$settable", self.HandlePropertyConfigValue)
-
-    self:WatchTopic(nil, self.HandlePropertyValue)
+    -- if self:IsSettable() then
+    --     if not self.mqtt_subscribed then
+    --         self:WatchTopic("set", self.OnHomieValueSet)
+    --         self.mqtt_subscribed = true
+    --     end
+    --     return self.mqtt_subscribed
+    -- end
+    self:SetReady(true)
 end
 
 function HomieRemoteProperty:StopProperty()
     HomieRemoteProperty.super.StopProperty(self)
+    self.mqtt:StopWatching()
+    self:SetReady(false)
 end
 
 -------------------------------------------------------------------------------------
 
 function HomieRemoteProperty:IsSettable()
     return self.settable
+end
+
+function HomieRemoteProperty:IsRetained()
+    return self.retained or false
+end
+
+function HomieRemoteProperty:GetQos()
+    return self.qos or 0
 end
 
 -------------------------------------------------------------------------------------
@@ -49,7 +78,7 @@ function HomieRemoteProperty:SetValue(value, timestamp)
         return
     end
 
-    value = self.Formatting.ToHomieValue(self:GetDatatype(), value)
+    value = formatting.ToHomieValue(self:GetDatatype(), value)
     printf(self, "Setting value '%s'", value)
     self:Publish("set", value, self:IsRetained())
 end
@@ -103,7 +132,7 @@ function HomieRemoteProperty:HandlePropertyValue(topic, payload, receive_timesta
     local value = payload
 
     if self.datatype then
-        value = self.Formatting.FromHomieValue(self:GetDatatype(), payload)
+        value = formatting.FromHomieValue(self:GetDatatype(), payload)
     else
         local num = tonumber(payload)
         if num ~= nil then

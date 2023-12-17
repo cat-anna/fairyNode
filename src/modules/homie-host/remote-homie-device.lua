@@ -1,12 +1,14 @@
 local scheduler = require "fairy_node/scheduler"
 local Set = require 'pl.Set'
+local formatting = require("modules/homie-common/formatting")
+local homie_state = require("modules/homie-common/homie-state")
 
 ------------------------------------------------------------------------------
 
 local HomieRemoteDevice = {}
 HomieRemoteDevice.__type = "class"
 HomieRemoteDevice.__name = "HomieGenericRemoteDevice"
-HomieRemoteDevice.__base = "modules/homie-common/homie-device"
+HomieRemoteDevice.__base = "modules/manager-device/generic/base-device"
 HomieRemoteDevice.__config = { }
 HomieRemoteDevice.__deps = {
     -- event_bus = "fairy_node/event-bus",
@@ -14,29 +16,45 @@ HomieRemoteDevice.__deps = {
 
 -------------------------------------------------------------------------------------
 
+function HomieRemoteDevice:Tag()
+    return string.format("%s(%s)", self.__name, self.id)
+end
+
 function HomieRemoteDevice:Init(config)
     HomieRemoteDevice.super.Init(self, config)
     self.variables = { }
     self.persistence = true
+    self.homie_controller = config.homie_controller
+    self.state = homie_state.init
+    self.fairy_node_mode = config.fairy_node_mode
+
+    assert(self.fairy_node_mode)
+
+    self.mqtt = require("modules/homie-common/homie-mqtt"):New({
+        base_topic = config.base_topic,
+        owner = self,
+    })
 end
 
 function HomieRemoteDevice:StartDevice()
     HomieRemoteDevice.super.StartDevice(self)
 
-    self:WatchTopic("$homie", self.HandleHomieNode)
-    self:WatchTopic("$state", self.HandleStateChange)
-    self:WatchTopic("$name", self.HandleDeviceName)
-    self:WatchTopic("$nodes", self.HandleNodes)
-
-    self:WatchRegex("$hw/#", self.HandleDeviceInfo)
-    self:WatchRegex("$fw/#", self.HandleDeviceInfo)
-    self:WatchTopic("$mac", self.HandleDeviceInfo)
-    self:WatchTopic("$localip", self.HandleDeviceInfo)
-    self:WatchTopic("$implementation", self.HandleDeviceInfo)
+    self.mqtt:WatchTopic("$homie", self.HandleHomieNode)
+    self.mqtt:WatchTopic("$state", self.HandleStateChange)
+    self.mqtt:WatchTopic("$name", self.HandleDeviceName)
+    self.mqtt:WatchTopic("$nodes", self.HandleNodes)
+    self.mqtt:WatchRegex("$hw/#", self.HandleDeviceInfo)
+    self.mqtt:WatchRegex("$fw/#", self.HandleDeviceInfo)
+    self.mqtt:WatchTopic("$mac", self.HandleDeviceInfo)
+    self.mqtt:WatchTopic("$localip", self.HandleDeviceInfo)
+    self.mqtt:WatchTopic("$implementation", self.HandleDeviceInfo)
+    self:SetReady(true)
 end
 
 function HomieRemoteDevice:StopDevice()
     HomieRemoteDevice.super.StopDevice(self)
+    self.mqtt:StopWatching()
+    self:SetReady(false)
 end
 
 ------------------------------------------------------------------------------
@@ -47,6 +65,22 @@ end
 
 function HomieRemoteDevice:IsLocal()
     return false
+end
+
+function HomieRemoteDevice:IsFairyNodeMode()
+    return self.fairy_node_mode
+end
+
+function HomieRemoteDevice:IsReady()
+    return self:GetState() == homie_state.ready
+end
+
+function HomieRemoteDevice:GetState()
+    return self.state
+end
+
+function HomieRemoteDevice:GetHomieVersion()
+    return self.homie_version
 end
 
 ------------------------------------------------------------------------------
@@ -172,6 +206,7 @@ function HomieRemoteDevice:HandleNodes(topic, payload)
             id = node_id,
             global_id = self:GetGlobalId() .. "." .. node_id,
             homie_controller = self.homie_controller,
+            base_topic = self.mqtt:Topic(node_id),
 
             component_type = "remote", -- TODO
 

@@ -134,6 +134,7 @@ function PropertyManager:GetDebugTable()
         "global_id",
         "type",
         "started",
+        "ready",
         "persistence",
 
         "value",
@@ -159,6 +160,7 @@ function PropertyManager:GetDebugTable()
             p:GetGlobalId(),
             check(p:GetType()),
             check(p:IsStarted()),
+            check(p:IsReady()),
             check(p:WantsPersistence()),
 
             check(v),

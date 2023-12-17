@@ -40,6 +40,7 @@ function LocalSensor:StartComponent()
         self:ResetValues(self.values or { })
         self.values = nil
     end
+    self:SetReady(true)
     self:Readout(false)
 end
 
@@ -69,6 +70,7 @@ function LocalSensor:ResetValues(values)
         v.id = k
         v.class = "modules/manager-device/local/local-sensor-value"
         v.owner_module = self.owner_module
+        v.property_type = "sensor"
         self:AddProperty(v)
     end
 end

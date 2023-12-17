@@ -11,7 +11,7 @@ local HomieHost = {}
 HomieHost.__type = "module"
 HomieHost.__tag = "HomieHost"
 HomieHost.__deps = {
-    mqtt = "mqtt-client",
+    mqtt_client = "mqtt-client",
     device_manager = "manager-device",
 }
 HomieHost.__config = { }
@@ -22,33 +22,28 @@ function HomieHost:Init(opt)
     HomieHost.super.Init(self, opt)
     self.retained = true
     self.qos = 0
-    self.base_topic = "homie"
     self.devices = { }
+
+    self.mqtt = require("modules/homie-common/homie-mqtt"):New({
+        base_topic = "homie",
+        owner = self,
+    })
 end
 
 function HomieHost:PostInit()
     HomieHost.super.PostInit(self)
-    self.mqtt:AddSubscription(self, self:Topic("#"))
+    self.mqtt_client:AddSubscription(self, self.mqtt:Topic("#"))
 end
 
 function HomieHost:StartModule()
     HomieHost.super.StartModule(self)
-    self.mqtt:WatchRegex(self, self.AddDevice, self:Topic("+/$homie"))
+    self.mqtt:WatchRegex("+/$homie", self.AddDevice)
 end
 
 ------------------------------------------------------------------------------
 
-function HomieHost:Topic(t)
-    assert(self.base_topic)
-    if not t then
-        return self.base_topic
-    else
-        return string.format("%s/%s", self.base_topic, t)
-    end
-end
-
 function HomieHost:SetLocalClient(local_client)
-
+    self.devices[self.config.hostname] = local_client
 end
 
 ------------------------------------------------------------------------------
@@ -81,8 +76,8 @@ function HomieHost:AddDevice(topic, payload, timestamp)
         do_crete_device("client")
     end
 
-    self.mqtt:WatchTopic(self, create_client, self:Topic(device_name .. "/$fw/FairyNode/mode"), true)
-    self.mqtt:WatchTopic(self, create_client, self:Topic(device_name .. "/$fw/FairyNode/version"), true)
+    self.mqtt:WatchTopic("/$fw/FairyNode/mode", create_client, true)
+    self.mqtt:WatchTopic("/$fw/FairyNode/version", create_client, true)
 
     scheduler.Delay(5, function()
         do_crete_device("generic")
@@ -103,7 +98,8 @@ function HomieHost:CreateDevice(homie_version, device_name, device_mode)
         id = device_name,
         homie_version = homie_version,
         fairy_node_mode = device_mode,
-        class = mode_class[device_mode] or mode_class.generic
+        class = mode_class[device_mode] or mode_class.generic,
+        base_topic = self.mqtt:Topic(device_name),
     }
 
     local dev = self.device_manager:CreateDevice(proto)

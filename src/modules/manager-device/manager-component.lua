@@ -99,6 +99,7 @@ function ComponentManager:GetDebugTable()
     local header = {
         "global_id",
         "type",
+        "ready",
         "started",
         "persistence",
         "properties",
@@ -118,6 +119,7 @@ function ComponentManager:GetDebugTable()
         table.insert(r, {
             p:GetGlobalId(),
             p:GetType(),
+            check(p:IsReady()),
             check(p:IsStarted()),
             check(p:WantsPersistence()),
             table.concat(p:PropertyKeys(), ",")

@@ -17,11 +17,10 @@ HomieClient.__tag = "HomieClient"
 HomieClient.__type = "module"
 HomieClient.__deps = {
     mqtt = "mqtt-client",
-
     device_manager = "manager-device",
+
     -- component_manager = "manager-device/manager-component",
     -- property_manager = "manager-device/manager-property",
-
     -- event_bus = "base/event-bus",
 }
 HomieClient.__config = { }

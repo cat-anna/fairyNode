@@ -11,7 +11,7 @@ BaseProperty.__name = "BaseProperty"
 
 function BaseProperty:Init(config)
     BaseProperty.super.Init(self, config)
-    self.property_type = config.property_type or 'value'
+    self.property_type = config.property_type
     self.owner_component = config.owner_component
     self.property_manager = config.property_manager
 
