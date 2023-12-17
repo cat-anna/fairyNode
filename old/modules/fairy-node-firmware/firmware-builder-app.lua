@@ -33,6 +33,7 @@ end
 function FirmwareBuilderApp:Init() end
 
 function FirmwareBuilderApp:StartModule()
+    FirmwareBuilderApp.super.StartModule(self)
     local config = self.config[CONFIG_KEY_CONFIG]
 
     self.compiler = {}
