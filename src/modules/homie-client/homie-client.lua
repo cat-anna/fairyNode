@@ -18,10 +18,6 @@ HomieClient.__type = "module"
 HomieClient.__deps = {
     mqtt = "mqtt-client",
     device_manager = "manager-device",
-
-    -- component_manager = "manager-device/manager-component",
-    -- property_manager = "manager-device/manager-property",
-    -- event_bus = "base/event-bus",
 }
 HomieClient.__config = { }
 
@@ -32,7 +28,7 @@ function HomieClient:Init(opt)
 
     self.client_name = self.config.hostname
     self.global_id = self.client_name
-    self.base_topic = "homie_test/" .. self.client_name
+    self.base_topic = "homie/" .. self.client_name
     self.client_mode = "client"
 
     self.node_proxies = { }

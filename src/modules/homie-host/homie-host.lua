@@ -2,8 +2,45 @@
 -- local loader_class = require "lib/loader-class"
 -- local loader_module = require "lib/loader-module"
 local scheduler = require "fairy_node/scheduler"
+local class = require "fairy_node/class"
 
--- local homie_formatting = require("module/homie-common/formatting")
+-------------------------------------------------------------------------------
+
+local DeviceConstructor = class.Class("HomieDeviceConstructor")
+
+function DeviceConstructor:Init(opt)
+    self.mqtt = require("modules/homie-common/homie-mqtt"):New({
+        base_topic = opt.base_topic,
+        owner = self,
+    })
+
+    self.homie_version = opt.homie_version
+    self.homie_host = opt.homie_host
+    self.device_name = opt.device_name
+
+    self.mqtt:WatchTopic("$fw/FairyNode/mode", self.HandleMode, true)
+
+    scheduler.Delay(10, function ()
+        self:Timeout()
+    end)
+end
+
+function DeviceConstructor:HandleMode(topic, payload)
+    self.device_mode = payload
+    self:CreateDevice()
+end
+
+function DeviceConstructor:Timeout()
+    self:CreateDevice()
+end
+
+function DeviceConstructor:CreateDevice()
+    if self.device_created then
+        return
+    end
+    self.device_created = true
+    self.homie_host:CreateDevice(self.homie_version, self.device_name, self.device_mode)
+end
 
 -------------------------------------------------------------------------------
 
@@ -23,6 +60,7 @@ function HomieHost:Init(opt)
     self.retained = true
     self.qos = 0
     self.devices = { }
+    self.pending_deices = { }
 
     self.mqtt = require("modules/homie-common/homie-mqtt"):New({
         base_topic = "homie",
@@ -59,37 +97,32 @@ function HomieHost:AddDevice(topic, payload, timestamp)
     if self.devices[device_name] then
         return
     end
-    local homie_version = payload
 
-    local opt = {
-        pending = true,
-    }
+    local constructor = DeviceConstructor:New({
+        homie_host = self,
+        homie_version = payload,
+        device_name = device_name,
+        base_topic = self.mqtt:Topic(device_name)
+    })
 
-    local function do_crete_device(class)
-        if opt.pending then
-            opt.pending = nil
-            self:CreateDevice(homie_version, device_name, class)
-        end
-    end
-
-    local function create_client()
-        do_crete_device("client")
-    end
-
-    self.mqtt:WatchTopic("/$fw/FairyNode/mode", create_client, true)
-    self.mqtt:WatchTopic("/$fw/FairyNode/version", create_client, true)
-
-    scheduler.Delay(5, function()
-        do_crete_device("generic")
-    end)
+    self.pending_deices[device_name] = constructor
 end
 
 ------------------------------------------------------------------------------
 
 function HomieHost:CreateDevice(homie_version, device_name, device_mode)
+
+    print(self, "CreateDevice", homie_version, device_name, device_mode)
+
+    device_mode = device_mode or "generic"
+    device_mode = device_mode:lower()
+
     local mode_class = {
-        client  = "modules/homie-host/remote-homie-device-fairy-node",
-        generic = "modules/homie-host/remote-homie-device",
+        client      = "modules/homie-host/remote-homie-device-fairy-node",
+        esp8266     = "modules/homie-host/remote-homie-device-fairy-node",
+        esp         = "modules/homie-host/remote-homie-device-fairy-node",
+
+        generic     = "modules/homie-host/remote-homie-device",
     }
 
     local proto = {
@@ -104,41 +137,9 @@ function HomieHost:CreateDevice(homie_version, device_name, device_mode)
 
     local dev = self.device_manager:CreateDevice(proto)
     self.devices[device_name] = dev
+    self.pending_deices[device_name] = nil
     dev:StartDevice()
 end
-
-------------------------------------------------------------------------------
-
--- function HomieHost:SetNodeValue(topic, payload, node_name, prop_name, value)
---     printf("HOMIE-HOST: config changed: %s->%s", self.configuration[prop_name], value)
---     self.configuration[prop_name] = value
--- end
-
--- function HomieHost:FindProperty(path)
---     local device, node, property
---     if type(path) == "string" then
---         device, node, property = path:match("([^%.]+).([^%.]+).([^%.]+)")
---     else
---         device, node, property = path.device, path.node, path.property
---     end
-
---     if (not device) or (not node) or (not property) then
---         error("Invalid argument for HomieHost:FindProperty")
---         return
---     end
-
---     local dev = self.devices[device]
---     if not dev  then
---         return
---     end
-
---     local n = dev.nodes[node]
---     if (not n) or (not n.properties) then
---         return
---     end
-
---     return n.properties[property]
--- end
 
 ------------------------------------------------------------------------------
 
