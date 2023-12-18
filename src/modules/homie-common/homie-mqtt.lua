@@ -25,6 +25,7 @@ function HomieMqtt:Init(config)
     self.mqtt_client = loader_module:GetModule("mqtt-client")
     self.base_topic = config.base_topic
     self.owner = config.owner
+    self.qos = config.qos
 
     assert(self.owner)
     assert(self.base_topic)
@@ -60,7 +61,7 @@ end
 function HomieMqtt:Publish(sub_topic, payload, retain)
     retain = (retain or retain == nil) and true or false
     local topic = self:Topic(sub_topic)
-    self.mqtt_client:Publish(topic, payload, self:IsRetained(), self:GetQos())
+    self.mqtt_client:Publish(topic, payload, retain, self.qos or 0)
 end
 
 -------------------------------------------------------------------------------------
