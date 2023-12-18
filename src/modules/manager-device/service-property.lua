@@ -79,14 +79,9 @@ function ServiceProperty:GetValueHistory(request, value_id)
     result.id = v:GetId()
     result.global_id = v:GetGlobalId()
     result.datatype = v:GetDatatype()
+
+    result.component = v:GetOwnerComponentName()
     result.device = v:GetOwnerDeviceName()
-
-    -- local r = { }
-    -- for i,e in ipairs(result.list) do
-    --     r[i] = { x = e.timestamp, y = tonumber(e.value) }
-    -- end
-
-    -- result.list = r
 
     return http.OK, result
 end

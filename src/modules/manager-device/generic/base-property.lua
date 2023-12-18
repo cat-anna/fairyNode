@@ -49,6 +49,10 @@ end
 -------------------------------------------------------------------------------------
 
 function BaseProperty:GetOwnerDeviceName()
+    return self.owner_component:GetOwnerDeviceName()
+end
+
+function BaseProperty:GetOwnerComponentName()
     return self.owner_component:GetName()
 end
 
