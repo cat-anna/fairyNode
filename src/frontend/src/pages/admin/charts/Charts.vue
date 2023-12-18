@@ -30,7 +30,7 @@
   import { useI18n } from 'vue-i18n'
   import { defineComponent, ref, ShallowReactive, shallowReactive } from 'vue'
   import propertyService from '../../../services/fairyNode/PropertyService'
-  import { ChartSeries, ChartSeriesInfo } from '../../../services/fairyNode/PropertyService'
+  import { ChartSeriesInfo } from '../../../services/fairyNode/PropertyService'
 
   import { storeToRefs } from 'pinia'
   import { useGlobalStore, ChartDesc } from '../../../stores/global-store'

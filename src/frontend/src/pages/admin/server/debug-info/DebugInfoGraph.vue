@@ -68,9 +68,7 @@
           this.timerId = 0
         }
       },
-      updateTitle() {
-        this.title = this.moduleId || this.graphId
-      },
+      // updateTitle() {},
       async getData() {
         if (this.visible) {
           const url = await statusService.getStatusGraphUrl(this.graphId)

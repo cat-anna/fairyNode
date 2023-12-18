@@ -36,7 +36,7 @@
   import formatting from '../../../../services/fairyNode/Formatting'
   import { StatsTable } from '../../../../services/fairyNode/StatusService'
 
-  export declare type OptionalStatsTable = StatsTable | undefined
+  export declare type OptionalStatsTable = StatsTable | null
 
   export default defineComponent({
     props: {
@@ -44,7 +44,7 @@
       moduleId: { type: String, required: true },
     },
     setup() {
-      const statsTable: Ref<OptionalStatsTable> = ref()
+      const statsTable: Ref<OptionalStatsTable> = ref(null)
       const { t } = useI18n()
       return {
         t,

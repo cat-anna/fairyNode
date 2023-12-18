@@ -26,7 +26,7 @@ export default defineConfig(({ command }) => {
   }
 
   if (command === 'build') {
-    config.base = '/frontend/vuestic-admin/'
+    config.base = '/frontend/'
   }
 
   return config

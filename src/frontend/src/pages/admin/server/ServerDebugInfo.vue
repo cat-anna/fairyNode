@@ -8,7 +8,7 @@
 
 <script lang="ts">
   import { useI18n } from 'vue-i18n'
-  import { defineComponent, ref } from 'vue'
+  import { defineComponent, ref, Ref } from 'vue'
   import statusService from '../../../services/fairyNode/StatusService'
   import { StatsContent } from '../../../services/fairyNode/StatusService'
 
@@ -23,7 +23,7 @@
       DebugInfoGraph,
     },
     setup() {
-      const statsContent = ref(null)
+      const statsContent: Ref<OptionalStatsContent> = ref(undefined)
       const { t } = useI18n()
       return {
         t,
