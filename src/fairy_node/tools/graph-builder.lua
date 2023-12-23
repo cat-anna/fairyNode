@@ -1,7 +1,8 @@
 local tablex = require "pl.tablex"
+local stringx = require "pl.stringx"
 local pretty = require "pl.pretty"
 local class = require "fairy_node/class"
-local zlib_wrap = require 'lib/zlib-wrap'
+local zlib_wrap = require 'fairy_node/zlib-wrap'
 
 -------------------------------------------------------------------------------------
 
@@ -28,16 +29,37 @@ local GraphBuilder = class.Class("GraphBuilder")
 function GraphBuilder:Init()
     self.id_gen = 0
     self.nodes = { }
+    self.color_mapping = { }
+    self.color_mode = "default"
+    self.default_node_type = self.NodeType.default
 end
+
+-------------------------------------------------------------------------------------
 
 function GraphBuilder:NextId()
     self.id_gen = self.id_gen + 1
     return string.format("object_%03d", self.id_gen)
 end
 
+-------------------------------------------------------------------------------------
+
 function GraphBuilder:SetTheme(theme)
     self.theme = theme
 end
+
+function GraphBuilder:SetColorMode(mode)
+    self.color_mode = mode
+end
+
+function GraphBuilder:SetColorMapping(mapping)
+    self.color_mapping = mapping
+end
+
+function GraphBuilder:SetDefaultNodeType(type)
+    self.default_node_type = type
+end
+
+-------------------------------------------------------------------------------------
 
 GraphBuilder.NodeType = {
     -- abstract class  "abstract class"
@@ -71,21 +93,23 @@ function GraphBuilder:Node(opt)
         opt = { name = opt }
     end
 
-    local function to_table(arg)
+    local function unpack_table(arg)
         if type(arg) == "table" then
-            return arg
+            return table.unpack(arg)
         end
-        return { arg }
+        return arg
     end
 
-    function NodeMt:To(...) table.append(self.to, ...) end
-    function NodeMt:From(...) table.append(self.from, ...) end
-    function NodeMt:Relates(...) table.append(self.relates, ...) end
-    function NodeMt:Alias(...) table.append(self.alias, ...) end
+    function NodeMt:To(t) table.append(self.to, unpack_table(t)) end
+    function NodeMt:From(t) table.append(self.from, unpack_table(t)) end
+    function NodeMt:Relates(t) table.append(self.relates, unpack_table(t)) end
+    function NodeMt:Alias(t) table.append(self.alias, unpack_table(t)) end
     function NodeMt:Name(name) self.name = name end
     function NodeMt:Type(name) self.type = name end
+    function NodeMt:Color(v) self.color = v end
+    function NodeMt:LineMode(v) self.line_mode = v end
     function NodeMt:Description(desciption)
-        table.append(self.description, table.unpack(to_table(desciption)))
+        table.append(self.description, unpack_table(desciption))
     end
 
     local id = self:NextId()
@@ -104,10 +128,12 @@ function GraphBuilder:Node(opt)
     if opt.name then node:Name(opt.name) end
     if opt.type then node:Type(opt.type) end
     if opt.description then node:Description(opt.description) end
-    if opt.to then node:To(to_table(table.unpack(opt.to))) end
-    if opt.from then node:From(to_table(table.unpack(opt.from))) end
-    if opt.relates then node:Relates(to_table(table.unpack(opt.to))) end
-    if opt.alias then node:Alias(table.unpack(to_table(opt.alias))) end
+    if opt.to then node:To(opt.to) end
+    if opt.from then node:From(opt.from) end
+    if opt.relates then node:Relates(opt.to) end
+    if opt.alias then node:Alias(opt.alias) end
+    if opt.color then node:Color(opt.color) end
+    if opt.line_mode then node:LineMode(opt.line_mode) end
 
     return node
 end
@@ -124,35 +150,101 @@ function GraphBuilder:GetAliasTable()
     return r
 end
 
+-------------------------------------------------------------------------------------
+
+local ValueFormatters = {
+    ["number"] = function(v)
+        if math.floor(v) == v then
+            return string.format("%d", v)
+        else
+            return string.format("%.3f", v)
+        end
+    end,
+    ["boolean"] = function(v)
+        return v and "true" or "false"
+    end,
+    ["table"] = function(v)
+        return "table"
+    end,
+    ["nil"] = function() return "<none>" end
+}
+
+function GraphBuilder.FormatValue(value)
+    local formatter = ValueFormatters[type(value)] or tostring
+    return formatter(value)
+end
+
+-------------------------------------------------------------------------------------
+
+function GraphBuilder:ResolveColor(color)
+    if stringx.startswith(color, "#") then
+        return color
+    end
+
+    if self.color_mode then
+        local mapping = self.color_mapping[self.color_mode]
+        if mapping then
+            local mapped = mapping[color]
+            if mapped then
+                return self:ResolveColor(mapped)
+            end
+        end
+    end
+
+    return color
+end
+
+function GraphBuilder:ResolveRef(alias, arg)
+    local r = {}
+    for _,v in pairs(arg) do
+        local t = type(v)
+        if t == "table" and v.id then
+            table.insert(r, v.id)
+        elseif t == "string" then
+            if alias[v] then
+                table.insert(r, alias[v].id)
+            else
+                print("Failed to resolve", tostring(v))
+            end
+        else
+            print("Failed to resolve", tostring(v))
+        end
+    end
+    return r
+end
+
+-------------------------------------------------------------------------------------
+
 function GraphBuilder:ToPlantUMLText()
     local alias = self:GetAliasTable()
     local def = { }
     local transistion = { }
 
-    local function ResolveRef(arg)
-        local r = {}
-        for _,v in pairs(arg) do
-            local t = type(v)
-            if t == "table" and v.id then
-                table.insert(r, v.id)
-            elseif t == "string" then
-                if alias[v] then
-                    table.insert(r, alias[v].id)
-                else
-                    print("Failed to resolve", tostring(v))
-                end
-            else
-                print("Failed to resolve", tostring(v))
-            end
-        end
-        return r
-    end
 
     for _,node in pairs(self.nodes) do
-        local state = string.format([[%s "%s" as %s]], node.type or self.NodeType.default, node.name, node.id)
+        local state_parts = {
+            node.type or self.default_node_type,
+            string.format([["%s"]], node.name),
+            "as",
+            node.id,
+        }
+
+        local style = {}
+
+        if node.color then
+            table.insert(style, self:ResolveColor(node.color))
+        end
+        if node.line_mode then
+            table.insert(style, "line." .. node.line_mode)
+        end
+        if #style > 0 then
+            table.insert(state_parts, table.concat(style, ";"))
+        end
+
+        local state = table.concat(state_parts, " ")
         if node.description and (#node.description > 0) then
             local state = { state .. " {" }
-            table.append(state, node.description)
+            table.append_table(state, node.description)
             table.append(state, "}")
 
             table.append(def, table.concat(state, "\n"))
@@ -160,15 +252,15 @@ function GraphBuilder:ToPlantUMLText()
             table.append(def, state)
         end
 
-        for _,v in ipairs(ResolveRef(node.to)) do
+        for _,v in ipairs(self:ResolveRef(alias, node.to)) do
             table.append(transistion, string.format([[%s --> %s]], node.id, v))
         end
 
-        for _,v in ipairs(ResolveRef(node.from)) do
+        for _,v in ipairs(self:ResolveRef(alias, node.from)) do
             table.append(transistion, string.format([[%s --> %s]], v, node.id))
         end
 
-        for _,v in ipairs(ResolveRef(node.relates)) do
+        for _,v in ipairs(self:ResolveRef(alias, node.relates)) do
             table.append(transistion, string.format([[%s -- %s]], node.id, v))
         end
     end
@@ -188,9 +280,9 @@ function GraphBuilder:ToPlantUMLText()
     end
 
     table.append(lines, "")
-    table.append(lines, def)
+    table.append_table(lines, def)
     table.append(lines, "")
-    table.append(lines, transistion)
+    table.append_table(lines, transistion)
     table.append(lines, "")
     table.append(lines, "@enduml")
     return table.concat(lines, "\n")
@@ -204,7 +296,8 @@ GraphBuilder.Format = {
 }
 
 function GraphBuilder:ToPlantUMLUrl(format)
-    format = format or "svg"
+    format = format or self.Format.svg
+    local diagram_text = self:ToPlantUMLText()
     if type(diagram_text) == "table" then
         diagram_text = table.concat(diagram_text, "\n")
     else
@@ -219,6 +312,5 @@ end
 
 -- local CONFIG_KEY_PLANTUML_HOST = "plantuml.host.url"
 -- [CONFIG_KEY_PLANTUML_HOST] = { type="string", default="http://www.plantuml.com/plantuml", },
-
 
 return GraphBuilder

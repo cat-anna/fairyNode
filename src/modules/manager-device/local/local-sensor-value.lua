@@ -1,6 +1,6 @@
 
 local LocalSensorValue = { }
-LocalSensorValue.__base = "modules/manager-device/generic/base-property"
+LocalSensorValue.__base = "manager-device/generic/base-property"
 LocalSensorValue.__type = "class"
 LocalSensorValue.__name = "LocalSensorValue"
 

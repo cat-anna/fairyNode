@@ -19,6 +19,10 @@ export interface StatsTable {
   data: StatsTableEntry[][]
 }
 
+export interface GraphUrl {
+  url: string
+}
+
 import { useGlobalStore } from '../../stores/global-store'
 const globalStore = useGlobalStore()
 
@@ -38,8 +42,8 @@ export class StatusService extends RestServiceBase {
     return this.get_json('/table/' + id)
   }
 
-  getStatusGraphUrl(id: string): Promise<string> {
-    return this.get_text('/graph/' + id + '/url?colors=' + globalStore.currentTheme)
+  getStatusGraphUrl(id: string): Promise<GraphUrl> {
+    return this.get_json('/graph/' + id + '/url?colors=' + globalStore.currentTheme)
   }
   getStatusGraphText(id: string): Promise<string> {
     return this.get_text('/graph/' + id + '/text?colors=' + globalStore.currentTheme)

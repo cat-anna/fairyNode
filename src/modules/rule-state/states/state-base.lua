@@ -3,7 +3,6 @@ local tablex = require "pl.tablex"
 -------------------------------------------------------------------------------------
 
 local State = {}
-State.__index = State
 State.__type = "interface"
 State.__name = "StateBase"
 State.__is_state_class = true
@@ -11,6 +10,8 @@ State.__is_state_class = true
 -------------------------------------------------------------------------------------
 
 function State:Init(config)
+    State.super.Init(self, config)
+
     self.id = config.id
     self.global_id = config.global_id
     self.local_id = config.local_id
@@ -66,17 +67,7 @@ function State:Init(config)
     end
 end
 
-function State:BeforeReload()
-end
-
-function State:AfterReload()
-end
-
 --------------------------------------------------------------------------
-
-function State:OnTimer()
-    self:Update()
-end
 
 function State:LocallyOwned()
     return self.locally_owned
@@ -94,10 +85,6 @@ function State:IsSettable()
     return false
 end
 
-function State:Status()
-    return self:IsReady(), self:GetValue()
-end
-
 function State:GetGroup()
     return self.group
 end
@@ -107,7 +94,17 @@ function State:GetGlobalId()
 end
 
 function State:GetId()
-    return self.id or self.name
+    return self.id or self.name or self.uuid
+end
+
+-------------------------------------------------------------------------------------
+
+function State:WantsTick()
+    return false
+end
+
+function State:Tick()
+    return self:Update()
 end
 
 -------------------------------------------------------------------------------------
@@ -200,6 +197,10 @@ function State:GetSourceDependencyList()
     return self:GetDependencyList(self.source_dependencies)
 end
 
+function State:GetSourceDependencyIds()
+    return tablex.keys(self.source_dependencies or {})
+end
+
 function State:HasSourceDependencies()
     for _, v in pairs(self.source_dependencies) do
         return true
@@ -284,6 +285,10 @@ end
 
 function State:GetSinkDependencyList()
     return self:GetDependencyList(self.sink_dependencies)
+end
+
+function State:GetSinkDependencyIds()
+    return tablex.keys(self.sink_dependencies or {})
 end
 
 function State:HasSinkDependencies()

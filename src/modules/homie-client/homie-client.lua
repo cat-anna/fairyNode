@@ -100,7 +100,7 @@ function HomieClient:ResetProxies()
 
     local dev = self.device_manager:GetLocalDevice()
     for id,component in pairs(dev:GetComponents()) do
-        local class = "modules/homie-client/proxy-node"
+        local class = "homie-client/proxy-node"
         local proxy = loader_class:CreateObject(class, {
             homie_client = self,
             target_component = component,

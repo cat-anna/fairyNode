@@ -9,7 +9,7 @@ local uuid = require "uuid"
 local LocalDevice = {}
 LocalDevice.__name = "LocalDevice"
 LocalDevice.__type = "class"
-LocalDevice.__base = "modules/manager-device/generic/base-device"
+LocalDevice.__base = "manager-device/generic/base-device"
 LocalDevice.__deps = { }
 
 -------------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ end
 
 function LocalDevice:AddSensor(opt)
     if not opt.class then
-        opt.class = "modules/manager-device/local/local-sensor"
+        opt.class = "manager-device/local/local-sensor"
     end
 
     opt.component_type = "sensor"

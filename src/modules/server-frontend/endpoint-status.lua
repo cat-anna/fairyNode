@@ -37,7 +37,7 @@ return {
         {
             method = "GET",
             path = "/graph/{[./]+}/url",
-            produces = "text/plain",
+            produces = "application/json",
             service_method = "GetModuleGraphUrl",
         },
 -------------------------------------------------------------------------------------

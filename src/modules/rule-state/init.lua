@@ -12,11 +12,12 @@ M.parameters = {
 
 M.submodules = {
     -- ["server"] = { mandatory = true, },
+    ["service-rule"] = { mandatory = false, }
 }
 
 M.exported_config = {
     ["module.rest-server.endpoint.list"] = {
---         "server-rest/endpoint-rule",
+        "rule-state/endpoint-rule",
     }
 }
 

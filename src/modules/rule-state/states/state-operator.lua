@@ -1,5 +1,5 @@
 local pretty = require "pl.pretty"
-local class = require "lib/class"
+local class = require "fairy_node/class"
 
 -------------------------------------------------------------------------------------
 
@@ -48,7 +48,6 @@ end
 
 local BaseOperator = class.Class("BaseOperator")
 
-
 function BaseOperator:GetDescription(args)
     if #args == 1 then
         return string.format("%s( %s )", self.name, table.concat(args, ""))
@@ -83,7 +82,9 @@ end
 
 local BinaryOperator = BaseOperator:SubClass("BinaryOperator")
 
-function BinaryOperator:Init()
+function BinaryOperator:Init(config)
+    assert(self.operator)
+
     self.arg_min = 2
     self.arg_max = 2
 
@@ -108,19 +109,18 @@ end
     self.func = call_result
 end
 
-
-
 -------------------------------------------------------------------------------------
 
 local StateOperator = { }
 StateOperator.__name = "StateOperator"
-StateOperator.__base = "state/state-base"
+StateOperator.__base = "rule-state/states/state-base"
 StateOperator.__type = "class"
 
 -------------------------------------------------------------------------------------
 
 function StateOperator:Init(config)
-    self.super.Init(self, config)
+    StateOperator.super.Init(self, config)
+
     self.operator =  string.lower(config.operator)
     self.range = config.range
 
@@ -139,22 +139,22 @@ end
 -- end
 
 StateOperator.OperatorFunctors = {
-    ["Not"] = ProxyFunction{name = "Not", func = OperatorAnd, lua_metafunc = nil, result_type = "boolean"},
-    ["And"] = ProxyFunction{name = "And", func = OperatorAnd, lua_metafunc = nil, result_type = "boolean"},
-    ["Or"]  = ProxyFunction{name = "Or",  func = OperatorOr,  lua_metafunc = nil, result_type = "boolean"},
+    ["Not"] = ProxyFunction:MakeFrom{name = "Not", func = OperatorAnd, lua_metafunc = nil, result_type = "boolean"},
+    ["And"] = ProxyFunction:MakeFrom{name = "And", func = OperatorAnd, lua_metafunc = nil, result_type = "boolean"},
+    ["Or"]  = ProxyFunction:MakeFrom{name = "Or",  func = OperatorOr,  lua_metafunc = nil, result_type = "boolean"},
 
-    ["Max"] = SimpleOperator{name = "Max", func = math.max, lua_metafunc = nil,     result_type = "float"},
-    ["Min"] = SimpleOperator{name = "Min", func = math.min, lua_metafunc = nil,     result_type = "float"},
-    ["Sum"] = SimpleOperator{name = "Sum", func = DoSum,    lua_metafunc = "__add", result_type = "float"},
+    ["Max"] = SimpleOperator:MakeFrom{name = "Max", func = math.max, lua_metafunc = nil,     result_type = "float"},
+    ["Min"] = SimpleOperator:MakeFrom{name = "Min", func = math.min, lua_metafunc = nil,     result_type = "float"},
+    ["Sum"] = SimpleOperator:MakeFrom{name = "Sum", func = DoSum,    lua_metafunc = "__add", result_type = "float"},
     -- ["mul"] = FunctionOperator("mul", DoMul),
 
-    ["NotEqual"]     = BinaryOperator{name = "Equal",        lua_metafunc = nil,        operator = "~="},
-    ["Equal"]        = BinaryOperator{name = "NotEqual",     lua_metafunc = "__eq",     operator = "=="},
-    ["Lesser"]       = BinaryOperator{name = "Lesser",       lua_metafunc = "__lt",     operator = "<" },
-    ["LesserEqual"]  = BinaryOperator{name = "LesserEqual",  lua_metafunc = "__le",     operator = "<="},
-    ["Greater"]      = BinaryOperator{name = "Greater",      lua_metafunc = nil,        operator = ">" },
-    ["GreaterEqual"] = BinaryOperator{name = "GreaterEqual", lua_metafunc = nil,        operator = ">="},
-    ["Concat"]       = BinaryOperator{name = "Concat",       lua_metafunc = "__concat", operator = ".."},
+    ["NotEqual"]     = BinaryOperator:MakeFrom{name = "Equal",        lua_metafunc = nil,        operator = "~="},
+    ["Equal"]        = BinaryOperator:MakeFrom{name = "NotEqual",     lua_metafunc = "__eq",     operator = "=="},
+    ["Lesser"]       = BinaryOperator:MakeFrom{name = "Lesser",       lua_metafunc = "__lt",     operator = "<" },
+    ["LesserEqual"]  = BinaryOperator:MakeFrom{name = "LesserEqual",  lua_metafunc = "__le",     operator = "<="},
+    ["Greater"]      = BinaryOperator:MakeFrom{name = "Greater",      lua_metafunc = nil,        operator = ">" },
+    ["GreaterEqual"] = BinaryOperator:MakeFrom{name = "GreaterEqual", lua_metafunc = nil,        operator = ">="},
+    ["Concat"]       = BinaryOperator:MakeFrom{name = "Concat",       lua_metafunc = "__concat", operator = ".."},
 
     -- ["Range"] = MakeRangeOperator(env),
     -- ["range"] = {

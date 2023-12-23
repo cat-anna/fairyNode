@@ -1,4 +1,4 @@
-local http = require "lib/http-code"
+local http = require "fairy_node/http-code"
 local tablex = require "pl.tablex"
 local stringx = require "pl.stringx"
 local md5 = require "md5"
@@ -6,338 +6,130 @@ local md5 = require "md5"
 -------------------------------------------------------------------------------------
 
 local RuleService = {}
-RuleService.__index = RuleService
+RuleService.__type = "module"
+RuleService.__tag = "RuleService"
 RuleService.__deps = {
-    rule_state = "rule/rule-state",
-    plantuml = "util/plantuml"
+    rule_state = "rule-state",
+    -- plantuml = "util/plantuml"
 }
-
-function RuleService:BeforeReload() end
-
-function RuleService:AfterReload() end
-
-function RuleService:Init() end
 
 -------------------------------------------------------------------------------------
 
-local StateClassMapping = {
-    StateHomie = "interface",
-    StateTime = "abstract",
-    StateSensor = "struct",
-}
+function RuleService:CreateRule(request, id)
+    id = "test"
 
-local ValueFormatters = {
-    ["number"] = function(v)
-        if math.floor(v) == v then
-            return string.format("%d", v)
-        else
-            return string.format("%.3f", v)
-        end
-    end,
-    ["nil"] = function() return "" end
-}
-
-local function FormatValue(value)
-    local formatter = ValueFormatters[type(value)]
-    if formatter then
-        return formatter(value)
-    else
-        return tostring(value)
-    end
+    return http.OK, { success = true }
 end
 
-local color_true = "FFCE9D" -- "FFB281" -- "#FF9664"
-local color_false = "C0C0CE" -- "B2B2CE" -- "#9696ce"
-local color_none = "FEFECE"
-local color_not_ready = "880000"
+function RuleService:RemoveRule(request, id)
+    id = "test"
 
-local function FormatDependency(plantuml, src, dst, virtual)
-    return string.format([[%s-%s->%s]],
-        plantuml:NameToId(src),
-        virtual and "[#blue]" or "",
-        plantuml:NameToId(dst)
-    )
-end
-
-local function SelectColor(value, ready)
-    if ready then
-        if type(value) == "boolean" then
-            return value and color_true or color_false
-        else
-            return color_none
-        end
-    else
-        return color_not_ready
-    end
-end
-
-function RuleService:GenerateStateDiagramElements()
-    local elements = {
-        groups = { },
-        state = { },
-        transitions_wanted_by_group = { },
-        states_wanted_by_group = { },
-    }
-
-    for _, state in pairs(self.rule_state:GetStates() or {}) do
-        local group = state:GetGroup()
-
-        elements.groups[group] = true
-
-        elements.transitions_wanted_by_group[group] = elements.transitions_wanted_by_group[group] or {}
-        elements.states_wanted_by_group[group] = elements.states_wanted_by_group[group] or {}
-
-        elements.transitions_wanted_by_group[group][state.global_id]=true
-        elements.states_wanted_by_group[group][state.global_id]=true
-
-        elements.state[state.global_id] = {
-            transitions = { }
-        }
-    end
-
-    for _, state in pairs(self.rule_state:GetStates() or {}) do
-        local ready, value = state:Status()
-        value = value or {}
-
-        local state_style = {
-            SelectColor(value.value, ready),
-        }
-
-        if not state:LocallyOwned() then
-            table.insert(state_style, "line.dotted")
-        end
-
-        local state_style_text = "#" .. table.concat(state_style, ";")
-
-        local desc = {
-            -- print((myString:gsub("\\([nt])", {n="\n", t="\t"})))
-            table.concat(state:GetDescription() or { }, "\\\\\\n")
-        }
-
-        local group = state:GetGroup()
-        if group and group ~= "" then
-            table.insert(desc, 1, string.format("\ngroup: %s", state:GetGroup()))
-            if #desc > 1 then table.insert(desc, 2, "..") end
-        else
-            if #desc > 0 then table.insert(desc, 1, "\n..") end
-        end
-
-        local members = table.concat(desc, "\n")
-        local formatted_value = FormatValue(value.value)
-        local mode = StateClassMapping[state.__name] or "entity"
-        local string_timestamp = ""
-        if value.timestamp then
-            string_timestamp = os.timestamp_to_string_short(value.timestamp)
-        end
-
-        local state_line = string.format([[
-%s %s as "%s" %s {
-value: %s
-timestamp: %s %s
-..
-%s
-}
-]], mode,
-    self.plantuml:NameToId(state.global_id),
-    state:GetName(),
-    state_style_text,
-    formatted_value, string_timestamp,
-    members,
-    state.global_id)
-
-        local state_info = elements.state[state.global_id]
-        state_info.definition = state_line
-
-        for _, dep in ipairs(state:GetSinkDependencyList() or {}) do
-            local l = FormatDependency(self.plantuml, state.global_id, dep.id, dep.virtual)
-            table.insert(state_info.transitions, l)
-            elements.states_wanted_by_group[group][dep.id] = true
-        end
-        for _, dep in ipairs(state:GetSourceDependencyList() or {}) do
-            if dep.group ~= group then
-                local l = FormatDependency(self.plantuml, dep.id, state.global_id, dep.virtual)
-                table.insert(state_info.transitions, l)
-                elements.states_wanted_by_group[group][dep.id] = true
-            end
-        end
-    end
-
-    return elements
-end
-
-function RuleService:GenerateStateGroupDiagram(elements, group)
-    local lines = {
-        "@startuml", --
-        "skinparam BackgroundColor transparent", --
-        "skinparam DefaultFontColor black", --
-        "skinparam ArrowColor black", --
-        "skinparam ClassBorderColor black", --
-        "skinparam ranksep 20", --
-        "hide empty description", --
-        "hide empty members", --
-        "left to right direction", --
-        "scale 0.7", --
-        "",
-    }
-
-    local transitions = { }
-
-    for global_id,_ in pairs(elements.states_wanted_by_group[group] or {}) do
-        local s = elements.state[global_id]
-        table.insert(lines, s.definition)
-    end
-
-    for global_id,_ in pairs(elements.transitions_wanted_by_group[group] or {}) do
-        local s = elements.state[global_id]
-        table.insert(transitions, table.concat(s.transitions, "\n"))
-    end
-
-    table.insert(lines, "")
-    table.insert(lines,  table.concat(transitions, "\n"))
-
-    table.insert(lines, "@enduml")
-
-    return lines
-end
-
-function RuleService:GenerateStateDiagram()
-    local lines = {
-        "@startuml", --
-        "skinparam BackgroundColor transparent", --
-        "skinparam DefaultFontColor black", --
-        "skinparam ArrowColor black", --
-        "skinparam ClassBorderColor black", --
-        "skinparam ranksep 20", --
-        "hide empty description", --
-        "hide empty members", --
-        "left to right direction", --
-        "scale 0.7", --
-        "",
-    }
-
-    for id, state in pairs(self.rule_state:GetStates() or {}) do
-        local ready, value = state:Status()
-        value = value or {}
-
-        local state_style = {
-            SelectColor(value.value, ready),
-        }
-
-        if not state:LocallyOwned() then
-            table.insert(state_style, "line.dotted")
-        end
-
-        local state_style_text = "#" .. table.concat(state_style, ";")
-
-        local desc = {
-            table.concat(state:GetDescription() or { }, "\\\\n")
-        }
-
-        local group = state:GetGroup()
-        if group and group ~= "" then
-            table.insert(desc, 1, string.format("\ngroup: %s", state:GetGroup()))
-            if #desc > 1 then table.insert(desc, 2, "..") end
-        else
-            if #desc > 0 then table.insert(desc, 1, "\n..") end
-        end
-
-        local members = table.concat(desc, "\n")
-        local formatted_value = FormatValue(value.value)
-        local mode = StateClassMapping[state.__name] or "entity"
-        local string_timestamp = ""
-        if value.timestamp then
-            string_timestamp = os.timestamp_to_string_short(value.timestamp)
-        end
-
-        local state_line = string.format([[
-%s %s as "%s" %s {
-value: %s
-timestamp: %s %s
-..
-%s
-}
-]], mode,
-    self.plantuml:NameToId(state.global_id),
-    state:GetName(),
-    state_style_text,
-    formatted_value, string_timestamp,
-    members,
-    state.global_id)
-
-        table.insert(lines, state_line)
-    end
-
-    table.insert(lines, "")
-
-    for _, state in pairs(self.rule_state:GetStates() or {}) do
-        for _, dep in ipairs(state:GetSinkDependencyList() or {}) do
-
-            local arrow = dep.virtual and "..>" or "-->"
-
-            local l = { self.plantuml:NameToId(state.global_id), arrow,  self.plantuml:NameToId(dep.id)}
-            table.insert(lines, table.concat(l, " "))
-        end
-    end
-
-    table.insert(lines, "@enduml")
-
-    return lines
+    return http.OK, { success = true }
 end
 
 -------------------------------------------------------------------------------------
 
-function RuleService:GetGraphText()
-    return http.OK, table.concat(self:GenerateStateDiagram(), "\n")
-end
+function RuleService:SetRuleCode(request, id)
+    id = "test"
 
-function RuleService:GetGraphUrl()
-    return http.OK, { url = self.plantuml:EncodeUrl(self:GenerateStateDiagram()) }
-end
-
-function RuleService:GetGraphGroupUrl()
-    local elements = self:GenerateStateDiagramElements()
-    local r = { }
-    local groups = tablex.keys(elements.groups)
-    table.sort(groups, function(a,b) return a:lower() < b:lower() end)
-
-    for _,group in ipairs(groups) do
-        local g = {
-            name = group,
-            id = md5.sumhexa(group),
-            url = self.plantuml:EncodeUrl(self:GenerateStateGroupDiagram(elements, group)),
-        }
-        table.insert(r, g)
+    local rule = self.rule_state:GetRule(id)
+    if not rule then
+        return http.BadRequest, { success = false }
     end
-    return http.OK, {
-        group_hash = md5.sumhexa(table.concat(groups,"|")),
-        groups = r,
-    }
+
+    local result = rule:SetScript(request)
+
+    return http.OK, { success = result }
 end
 
-function RuleService:GetGraphGroup()
-    local groups = { }
-    for id, state in pairs(self.rule_state:GetStates() or {}) do
-        groups[state:GetGroup()]=true
+-------------------------------------------------------------------------------------
+
+function RuleService:BuildGraph(id, color_mode)
+    local rule = self.rule_state:GetRule(id)
+    if not rule then
+        return http.BadRequest, { success = false }
     end
-    groups = tablex.keys(groups)
-    table.sort(groups)
-    return http.OK, groups
+
+    local graph_builder = require("fairy_node/tools/graph-builder"):New()
+    if color_mode then
+        graph_builder:SetColorMode(color_mode)
+    end
+    local result = rule:GenerateDiagram(graph_builder)
+
+    if not result then
+        return http.InternalServerError, { success = false }
+    end
+    return http.OK, graph_builder
 end
 
-function RuleService:GetStateRuleStatus()
-    local result = {}
-    return http.OK, result
+function RuleService:GetRuleGraphText(request, id)
+    id = "test"
+
+    local code, builder = self:BuildGraph(id, request.colors)
+    if code ~= http.OK then
+        return code, builder
+    end
+    return http.OK, builder:ToPlantUMLText()
 end
 
-function RuleService:GetStateRule()
-    return http.OK, "" -- self.rule_state:GetRuleText() --TODO
+function RuleService:GetRuleGraphUrl(request, id)
+    id = "test"
+
+    local code, builder = self:BuildGraph(id, request.colors)
+    if code ~= http.OK then
+        return code, builder
+    end
+
+    local format = builder.Format.svg
+    local dark = request.colors and (request.colors == "dark")
+    if dark then
+        format = builder.Format.dark_svg
+    end
+    local url = builder:ToPlantUMLUrl(format)
+    if url then
+        return http.OK, { url = url }
+    end
+
+    return http.InternalServerError, { success = false }
 end
 
-function RuleService:SetStateRule(request)
-    self.rule_state:SetRuleScript(request)
-    local err_list = { } --self.rule_state.errors
-    return http.OK, { result = #err_list == 0, errors = err_list }
-end
+-------------------------------------------------------------------------------------
+
+-- function RuleService:GetGraphGroupUrl()
+--     local elements = self:GenerateStateDiagramElements()
+--     local r = { }
+--     local groups = tablex.keys(elements.groups)
+--     table.sort(groups, function(a,b) return a:lower() < b:lower() end)
+
+--     for _,group in ipairs(groups) do
+--         local g = {
+--             id = group,
+--             id = md5.sumhexa(group),
+--             url = self.plantuml:EncodeUrl(self:GenerateStateGroupDiagram(elements, group)),
+--         }
+--         table.insert(r, g)
+--     end
+--     return http.OK, {
+--         group_hash = md5.sumhexa(table.concat(groups,"|")),
+--         groups = r,
+--     }
+-- end
+
+-- function RuleService:GetGraphGroup()
+--     local groups = { }
+--     for id, state in pairs(self.rule_state:GetStates() or {}) do
+--         groups[state:GetGroup()]=true
+--     end
+--     groups = tablex.keys(groups)
+--     table.sort(groups)
+--     return http.OK, groups
+-- end
+
+-- function RuleService:SetStateRule(request)
+--     self.rule_state:SetRuleScript(request)
+--     local err_list = { } --self.rule_state.errors
+--     return http.OK, { result = #err_list == 0, errors = err_list }
+-- end
 
 -------------------------------------------------------------------------------------
 
@@ -347,8 +139,8 @@ end
 --     return http.OK, rule_list
 -- end
 
--- function RuleService:SetComplexRule(request, rule_name)
---     self.rule_script:SetRuleTescript(rule_name, request)
+-- function RuleService:SetComplexRule(request, rule_id)
+--     self.rule_script:SetRuleTescript(rule_id, request)
 --     return http.OK
 -- end
 

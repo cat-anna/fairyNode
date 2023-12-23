@@ -3,7 +3,7 @@ local loader_module = require "fairy_node/loader-module"
 -------------------------------------------------------------------------------------
 
 local BaseProperty = { }
-BaseProperty.__base = "modules/manager-device/generic/base-object"
+BaseProperty.__base = "manager-device/generic/base-object"
 BaseProperty.__type = "interface"
 BaseProperty.__name = "BaseProperty"
 

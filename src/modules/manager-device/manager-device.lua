@@ -47,7 +47,7 @@ end
 function DeviceManager:InitializeLocalDevice()
     assert(self.my_device == nil)
     self.local_device = self:CreateDevice{
-        class = "modules/manager-device/local/local-device",
+        class = "manager-device/local/local-device",
         id = self.config.hostname,
         global_id = "local",
         name = self.config.hostname,

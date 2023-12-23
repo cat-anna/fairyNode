@@ -3,7 +3,7 @@ local tablex = require "pl.tablex"
 -------------------------------------------------------------------------------------
 
 local BaseDevice = { }
-BaseDevice.__base = "modules/manager-device/generic/base-object"
+BaseDevice.__base = "manager-device/generic/base-object"
 BaseDevice.__type = "interface"
 BaseDevice.__name = "BaseDevice"
 BaseDevice.__deps = {

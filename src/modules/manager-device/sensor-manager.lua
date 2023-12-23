@@ -22,7 +22,7 @@ local CONFIG_KEY_SENSOR_SLOW_INTERVAL =   "sensor.interval.slow"
 
 local SensorManager = {}
 SensorManager.__deps = {
-    property_manager = "modules/manager-device-manager"
+    property_manager = "manager-device-manager"
 }
 SensorManager.__config = {
     [CONFIG_KEY_SENSOR_FAST_INTERVAL] = { type = "integer", default = 5 * 60 },

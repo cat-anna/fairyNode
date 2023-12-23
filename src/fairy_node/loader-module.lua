@@ -195,7 +195,7 @@ function ModuleLoader:LoadBaseModule(name)
     local mod_def = self:InitModule(name)
     mod_def.definition = definition
     mod_def.submodule = false
-    mod_def.class_name = string.format("modules/%s/%s", name, name)
+    mod_def.class_name = string.format("%s/%s", name, name)
 
     config_handler:AttachModuleParameters(name, definition.parameters)
     mod_def.configuration = config_handler:Query(mod_def.definition.config or { })
@@ -246,7 +246,7 @@ function ModuleLoader:LoadSubModule(name, mod_name, sub_name)
     local mod_def = self:InitModule(name)
     mod_def.definition = definition
     mod_def.submodule = true
-    mod_def.class_name = "modules/" .. name
+    mod_def.class_name = "" .. name
     mod_def.parent = parent
     mod_def.configuration = parent.configuration
 

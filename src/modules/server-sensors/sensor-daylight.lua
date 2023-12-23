@@ -3,7 +3,7 @@ local sun_pos = require "fairy_node/tools/sun-position"
 -------------------------------------------------------------------------------
 
 local DaylightSensor = {}
-DaylightSensor.__base = "modules/manager-device/local/local-sensor"
+DaylightSensor.__base = "manager-device/local/local-sensor"
 DaylightSensor.__tag = "DaylightSensor"
 DaylightSensor.__type = "class"
 DaylightSensor.__config = {

@@ -71,10 +71,10 @@
       // updateTitle() {},
       async getData() {
         if (this.visible) {
-          const url = await statusService.getStatusGraphUrl(this.graphId)
-          if (url != this.graphUrl) {
-            this.graphUrl = url
-            this.graphSvg = await fetch(url).then((response) => response.text())
+          const response = await statusService.getStatusGraphUrl(this.graphId)
+          if (response.url != this.graphUrl) {
+            this.graphUrl = response.url
+            this.graphSvg = await fetch(response.url).then((response) => response.text())
           }
         }
       },

@@ -5,7 +5,7 @@ local tablex = require "pl.tablex"
 local FairyNodeRemoteDevice = {}
 FairyNodeRemoteDevice.__name = "FairyNodeRemoteDevice"
 FairyNodeRemoteDevice.__type = "class"
-FairyNodeRemoteDevice.__base = "modules/homie-host/remote-homie-device"
+FairyNodeRemoteDevice.__base = "homie-host/remote-homie-device"
 -- FairyNodeRemoteDevice.__deps = { }
 
 -------------------------------------------------------------------------------------

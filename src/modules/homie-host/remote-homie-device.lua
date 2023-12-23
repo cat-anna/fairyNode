@@ -8,7 +8,7 @@ local homie_state = require("modules/homie-common/homie-state")
 local HomieRemoteDevice = {}
 HomieRemoteDevice.__type = "class"
 HomieRemoteDevice.__name = "HomieGenericRemoteDevice"
-HomieRemoteDevice.__base = "modules/manager-device/generic/base-device"
+HomieRemoteDevice.__base = "manager-device/generic/base-device"
 HomieRemoteDevice.__config = { }
 HomieRemoteDevice.__deps = {
     -- event_bus = "fairy_node/event-bus",
@@ -190,7 +190,7 @@ function HomieRemoteDevice:HandleDeviceInfo(topic, payload)
 end
 
 function HomieRemoteDevice:GetNodeClass(node_id)
-    return "modules/homie-host/remote-homie-node"
+    return "homie-host/remote-homie-node"
 end
 
 function HomieRemoteDevice:HandleNodes(topic, payload)

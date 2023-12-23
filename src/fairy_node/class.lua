@@ -3,11 +3,11 @@ local uuid = require "uuid"
 
 -------------------------------------------------------------------------------------
 
-local function MakeInstance(this, opt)
+local function MakeInstanceFrom(this, obj, opt)
     assert(this)
-    local obj = {
-        uuid = uuid(),
-    }
+    obj = obj or { }
+
+    obj.uuid = uuid()
     local mt = {
         __index = this,
     }
@@ -17,6 +17,10 @@ local function MakeInstance(this, opt)
         obj:Init(opt)
     end
     return obj
+end
+
+local function MakeInstance(this, opt)
+    return MakeInstanceFrom(this, {}, opt)
 end
 
 local function MakeSubClass(base, name)
@@ -30,6 +34,7 @@ local function MakeSubClass(base, name)
         __index = base,
         __call = MakeInstance,
         New = MakeInstance,
+        MakeFrom = MakeInstanceFrom,
         SubClass = MakeSubClass,
     })
 end
@@ -42,6 +47,7 @@ function oo.Class(name)
     local mt = {
         __call = MakeInstance,
         New = MakeInstance,
+        MakeFrom = MakeInstanceFrom,
         SubClass = MakeSubClass,
     }
     mt.__index = mt

@@ -5,7 +5,7 @@ local formatting = require("modules/homie-common/formatting")
 
 local HomieRemoteProperty = {}
 HomieRemoteProperty.__name = "HomieRemoteProperty"
-HomieRemoteProperty.__base = "modules/manager-device/generic/base-property"
+HomieRemoteProperty.__base = "manager-device/generic/base-property"
 HomieRemoteProperty.__type = "class"
 HomieRemoteProperty.__deps = { }
 

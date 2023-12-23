@@ -91,7 +91,7 @@ end
 function M.ListMultipleSubdirs(base_paths)
     local r = { }
     for _,v in ipairs(base_paths) do
-        table.append(r, M.ListSubdirs(v))
+        table.append_table(r, M.ListSubdirs(v))
     end
     table.sort(r, function (a,b)
         return a.path < b.path

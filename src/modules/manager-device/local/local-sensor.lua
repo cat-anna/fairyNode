@@ -3,7 +3,7 @@ local pretty = require "pl.pretty"
 -------------------------------------------------------------------------------------
 
 local LocalSensor = { }
-LocalSensor.__base = "modules/manager-device/generic/base-component"
+LocalSensor.__base = "manager-device/generic/base-component"
 LocalSensor.__type = "class"
 LocalSensor.__name = "LocalSensor"
 
@@ -68,7 +68,7 @@ function LocalSensor:ResetValues(values)
     self:DeleteAllProperties()
     for k,v in pairs(values) do
         v.id = k
-        v.class = "modules/manager-device/local/local-sensor-value"
+        v.class = "manager-device/local/local-sensor-value"
         v.owner_module = self.owner_module
         v.property_type = "sensor"
         self:AddProperty(v)

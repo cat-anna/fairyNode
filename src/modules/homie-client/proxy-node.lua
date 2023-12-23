@@ -28,7 +28,7 @@ function HomieLocalNodeProxy:ResetProxies()
     self.proxies = { }
 
     for id,property in pairs(target_component:GetProperties()) do
-        local class = "modules/homie-client/proxy-property"
+        local class = "homie-client/proxy-property"
         local proxy = loader_class:CreateObject(class, {
             homie_client = self.homie_client,
             node_proxy = self,

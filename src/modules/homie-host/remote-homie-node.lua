@@ -7,7 +7,7 @@ local formatting = require("modules/homie-common/formatting")
 local HomieRemoteNode = {}
 HomieRemoteNode.__type = "class"
 HomieRemoteNode.__name = "HomieRemoteNode"
-HomieRemoteNode.__base = "modules/manager-device/generic/base-component"
+HomieRemoteNode.__base = "manager-device/generic/base-component"
 HomieRemoteNode.__deps = { }
 
 -------------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ end
 -------------------------------------------------------------------------------------
 
 function HomieRemoteNode:GetPropertyClass(prop_id)
-    return "modules/homie-host/remote-homie-property"
+    return "homie-host/remote-homie-property"
 end
 
 function HomieRemoteNode:HandleNodeProperties(topic, payload)

@@ -37,7 +37,7 @@ end
 -------------------------------------------------------------------------------------
 
 function MongoClient:MakeHandle(name, collection)
-    local obj = loader_class:CreateObject("modules/mongo-client/mongo-collection", {
+    local obj = loader_class:CreateObject("mongo-client/mongo-collection", {
         database = self.mongo_database,
         collection_handle = collection,
         name = name,

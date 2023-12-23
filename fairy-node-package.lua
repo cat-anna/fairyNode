@@ -17,8 +17,13 @@ function Package.GetConfig(base_path)
         --     "base/sensor-manager",
         -- },
 
-        ["loader.class.paths"] = { path.normpath(base_path .. "/src") },
-        ["loader.module.paths"] = { path.normpath(base_path .. "/src/modules") },
+        ["loader.class.paths"] = {
+            -- path.normpath(base_path .. "/src"),
+            path.normpath(base_path .. "/src/modules"),
+        },
+        ["loader.module.paths"] = {
+            path.normpath(base_path .. "/src/modules"),
+        },
 
         ["logger.path"] = cwd .. "/runtime/log",
         ["logger.enable"] = true,

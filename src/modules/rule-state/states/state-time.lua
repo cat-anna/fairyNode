@@ -5,12 +5,12 @@ local StateTime = {}
 StateTime.__index = StateTime
 StateTime.__name = "StateTime"
 StateTime.__type = "class"
-StateTime.__base = "state/state-base"
+StateTime.__base = "rule-state/states/state-base"
 
 -------------------------------------------------------------------------------------
 
 function StateTime:Init(config)
-    self.super.Init(self, config)
+    StateTime.super.Init(self, config)
 end
 
 -------------------------------------------------------------------------------------
@@ -63,6 +63,12 @@ function StateTime:CalculateValue(dependant_values)
         result = (time < from) or (to >= time)
     end
     return self:WrapCurrentValue(result)
+end
+
+-------------------------------------------------------------------------------------
+
+function StateTime:WantsTick()
+    return true
 end
 
 -------------------------------------------------------------------------------------

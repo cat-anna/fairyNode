@@ -55,7 +55,7 @@ function MqttClient:SelectMqttBackend()
     assert(self.config.backend == "auto")
 
     -- self.mqtt_backend_class = "mqtt/mqtt-backend-mosquitto"
-    self.mqtt_backend_class = "modules/mqtt-client/mqtt-backend-mqtt"
+    self.mqtt_backend_class = "mqtt-client/mqtt-backend-mqtt"
     printf(self, "Selected mqtt backend: %s", self.mqtt_backend_class)
 end
 

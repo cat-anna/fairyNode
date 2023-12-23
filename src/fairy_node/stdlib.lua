@@ -122,11 +122,15 @@ function table.flatten_map(t)
     return r
 end
 
-function table.append(src, arg, ...)
-    local t = {arg, ...}
-    if (#t == 1) and (type(arg) == "table") then
-        t = arg
+function table.append(src, ...)
+    local t = {...}
+    for _, v in ipairs(t) do
+        src[#src + 1] = v
     end
+    return src
+end
+
+function table.append_table(src, t)
     for _, v in ipairs(t) do
         src[#src + 1] = v
     end

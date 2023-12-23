@@ -118,11 +118,11 @@ function HomieHost:CreateDevice(homie_version, device_name, device_mode)
     device_mode = device_mode:lower()
 
     local mode_class = {
-        client      = "modules/homie-host/remote-homie-device-fairy-node",
-        esp8266     = "modules/homie-host/remote-homie-device-fairy-node",
-        esp         = "modules/homie-host/remote-homie-device-fairy-node",
+        client      = "homie-host/remote-homie-device-fairy-node",
+        esp8266     = "homie-host/remote-homie-device-fairy-node",
+        esp         = "homie-host/remote-homie-device-fairy-node",
 
-        generic     = "modules/homie-host/remote-homie-device",
+        generic     = "homie-host/remote-homie-device",
     }
 
     local proto = {

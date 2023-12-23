@@ -28,6 +28,19 @@ const routes: Array<RouteRecordRaw> = [
         children: [],
       },
       {
+        name: 'rules',
+        path: 'rules',
+        component: RouteViewComponent,
+        children: [
+          {
+            name: 'state',
+            path: 'state',
+            component: () => import('../pages/admin/rules/StateRules.vue'),
+            meta: {},
+          },
+        ],
+      },
+      {
         name: 'devices',
         path: 'devices',
         component: RouteViewComponent,

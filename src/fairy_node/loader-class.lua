@@ -34,7 +34,7 @@ end
 
 function ClassLoader:FindClasses(class_name_pattern)
     return fs.FindMatchingScriptsByPathList(class_name_pattern, self.config[CONFIG_KEY_CLASS_PATHS])
- end
+end
 
 -------------------------------------------------------------------------------
 
@@ -201,6 +201,7 @@ function ClassLoader:CreateSubObject(overlay_mt, base_class_name, object_arg)
 end
 
 function ClassLoader:CreateObject(class_name, object_arg)
+    object_arg = object_arg or {}
     local class = self:GetClass(class_name)
     assert(class ~= nil)
     assert(not class.interface)

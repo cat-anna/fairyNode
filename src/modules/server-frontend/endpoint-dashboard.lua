@@ -3,7 +3,7 @@ return function (builder)
         service = "manager-device/service-device",
         resource = "dashboard",
         endpoints = {
-            builder:JsonApi("GET", "/summary", "GetDevicesSummary")
+            builder:Json("GET", "/summary", "GetDevicesSummary")
         }
     }
 end

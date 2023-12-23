@@ -18,7 +18,7 @@ M.submodules = {
 
 M.exported_config = {
     ["module.manager-device.local.sensors"] = {
-        "modules/server-sensors/sensor-daylight",
+        "server-sensors/sensor-daylight",
     }
 }
 

@@ -46,40 +46,46 @@ function ServiceStatus:GetGraphsList()
     return http.OK, table.flatten_map(self.graph_modules)
 end
 
-function ServiceStatus:GetModuleGraphText(request, module_name)
+function ServiceStatus:GetModuleGraph(module_name, theme)
     local mod_name = self.graph_modules[module_name]
-
     if mod_name then
         local module = loader_module:GetModule(mod_name)
         if module and module.GetDebugGraph then
-            local graphBuilder = require "fairy_node/tools/graph-builder"
-            local graph = graphBuilder:New()
+            local graph_builder = require("fairy_node/tools/graph-builder"):New()
 
-            module:GetDebugGraph(graph)
-            if type(request.theme) == "string" then
-                graph:SetTheme(request.theme)
+            module:GetDebugGraph(graph_builder)
+            if type(theme) == "string" then
+                graph_builder:SetTheme(theme)
             end
-            return http.OK, graph:ToPlantUMLText()
+            return graph_builder
         end
     end
-    return http.BadRequest
+end
+
+function ServiceStatus:GetModuleGraphText(request, module_name)
+    local graph_builder = self:GetModuleGraph(module_name, request.theme)
+    if not graph_builder then
+        return http.BadRequest
+    end
+    return http.OK, graph_builder:ToPlantUMLText()
 end
 
 function ServiceStatus:GetModuleGraphUrl(request, module_name)
-    local code,text = self:GetModuleGraphText(request, module_name)
-    if code ~= http.OK then
-        return code
+    local graph_builder = self:GetModuleGraph(module_name, request.theme)
+    if not graph_builder then
+        return http.BadRequest
     end
 
-    local format = self.plantuml.Format.svg
+    local format = graph_builder.Format.svg
     if request.colors and (request.colors == "dark") then
-        format = self.plantuml.Format.dark_svg
+        format = graph_builder.Format.dark_svg
     end
 
-    local url = self.plantuml:EncodeUrl(text, format)
+    local url = graph_builder:ToPlantUMLUrl(format)
     if url then
-        return http.OK, url
+        return http.OK, { url = url }
     end
+
     return http.BadRequest
 end
 

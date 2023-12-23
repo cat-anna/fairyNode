@@ -64,6 +64,19 @@ export default {
       childrenFunc: getDevicesRoutes,
     },
     {
+      name: 'rules',
+      displayName: 'menu.rules',
+      meta: {
+        icon: 'vuestic-iconset-ui-elements',
+      },
+      children: [
+        {
+          name: 'state',
+          displayName: 'rules.state.title',
+        },
+      ],
+    },
+    {
       name: 'server',
       displayName: 'menu.server',
       meta: {
@@ -74,10 +87,6 @@ export default {
           name: 'debug_info',
           displayName: 'server.debug.title',
         },
-        // {
-        //   name: 'medium-editor',
-        //   displayName: 'menu.mediumEditor',
-        // },
       ],
     },
   ] as INavigationRoute[],
