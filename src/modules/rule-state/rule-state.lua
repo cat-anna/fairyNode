@@ -66,7 +66,7 @@ end
 -- function RuleState:GetLocalStateIds()
     -- local r = { }
     -- for id,state in pairs(self.states_by_id or {}) do
-    --     local locally_owned, _ = state:LocallyOwned()
+    --     local locally_owned, _ = stat:IsLocal()
     --     if locally_owned then
     --         table.insert(r, id)
     --     end
@@ -138,7 +138,7 @@ end
 -- --     self.homie_props = {}
 -- --     if ready then
 -- --         for id,state in pairs(self.states_by_id or {}) do
--- --             local locally_owned, datatype = state:LocallyOwned()
+-- --             local locally_owned, datatype = state:IsLocal()
 -- --             if locally_owned then
 -- --                 state.homie_property_id = to_homie_id(id)
 -- --                 local cv = state:GetValue() or { }

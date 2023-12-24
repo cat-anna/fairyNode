@@ -13,18 +13,40 @@ local function MakeBuilderMetatable(data)
         host = data.host,
         context = data.context,
 
+        operator_callback = data.operator_callback,
         result_callback = data.result_callback,
         error_callback = data.error_callback,
     }
 
+    setmetatable(builder_mt, {
+        __index = function (self, n)
+            print("REDIRECT", n)
+            return rawget(self, n)
+        end
+    })
+
     function builder_mt.__newindex(mock, name, v)
-        error("Attempt to add value to path builder")
+        if builder_mt.operator_callback then
+            return builder_mt.operator_callback({
+                name = builder_mt.name,
+                host = builder_mt.host,
+                context = builder_mt.context,
+
+                operator = "__newindex",
+                left = builder_mt.__index(mock, name),
+                right = v
+            })
+        else
+            error("Attempt to add value to path builder")
+        end
     end
 
     function builder_mt.__index(mock, name)
         local idx = builder_mt.index + 1
         builder_mt.index = idx
-        table.insert(builder_mt.full_path_text, name)
+        if name then
+            table.insert(builder_mt.full_path_text, name)
+        end
 
         local getter = builder_mt.path_getters[idx]
         local next = getter(
@@ -67,7 +89,16 @@ end
 -------------------------------------------------------------------------------
 
 local function CreatePathBuilder(data)
-    return setmetatable({}, MakeBuilderMetatable(data))
+    local mt = MakeBuilderMetatable(data)
+    local builder =  setmetatable({}, mt)
+
+    if data.entry_getters then
+        for i=1,data.entry_getters do
+            mt.__index(builder, nil)
+        end
+    end
+
+    return builder
 end
 
 local function PathBuilderWrapper(data)

@@ -15,7 +15,7 @@ end
 
 -------------------------------------------------------------------------------------
 
-function StateTime:LocallyOwned()
+function StateTime:IsLocal()
     return true
 end
 
@@ -78,7 +78,6 @@ function StateTime.RegisterStateClass()
         meta_operators = {},
         state_prototypes = {
             TimeSchedule = {
-                remotely_owned = false,
                 config = { },
                 args = {
                     min = 2,

@@ -110,12 +110,18 @@ function LocalDevice:AddSensor(opt)
     opt.component_type = "sensor"
 
     local obj = self:AddComponent(opt)
-    assert(self.sensors[opt.id] == nil)
-    self.sensors[opt.id] = obj
+    local id = obj:GetId()
 
-    print(self, "Added sensor", obj:GetGlobalId(), obj:GetName())
+    assert(self.sensors[id] == nil)
+    self.sensors[id] = obj
+
+    print(self, "Added sensor", id, obj:GetGlobalId(), obj:GetName())
 
     return obj
+end
+
+function LocalDevice:GetSensor(id)
+    return self.sensors[id]
 end
 
 -------------------------------------------------------------------------------------

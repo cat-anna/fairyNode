@@ -8,15 +8,6 @@ Package.Name = "FairyNode"
 function Package.GetConfig(base_path)
     local cwd = path.currentdir()
     return {
-        -- ["loader.module.list"] = {
-        --     "base/logger",
-        --     "base/debugging",
-        --     "base/error-manager",
-        --     "base/health-monitor",
-        --     "base/property-manager",
-        --     "base/sensor-manager",
-        -- },
-
         ["loader.class.paths"] = {
             -- path.normpath(base_path .. "/src"),
             path.normpath(base_path .. "/src/modules"),
@@ -33,9 +24,7 @@ function Package.GetConfig(base_path)
         ["storage.ro.paths"] = { path.normpath(base_path .. "/data"), },
 
         -- ["loader.config.paths"] = { path.normpath(base_path .. "/../configset/") },
-
         -- ["rest.endpoint.paths"] = { path.normpath(base_path .. "/../lib/rest/endpoint") },
-        -- ["rest.endpoint.list"] = { },
     }
 end
 

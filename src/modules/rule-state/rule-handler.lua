@@ -128,10 +128,6 @@ end
 --             SelectColor(value.value, ready),
 --         }
 
---         if not state:LocallyOwned() then
---             table.insert(state_style, "line.dotted")
---         end
-
 --         local state_style_text = "#" .. table.concat(state_style, ";")
 
 --         local desc = {
@@ -250,7 +246,7 @@ local DiagramColorDark = {
     not_ready = "#363636",
     boolean_true = "#360e0e",
     boolean_false = "#000042",
-    default = "#633800"
+    default = "#0c4d01"
 }
 
 local StateClassMapping = {
@@ -269,6 +265,7 @@ function RuleHandler:GenerateDiagram(graph_builder)
 
     for _, state in ipairs(self.states) do
         local id = state:GetId()
+        local name = state:GetName()
         local current_value = state:GetValue() or {}
 
         local desc = state:GetDescription() or {}
@@ -294,7 +291,7 @@ function RuleHandler:GenerateDiagram(graph_builder)
         end
 
         local line_mode
-        if not state:LocallyOwned() then
+        if not state:IsLocal() then
             line_mode =  "dotted"
         end
 
@@ -302,7 +299,7 @@ function RuleHandler:GenerateDiagram(graph_builder)
         -- type = class_meta.interface and graph.NodeType.interface or graph.NodeType.class
 
         graph_builder:Node({
-            name = id,
+            name = name,
             description = desc,
 
             color = color,

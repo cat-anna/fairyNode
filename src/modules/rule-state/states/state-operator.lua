@@ -166,7 +166,7 @@ StateOperator.OperatorFunctors = {
     --     handler = function(calee, values)
     --         if not calee.range or calee.range.min == nil or calee.range.max ==
     --             nil then
-    --             calee:SetError(
+    --             calee:SetError( -- SetWarning
     --                 "'Range' operator requires min and max value to be set")
     --             return nil
     --         end
@@ -177,8 +177,8 @@ StateOperator.OperatorFunctors = {
     -- }
 }
 
-function StateOperator:LocallyOwned()
-    return true, self.operator_func.result_type
+function StateOperator:IsLocal()
+    return true
 end
 
 function StateOperator:GetDatatype()
@@ -211,9 +211,11 @@ end
 
 function StateOperator.RegisterStateClass()
     local state_prototypes = { }
+    local meta_operators = { }
+
+
     for k,v in pairs(StateOperator.OperatorFunctors) do
         state_prototypes[k] = {
-            remotely_owned = false,
             config = {
                 operator = k
             },
@@ -222,10 +224,18 @@ function StateOperator.RegisterStateClass()
                 max = v.arg_max or 10,
             },
         }
+
+        if v.lua_metafunc then
+            meta_operators[v.lua_metafunc] = {
+                operator_function = k,
+                lua_metafunc = v.lua_metafunc,
+            }
+        end
     end
 
     return {
-        meta_operators = {
+        meta_operators = meta_operators,
+        -- {
     -- __call - Treat a table like a function. When a table is followed by parenthesis such as "myTable( 'foo' )" and the metatable has a __call key pointing to a function, that function is invoked (passing the table as the first argument, followed by any specified arguments) and the return value is returned.
 
     -- ''If both operands are tables, the left table is checked before the right table for the presence of an __add metaevent.
@@ -252,7 +262,7 @@ function StateOperator.RegisterStateClass()
     -- __lt - Check for less-than. Similar to equality, using the '<' operator. Greater-than is evaluated by reversing the order of the operands passed to the __lt function.
     -- __le - Check for less-than-or-equal. Similar to equality, using the '<=' operator. Greater-than-or-equal is evaluated by reversing the order of the operands passed to the __le function.
 
-        },
+        -- },
 
         state_prototypes = state_prototypes,
         state_accesors = { }

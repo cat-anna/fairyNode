@@ -26,19 +26,15 @@ function RuleRuntime:Init(opt)
     self.script_env._G = self.script_env
 
     self.meta_objects = { }
+    self.meta_functions = { }
     self.local_states =  { }
+    self.states_by_id = { }
 
     self:InitErrorHandling()
     self:InitEnvBase()
     self:InitGroups()
     self:InitStateEnvObject()
     self:FindAndInitStateClasses()
-
-    -- self:AddTask("State rule update", 10, self.Update)
-
-    -- state_prototype.AddState = WrapCall(self, self.AddState, object)
-    -- state_prototype.Source = WrapCall(env, AddSource)
-    -- state_prototype.Sink = WrapCall(env, AddSink)
 
     -- state_prototype.Mapping = MakeMapping(env)
     -- state_prototype.IntegerMapping = MakeIntegerMapping(env)
@@ -77,6 +73,9 @@ function RuleRuntime:ExecuteScript(script_text, script_name)
     return true
 end
 
+function RuleRuntime:ReportRuleWarning(rule_object, message, trace_level)
+    return self:ReportRuleError(rule_object, message, trace_level, true)
+end
 
 function RuleRuntime:ReportRuleError(rule_object, message, trace_level, continue_execution)
     local trace = trace_level
@@ -91,6 +90,8 @@ function RuleRuntime:ReportRuleError(rule_object, message, trace_level, continue
         continue_execution = continue_execution,
         timestamp = os.timestamp()
     }
+
+    print(self, "Got error:", message, trace)
 
     self.handler:AddError(err_info)
 
@@ -307,6 +308,17 @@ local function PathBuilderCompletionCb(result)
     return environment:CreateState(state_proto)
 end
 
+local function PathBuilderOperatorCb(result)
+    local context = result.context
+    local environment = context.environment
+
+    local operator = result.operator
+    local left = result.left
+    local right = result.right
+
+    return environment:HandleOperator(left, operator, right)
+end
+
 local function PathBuilderErrorCb(accessor, err_msg)
     print("ERROR", err_msg)
     accessor.environment:ReportRuleError(nil, err_msg, 3, false)
@@ -314,22 +326,33 @@ end
 
 local function PreparePathBuilder(accessor_object, name)
     local accessor = getmetatable(accessor_object)
-    local host = loader_module:GetModule(accessor.path_host_module)
+
+    local host = loader_module:GetModule(accessor.host_module)
     assert(host)
-    return require("lib/tools/path-builder").CreatePathBuilder({
+
+    return require("fairy_node/tools/path-builder").CreatePathBuilder({
         name = accessor.name,
+        entry_getters = accessor.entry_getters,
         path_getters = accessor.path_getters,
 
         host = host,
         context = accessor,
         result_callback = PathBuilderCompletionCb,
         error_callback = PathBuilderErrorCb,
+        operator_callback = PathBuilderOperatorCb
     })[name]
 end
 
 function RuleRuntime:LoadStateClass(class_name, class_config)
     if class_config.meta_operators then
-        -- TODO
+        for name,config in pairs(class_config.meta_operators) do
+            self:RegisterMetaOperator {
+                config = config.config,
+                lua_metafunc = name,
+                operator_function = config.operator_function,
+                environment = self,
+            }
+        end
     end
 
     if class_config.state_prototypes then
@@ -337,7 +360,6 @@ function RuleRuntime:LoadStateClass(class_name, class_config)
             self:RegisterMetaFunction {
                 config = config.config,
                 args = config.args,
-                remotely_owned = config.remotely_owned,
                 class = class_name,
                 name = name,
                 environment = self,
@@ -350,13 +372,24 @@ function RuleRuntime:LoadStateClass(class_name, class_config)
         for name,config in pairs(class_config.state_accesors) do
             self:RegisterMetaFunction {
                 config = config.config,
-                remotely_owned = config.remotely_owned,
+                entry_getters = config.entry_getters,
                 path_getters = config.path_getters,
-                path_host_module = config.path_host_module,
+                host_module = config.host_module,
                 class = class_name,
                 name = name,
                 environment = self,
                 __index = PreparePathBuilder
+            }
+        end
+    end
+
+    if class_config.functors then
+        for name,config in pairs(class_config.functors) do
+            self:RegisterFunctor {
+                name = name,
+                target = config.target,
+                args = config.args,
+                environment = self,
             }
         end
     end
@@ -378,6 +411,38 @@ function RuleRuntime:RegisterMetaFunction(meta_func_mt)
 
     self.script_env[name] = setmetatable({}, meta_func_mt)
     self.meta_objects[name] = meta_func_mt
+end
+
+function RuleRuntime:RegisterMetaOperator(meta_op_mt)
+    assert(self.meta_functions[meta_op_mt.lua_metafunc] == nil)
+    self.meta_functions[meta_op_mt.lua_metafunc] = meta_op_mt
+end
+
+function RuleRuntime:RegisterFunctor(meta_func_mt)
+
+    function meta_func_mt.__newindex(t, name, value)
+        self:ReportRuleError(nil, "Internal error", 1)
+    end
+    function meta_func_mt.__index(t, name)
+        self:ReportRuleError(nil, "Internal error", 1)
+    end
+    function meta_func_mt.__call(t, args)
+        local cnt = #args
+        if meta_func_mt.args then
+            local a = meta_func_mt.args
+            if a.min ~= nil and cnt < a.min then
+                self:ReportRuleError(nil, "cnt < a.min", 1)
+            end
+            if a.max ~= nil and cnt > a.max then
+                self:ReportRuleError(nil, "cnt < a.min", 1)
+            end
+        end
+
+        local first = table.remove(args, 1)
+        return first[meta_func_mt.target](first, args)
+    end
+
+    self:RegisterMetaFunction(meta_func_mt)
 end
 
 -------------------------------------------------------------------------------------
@@ -412,12 +477,34 @@ function RuleRuntime:CreateState(state_proto)
     state_config.source_dependencies = tablex.sub(args, 1, #args)
 
     local state = loader_class:CreateObject(state_info.class, state_config)
-    if not state_info.remotely_owned then
+    if state:IsLocal() then
         self.local_states[state_proto.id] = state
     end
+
+    assert(self.states_by_id[state:GetGlobalId()] == nil)
+    self.states_by_id[state:GetGlobalId()] = state
+
     self.handler:AddState(state)
 
     return state
+end
+
+function RuleRuntime:HandleOperator(left, operator, right)
+    print(self, "operator", operator)
+
+    local meta_operator = self.meta_functions[operator]
+    if not meta_operator then
+        self:ReportRuleError(left, "Unknown operator " .. operator)
+        return
+    end
+
+    local meta_object = self.meta_objects[meta_operator.operator_function]
+    if not meta_object then
+        self:ReportRuleError(left, "Unknown operator metaobject " .. operator .. " " .. meta_operator.operator_function)
+        return
+    end
+
+    return setmetatable({}, meta_object)({left, right})
 end
 
 -------------------------------------------------------------------------------------

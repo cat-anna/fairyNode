@@ -132,10 +132,12 @@ end
 function PropertyManager:GetDebugTable()
     local header = {
         "global_id",
+        "name",
         "type",
         "started",
         "ready",
         "persistence",
+        "settable",
 
         "value",
         "unit",
@@ -158,10 +160,12 @@ function PropertyManager:GetDebugTable()
         local v,t = p:GetValue()
         table.insert(r, {
             p:GetGlobalId(),
+            p:GetName(),
             check(p:GetType()),
             check(p:IsStarted()),
             check(p:IsReady()),
             check(p:WantsPersistence()),
+            check(p:IsSettable()),
 
             check(v),
             check(p:GetUnit()),

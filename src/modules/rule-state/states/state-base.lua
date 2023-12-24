@@ -44,7 +44,7 @@ function State:Init(config)
             if v.__is_state_class then
                 self:AddSourceDependency(v)
             else
-                self:SetError("source_dependencies contain invalid state")
+                self:SetWarning("source_dependencies contain invalid state")
             end
             table.insert(self.source_values, table.weak_values {
                 mode = "state",
@@ -69,8 +69,8 @@ end
 
 --------------------------------------------------------------------------
 
-function State:LocallyOwned()
-    return self.locally_owned
+function State:IsLocal()
+    return true
 end
 
 function State:GetDatatype()
@@ -193,6 +193,12 @@ function State:AddSourceDependency(dependant_state)
     self:RetireValue()
 end
 
+function State:AddSourceDependencies(list)
+    for _,v in ipairs(list) do
+        self:AddSourceDependency(v)
+    end
+end
+
 function State:GetSourceDependencyList()
     return self:GetDependencyList(self.source_dependencies)
 end
@@ -215,12 +221,12 @@ function State:GetSourceValues()
         local value
         if dep.mode == "state" then
             if (not dep.target) or (not dep.target:IsReady()) then
-                self:SetError("Dependency %s is not yet ready", dep.global_id)
+                self:SetWarning("Dependency %s is not yet ready", dep.global_id)
                 return
             end
             value = dep.target:GetValue()
             if value == nil then
-                self:SetError("Dependency %s has no value", dep.global_id)
+                self:SetWarning("Dependency %s has no value", dep.global_id)
                 return
             end
         elseif dep.mode == "constant" then
@@ -274,9 +280,9 @@ end
 function State:CallSinkListeners(current_value)
     for id, dep in pairs(self.sink_dependencies) do
         if not dep.target then
-            self:SetError("Dependency %s is expired", id)
+            self:SetWarning("Dependency %s is expired", id)
         elseif dep.virtual then
-            self:SetError("Dependency %s is virtual", id)
+            self:SetWarning("Dependency %s is virtual", id)
         else
             dep.target:SourceChanged(self, current_value)
         end
@@ -321,6 +327,11 @@ function State:SetError(fmt, ...)
     self.environment:ReportRuleError(self, msg, "", false)
 end
 
+function State:SetWarning(fmt, ...)
+    local msg = string.format(fmt, ...)
+    self.environment:ReportRuleWarning(self, msg, "", false)
+end
+
 function State:GetDependencyList(list)
     local r = {}
     for id, v in pairs(list or {}) do
@@ -332,6 +343,30 @@ function State:GetDependencyList(list)
         })
     end
     return r
+end
+
+-------------------------------------------------------------------------------------
+
+function State.RegisterStateClass()
+    return {
+        meta_operators = {
+            __newindex = {
+                operator_function = "Sink",
+                lua_metafunc = "__newindex",
+            }
+        },
+
+        functors = {
+            Sink = {
+                target = "AddSourceDependencies",
+                args = {
+                    min = 2,
+                    max = 2,
+                },
+            }
+        },
+        state_accesors = { }
+    }
 end
 
 -------------------------------------------------------------------------------------
