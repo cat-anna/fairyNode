@@ -57,6 +57,7 @@ function ModuleLoader:InstantiateModule(mod_def)
 
     local opt = {
         config = mod_def.configuration,
+        module_prefix = mod_def.base_module_name
     }
 
     mod_def.instance = loader_class:CreateObject(mod_def.class_name, opt)
@@ -199,6 +200,7 @@ function ModuleLoader:LoadBaseModule(name)
 
     config_handler:AttachModuleParameters(name, definition.parameters)
     mod_def.configuration = config_handler:Query(mod_def.definition.config or { })
+    mod_def.base_module_name = name
 
     if definition.exported_config then
         config_handler:SetPackageConfig(name, definition.exported_config)
@@ -249,6 +251,7 @@ function ModuleLoader:LoadSubModule(name, mod_name, sub_name)
     mod_def.class_name = "" .. name
     mod_def.parent = parent
     mod_def.configuration = parent.configuration
+    mod_def.base_module_name = parent.name
 
     self:InstantiateModule(mod_def)
 
@@ -259,6 +262,8 @@ function ModuleLoader:LoadModule(name)
     if self.loaded_modules[name] then
         return self.loaded_modules[name].instance
     end
+
+    print(self, "Loading module", name)
 
     local mod_name, sub_name = name:match([[([^/]*)/*([^/]*)]])
     if sub_name and sub_name:len() == 0 then
@@ -327,7 +332,7 @@ function ModuleLoader:Init()
     self:LoadModules()
 
     self.update_task = scheduler:CreateTask(
-        self, "module loader", 0.1, function (owner, task) owner:UpdateTask(task) end
+        self, "module loader", 1, function (owner, task) owner:UpdateTask(task) end
     )
 end
 

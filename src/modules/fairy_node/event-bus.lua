@@ -49,6 +49,7 @@ function EventBus:Init(opt)
     EventBus.super.Init(self, opt)
 
     self.event_queue = {}
+    self.handler_cache = {}
     self.subscriptions = table.weak()
 
     if self.config.debug then
@@ -67,9 +68,12 @@ function EventBus:Init(opt)
 end
 
 function EventBus:InvalidateHandlerCache()
-    self.handler_cache = {}
-    if self.logger:Enabled() then
-        self.logger:WriteCsv{ "flush=cache" }
+    if self.handler_cache_dirty then
+        self.handler_cache = {}
+        self.handler_cache_dirty = nil
+        if self.logger:Enabled() then
+            self.logger:WriteCsv{ "flush=cache" }
+        end
     end
 end
 
@@ -131,6 +135,7 @@ function EventBus:ProcessEvent(event_info)
     else
         local entry = { }
         self.handler_cache[event_info.event] = entry
+        self.handler_cache_dirty = true
 
         loader_module:EnumerateModules(
             function(name, module)

@@ -23,6 +23,12 @@ end
 
 -------------------------------------------------------------------------------------
 
+function HomieLocalNodeProxy:IsReady()
+    return self.target_component:IsReady()
+end
+
+-------------------------------------------------------------------------------------
+
 function HomieLocalNodeProxy:ResetProxies()
     local target_component = self.target_component
     self.proxies = { }

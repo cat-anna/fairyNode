@@ -29,6 +29,12 @@ end
 
 -------------------------------------------------------------------------------------
 
+function HomieLocalPropertyProxy:IsReady()
+    return self.target_property:IsReady()
+end
+
+-------------------------------------------------------------------------------------
+
 function HomieLocalPropertyProxy:AddValueMessage(q)
     local target_property = self.target_property
     q = q or { }

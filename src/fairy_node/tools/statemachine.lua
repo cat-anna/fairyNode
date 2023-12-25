@@ -124,6 +124,11 @@ function machine:Cannot(e)
   return not self:can(e)
 end
 
+function machine:CanProcess()
+  return self["Process" .. firstToUpper(self.current)] ~= nil
+end
+
+
 function machine:Process(...)
   return call_handler(self["Process" .. firstToUpper(self.current)], { self, ... })
 end

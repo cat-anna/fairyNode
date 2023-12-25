@@ -46,19 +46,22 @@ function PropertyManager:CreateProperty(prop_proto)
 
     prop_proto.property_manager = self
 
-    local prop = loader_class:CreateObject(prop_proto.class, prop_proto)
-    prop.global_id = string.format("%s.%s", prop_proto.owner_component:GetGlobalId(), prop:GetId())
+    local property = loader_class:CreateObject(prop_proto.class, prop_proto)
+    property.global_id = string.format("%s.%s", prop_proto.owner_component:GetGlobalId(), property:GetId())
 
-    local gid = prop:GetGlobalId()
+    local gid = property:GetGlobalId()
     assert(self.properties_by_id[gid] == nil)
-    self.properties_by_id[gid] = prop
+    self.properties_by_id[gid] = property
 
-    return prop
+    self:EmitEvent("property", { action="add", property = property })
+
+    return property
 end
 
-function PropertyManager:DeleteProperty(prop)
+function PropertyManager:DeleteProperty(property)
     print(self, "TODO")
-    self.properties_by_id[prop:GetGlobalId()] = nil
+    self:EmitEvent("property", { action="remove", property = property })
+    self.properties_by_id[property:GetGlobalId()] = nil
 end
 
 function PropertyManager:ArePropertiesReady()

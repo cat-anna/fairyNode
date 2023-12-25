@@ -59,7 +59,6 @@ end
 function HomieClient:StartModule()
     HomieClient.super.StartModule(self)
     self.state_machine:Start()
-    -- self:CreateSmTask()
 end
 
 -------------------------------------------------------------------------------
@@ -75,28 +74,44 @@ end
 
 -------------------------------------------------------------------------------
 
-function HomieClient:SendInitMessages()
+function HomieClient:SendProtocolState(protocol_state)
     local q = { }
-    self:PushMessage(q, "$homie", self:GetHomieVersion())
+    self:PushMessage(q, "$state", protocol_state)
+    self:BatchPublish(q, function ()
+        scheduler.Sleep(0.1)
+        self.state_machine:SendCompleted()
+    end)
+end
+
+function HomieClient:SendInfoMessages()
+    local q = { }
     self:PushMessage(q, "$name", self.client_name)
     self:PushMessage(q, "$implementation", "FairyNode")
     self:PushMessage(q, "$fw/name", "FairyNode")
     self:PushMessage(q, "$fw/FairyNode/version", "0.1.0")
     self:PushMessage(q, "$fw/FairyNode/mode", self:GetClientMode())
     -- self:PushMessage(q, "$fw/FairyNode/os", "linux")
+    self:BatchPublish(q, function ()
+        scheduler.Sleep(0.1)
+        self.state_machine:SendCompleted()
+    end)
+end
 
+function HomieClient:SendNodeMessages()
+    local q = { }
     for k,v in pairs(self.node_proxies) do
         v:GetAllMessages(q)
     end
 
     self:PushMessage(q, "$nodes", table.concat(table.sorted_keys(self.node_proxies), ","))
     self:BatchPublish(q, function ()
-        self.state_machine:InitCompleted()
+        scheduler.Sleep(0.1)
+        self.state_machine:SendCompleted()
     end)
 end
 
 function HomieClient:ResetProxies()
-    self.node_proxies = { }
+    local node_proxies = { }
 
     local dev = self.device_manager:GetLocalDevice()
     for id,component in pairs(dev:GetComponents()) do
@@ -107,8 +122,14 @@ function HomieClient:ResetProxies()
             id = id,
             base_topic = self:Topic(id)
         })
-        self.node_proxies[id] = proxy
+        if not proxy:IsReady() then
+            return false
+        end
+        node_proxies[id] = proxy
     end
+
+    self.node_proxies = node_proxies
+    return true
 end
 
 -------------------------------------------------------------------------------
@@ -155,31 +176,6 @@ end
 
 -------------------------------------------------------------------------------
 
-function HomieClient:CreateSmTask()
-    if self.sm_task then
-        self.sm_task:Stop()
-        self.sm_task = nil
-    end
-
-    self.sm_task = scheduler:CreateTask(
-        self,
-        "Homie client startup",
-        10,
-        function (owner, task) owner:ProcessStateMachine() end
-    )
-end
-
--------------------------------------------------------------------------------
-
-function HomieClient:ProcessStateMachine()
-    if self.verbose then
-        print(self, "State", self.state_machine.current)
-    end
-    self.state_machine:Process()
-end
-
--------------------------------------------------------------------------------
-
 function HomieClient:HandleMqttDisconnected()
     self.state_machine:MqttDisconnected()
 end
@@ -188,11 +184,19 @@ function HomieClient:HandleMqttConnected()
     self.state_machine:MqttConnected()
 end
 
+function HomieClient:ResetStateByEvent()
+    self.state_machine:Reset()
+end
+
 -------------------------------------------------------------------------------
 
 HomieClient.EventTable = {
-    ["mqtt-client.disconnected"] = HomieClient.HandleMqttDisconnected,
-    ["mqtt-client.connected"] = HomieClient.HandleMqttConnected,
+    ["module.mqtt-client.disconnected"] = HomieClient.HandleMqttDisconnected,
+    ["module.mqtt-client.connected"] = HomieClient.HandleMqttConnected,
+
+    ["module.manager-device.device"] = HomieClient.ResetStateByEvent,
+    ["module.manager-device.component"] = HomieClient.ResetStateByEvent,
+    ["module.manager-device.property"] = HomieClient.ResetStateByEvent,
 }
 
 -------------------------------------------------------------------------------

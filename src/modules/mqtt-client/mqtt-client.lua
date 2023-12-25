@@ -15,7 +15,6 @@ local MqttClient = {}
 MqttClient.__type = "module"
 MqttClient.__tag = "MqttClient"
 MqttClient.__deps = {
-    event_bus = "fairy_node/event-bus",
     loader_class = "fairy_node/loader-class",
 }
 
@@ -226,14 +225,14 @@ function MqttClient:OnMqttSubscribed(backend, regex)
     sub.subscribed = true
     sub.subscription_pending = false
     self:MqttLog("subscribed", regex)
-    self.event_bus:PushEvent({ event = "mqtt-client.subscribed", regex = regex })
+    self:EmitEvent("subscribed", {regex = regex })
 end
 
 function MqttClient:OnMqttConnected(backend)
     print(self, "Mqtt client is connected")
     self:MqttLog("connected")
     self:RestoreSubscriptions()
-    self.event_bus:PushEvent({ event = "mqtt-client.connected" })
+    self:EmitEvent("connected")
 end
 
 function MqttClient:OnMqttDisconnected(backend)
@@ -243,13 +242,13 @@ function MqttClient:OnMqttDisconnected(backend)
         v.subscription_pending = false
         v.subscribed = false
     end
-    self.event_bus:PushEvent({ event = "mqtt-client.disconnected" })
+    self:EmitEvent("disconnected")
 end
 
 function MqttClient:OnMqttError(backend, code, msg)
     print(self, "Mqtt client had error")
     self:MqttLog("error", code, msg)
-    self.event_bus:PushEvent({ event = "mqtt-client.error", error = err })
+    self:EmitEvent("error", { error = err })
 end
 
 -------------------------------------------------------------------------------

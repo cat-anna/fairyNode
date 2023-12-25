@@ -176,4 +176,13 @@ end
 
 -------------------------------------------------------------------------------------
 
+function Object:GetEventBus()
+    if not self.event_bus then
+        self.event_bus = loader_module:LoadModule("fairy_node/event-bus")
+    end
+    return self.event_bus
+end
+
+-------------------------------------------------------------------------------------
+
 return Object
