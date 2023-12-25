@@ -129,19 +129,10 @@ end
 
 -------------------------------------------------------------------------------------
 
--- local function MakeNumericOperator(op)
---     return {
---         result_type = "boolean",
---         name = function(calee)
---             return string.format("X %s %s", op, tostring(calee.range.threshold))
---         end,
---     }
--- end
-
 StateOperator.OperatorFunctors = {
-    ["Not"] = ProxyFunction:MakeFrom{name = "Not", func = OperatorAnd, lua_metafunc = nil, result_type = "boolean"},
-    ["And"] = ProxyFunction:MakeFrom{name = "And", func = OperatorAnd, lua_metafunc = nil, result_type = "boolean"},
-    ["Or"]  = ProxyFunction:MakeFrom{name = "Or",  func = OperatorOr,  lua_metafunc = nil, result_type = "boolean"},
+    ["Not"] = ProxyFunction:MakeFrom{name = "Not", func = OperatorAnd, lua_metafunc = "__bnot", result_type = "boolean"},
+    ["And"] = ProxyFunction:MakeFrom{name = "And", func = OperatorAnd, lua_metafunc = "__band", result_type = "boolean"},
+    ["Or"]  = ProxyFunction:MakeFrom{name = "Or",  func = OperatorOr,  lua_metafunc = "__bor",  result_type = "boolean"},
 
     ["Max"] = SimpleOperator:MakeFrom{name = "Max", func = math.max, lua_metafunc = nil,     result_type = "float"},
     ["Min"] = SimpleOperator:MakeFrom{name = "Min", func = math.min, lua_metafunc = nil,     result_type = "float"},
@@ -154,7 +145,7 @@ StateOperator.OperatorFunctors = {
     ["LesserEqual"]  = BinaryOperator:MakeFrom{name = "LesserEqual",  lua_metafunc = "__le",     operator = "<="},
     ["Greater"]      = BinaryOperator:MakeFrom{name = "Greater",      lua_metafunc = nil,        operator = ">" },
     ["GreaterEqual"] = BinaryOperator:MakeFrom{name = "GreaterEqual", lua_metafunc = nil,        operator = ">="},
-    ["Concat"]       = BinaryOperator:MakeFrom{name = "Concat",       lua_metafunc = "__concat", operator = ".."},
+    -- ["Concat"]       = BinaryOperator:MakeFrom{name = "Concat",       lua_metafunc = "__concat", operator = ".."},
 
     -- ["Range"] = MakeRangeOperator(env),
     -- ["range"] = {
@@ -235,35 +226,6 @@ function StateOperator.RegisterStateClass()
 
     return {
         meta_operators = meta_operators,
-        -- {
-    -- __call - Treat a table like a function. When a table is followed by parenthesis such as "myTable( 'foo' )" and the metatable has a __call key pointing to a function, that function is invoked (passing the table as the first argument, followed by any specified arguments) and the return value is returned.
-
-    -- ''If both operands are tables, the left table is checked before the right table for the presence of an __add metaevent.
-
-    -- __unm - Unary minus. When writing "-myTable", if the metatable has a __unm key pointing to a function, that function is invoked (passing the table), and the return value used as the value of "-myTable".
-    -- __add - Addition. When writing "myTable + object" or "object + myTable", if myTable's metatable has an __add key pointing to a function, that function is invoked (passing the left and right operands in order) and the return value used.
-    -- __sub - Subtraction. Invoked similar to addition, using the '-' operator.
-    -- __mul - Multiplication. Invoked similar to addition, using the '*' operator.
-    -- __div - Division. Invoked similar to addition, using the '/' operator.
-    -- __idiv - (Lua 5.3) Floor division (division with rounding down to nearest integer). '//' operator.
-    -- __mod - Modulo. Invoked similar to addition, using the '%' operator.
-    -- __pow - Involution. Invoked similar to addition, using the '^' operator.
-
-    -- __band - (Lua 5.3) the bitwise AND (&) operation.
-    -- __bor - (Lua 5.3) the bitwise OR (|) operation.
-    -- __bxor - (Lua 5.3) the bitwise exclusive OR (binary ^) operation.
-    -- __bnot - (Lua 5.3) the bitwise NOT (unary ~) operation.
-    -- __shl - (Lua 5.3) the bitwise left shift (<<) operation.
-    -- __shr - (Lua 5.3) the bitwise right shift (>>) operation.
-
-    -- __concat - Concatenation. Invoked similar to addition, using the '..' operator.
-
-    -- __eq - Check for equality. This method is invoked when "myTable1 == myTable2" is evaluated, but only if both tables have the exact same metamethod for __eq.
-    -- __lt - Check for less-than. Similar to equality, using the '<' operator. Greater-than is evaluated by reversing the order of the operands passed to the __lt function.
-    -- __le - Check for less-than-or-equal. Similar to equality, using the '<=' operator. Greater-than-or-equal is evaluated by reversing the order of the operands passed to the __le function.
-
-        -- },
-
         state_prototypes = state_prototypes,
         state_accesors = { }
     }

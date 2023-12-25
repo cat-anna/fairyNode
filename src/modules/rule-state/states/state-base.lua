@@ -181,8 +181,7 @@ end
 -------------------------------------------------------------------------------------
 
 function State:AddSourceDependency(dependant_state)
-    print(self, "Added dependency " .. dependant_state.global_id ..
-        " to " .. self.global_id)
+    print(self, "Added dependency " .. dependant_state.global_id .. " to " .. self.global_id)
 
     self.source_dependencies[dependant_state.global_id] = table.weak_values {
         target = dependant_state,

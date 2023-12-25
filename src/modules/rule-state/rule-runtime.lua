@@ -26,7 +26,8 @@ function RuleRuntime:Init(opt)
     self.script_env._G = self.script_env
 
     self.meta_objects = { }
-    self.meta_functions = { }
+    self.meta_operators = { }
+    self.wrapped_state_mt = { }
     self.local_states =  { }
     self.states_by_id = { }
 
@@ -168,18 +169,24 @@ function RuleRuntime:InitStateEnvObject()
     }
 
     function StateMt.__newindex(t, name, value)
+        if type(value) == "boolean" and self.last_operator_call_result then
+            value = self.last_operator_call_result
+            self.last_operator_call_result = nil
+        end
         if type(value) == "table" then
+
             local value_mt = getmetatable(value)
             if value_mt.__is_state_prototype then
                 value_mt.__is_state_prototype = nil
                 value_mt.name = name
                 value_mt.id = name
-                self:CreateState(value_mt)
-                return
+                return self:WrapState(self:CreateState(value_mt))
             end
 
             self:ReportRuleError(nil, "Invalid attempt to add state with table object", 1)
         else
+            print(self, name, value, type(value))
+            -- self.last_operator_call_result
             self:ReportRuleError(nil, "Invalid attempt to add state with non-table object", 1)
         end
 
@@ -196,7 +203,7 @@ function RuleRuntime:InitStateEnvObject()
     function StateMt.__index(t, name)
         local state = self.local_states[name]
         if state then
-            return state
+            return self:WrapState(state)
         end
         local msg = string.format("State '%s' does not exists", name)
         self:ReportRuleError(nil, msg, 1, false)
@@ -257,11 +264,14 @@ local function PrepareStatePrototype(operator_object, args)
     local state_class = operator_object.class
     local environment = operator_object.environment
     assert(environment)
+    environment.last_operator_call_result = nil
 
     if not state_class then
         environment:ReportRuleError(nil, "not state_class", 2, false)
         return nil
     end
+
+    args = environment:UnpackArgs(args)
 
     local argc = #args
     local arg_config = operator_object.args
@@ -276,6 +286,7 @@ local function PrepareStatePrototype(operator_object, args)
         args = args,
         state_info = operator_object,
         __is_state_prototype = true,
+        __is_wrapped = true,
     }
     mt.__index = mt
     return setmetatable({ }, mt)
@@ -286,8 +297,10 @@ local function PathBuilderCompletionCb(result)
     local environment = context.environment
     local global_id = result.full_path
 
+    environment.last_operator_call_result = nil
+
     if environment.states_by_id[global_id] then
-        return environment.states_by_id[global_id]
+        return environment:WrapState(environment.states_by_id[global_id])
     end
 
     local full_path_text = result.full_path_text
@@ -305,12 +318,13 @@ local function PathBuilderCompletionCb(result)
             -- full_path = global_id,
         }
     }
-    return environment:CreateState(state_proto)
+    return environment:WrapState(environment:CreateState(state_proto))
 end
 
 local function PathBuilderOperatorCb(result)
     local context = result.context
     local environment = context.environment
+    environment.last_operator_call_result = nil
 
     local operator = result.operator
     local left = result.left
@@ -321,12 +335,13 @@ end
 
 local function PathBuilderErrorCb(accessor, err_msg)
     print("ERROR", err_msg)
-    accessor.environment:ReportRuleError(nil, err_msg, 3, false)
+    local environment = accessor.environment
+    environment.last_operator_call_result = nil
+    environment:ReportRuleError(nil, err_msg, 3, false)
 end
 
 local function PreparePathBuilder(accessor_object, name)
     local accessor = getmetatable(accessor_object)
-
     local host = loader_module:GetModule(accessor.host_module)
     assert(host)
 
@@ -343,6 +358,30 @@ local function PreparePathBuilder(accessor_object, name)
     })[name]
 end
 
+local function CallStateFunctor(funtor_mock, args)
+    local functor = getmetatable(funtor_mock)
+    local environment = functor.environment
+
+    local cnt = #args
+
+    local args = environment:UnpackArgs(args)
+
+    local first = table.remove(args, 1)
+
+    if functor.args then
+        local a = functor.args
+        if a.min ~= nil and cnt < a.min then
+            environment:ReportRuleError(first, "cnt < a.min", 1)
+        end
+        if a.max ~= nil and cnt > a.max then
+            environment:ReportRuleError(first, "cnt < a.min", 1)
+        end
+    end
+
+    print(environment, "call functor ", functor.target)
+    return first[functor.target](first, args)
+end
+
 function RuleRuntime:LoadStateClass(class_name, class_config)
     if class_config.meta_operators then
         for name,config in pairs(class_config.meta_operators) do
@@ -350,7 +389,6 @@ function RuleRuntime:LoadStateClass(class_name, class_config)
                 config = config.config,
                 lua_metafunc = name,
                 operator_function = config.operator_function,
-                environment = self,
             }
         end
     end
@@ -362,7 +400,6 @@ function RuleRuntime:LoadStateClass(class_name, class_config)
                 args = config.args,
                 class = class_name,
                 name = name,
-                environment = self,
                 __call = PrepareStatePrototype,
             }
         end
@@ -377,7 +414,6 @@ function RuleRuntime:LoadStateClass(class_name, class_config)
                 host_module = config.host_module,
                 class = class_name,
                 name = name,
-                environment = self,
                 __index = PreparePathBuilder
             }
         end
@@ -385,17 +421,19 @@ function RuleRuntime:LoadStateClass(class_name, class_config)
 
     if class_config.functors then
         for name,config in pairs(class_config.functors) do
-            self:RegisterFunctor {
+            self:RegisterMetaFunction {
                 name = name,
                 target = config.target,
                 args = config.args,
-                environment = self,
+                __call = CallStateFunctor,
             }
         end
     end
 end
 
 function RuleRuntime:RegisterMetaFunction(meta_func_mt)
+    meta_func_mt.environment = self
+
     local name = meta_func_mt.name
     assert(self.script_env[meta_func_mt.name] == nil)
 
@@ -414,35 +452,17 @@ function RuleRuntime:RegisterMetaFunction(meta_func_mt)
 end
 
 function RuleRuntime:RegisterMetaOperator(meta_op_mt)
-    assert(self.meta_functions[meta_op_mt.lua_metafunc] == nil)
-    self.meta_functions[meta_op_mt.lua_metafunc] = meta_op_mt
-end
+    meta_op_mt.environment = self
 
-function RuleRuntime:RegisterFunctor(meta_func_mt)
+    assert(self.meta_operators[meta_op_mt.lua_metafunc] == nil)
+    self.meta_operators[meta_op_mt.lua_metafunc] = meta_op_mt
 
-    function meta_func_mt.__newindex(t, name, value)
-        self:ReportRuleError(nil, "Internal error", 1)
+    local function mt_function(left, right)
+        local r = self:HandleOperator(left, meta_op_mt.lua_metafunc, right)
+        self.last_operator_call_result = r
+        return r
     end
-    function meta_func_mt.__index(t, name)
-        self:ReportRuleError(nil, "Internal error", 1)
-    end
-    function meta_func_mt.__call(t, args)
-        local cnt = #args
-        if meta_func_mt.args then
-            local a = meta_func_mt.args
-            if a.min ~= nil and cnt < a.min then
-                self:ReportRuleError(nil, "cnt < a.min", 1)
-            end
-            if a.max ~= nil and cnt > a.max then
-                self:ReportRuleError(nil, "cnt < a.min", 1)
-            end
-        end
-
-        local first = table.remove(args, 1)
-        return first[meta_func_mt.target](first, args)
-    end
-
-    self:RegisterMetaFunction(meta_func_mt)
+    self.wrapped_state_mt[meta_op_mt.lua_metafunc] = mt_function
 end
 
 -------------------------------------------------------------------------------------
@@ -490,9 +510,7 @@ function RuleRuntime:CreateState(state_proto)
 end
 
 function RuleRuntime:HandleOperator(left, operator, right)
-    print(self, "operator", operator)
-
-    local meta_operator = self.meta_functions[operator]
+    local meta_operator = self.meta_operators[operator]
     if not meta_operator then
         self:ReportRuleError(left, "Unknown operator " .. operator)
         return
@@ -504,9 +522,191 @@ function RuleRuntime:HandleOperator(left, operator, right)
         return
     end
 
-    return setmetatable({}, meta_object)({left, right})
+    print(self, "call operator", operator)
+    local r = setmetatable({}, meta_object)({left, right})
+    print(self, "op result", r)
+    return r
 end
 
 -------------------------------------------------------------------------------------
+
+function RuleRuntime:UnpackArgs(...)
+    local args = { ... }
+    local result
+
+    local function unpack_object(obj)
+        if type(obj) ~= "table" then
+            return obj
+        end
+        if obj.__is_wrapped_state then
+            return obj.state
+        else
+            return obj
+        end
+    end
+
+    if #args == 1 then
+        local first = args[1]
+        if type(first) ~= "table" then
+            return first
+        else
+            if not first.__is_wrapped_state then
+                return { self:UnpackArgs(table.unpack(first)) }
+            end
+            return unpack_object(first)
+        end
+    else
+        local r = { }
+        for i,v in ipairs(args) do
+            r[i] = unpack_object(v)
+        end
+        return table.unpack(r)
+    end
+
+    assert(false)
+end
+
+function RuleRuntime:WrapState(state)
+    if state.__is_wrapped then
+        return state
+    end
+    return
+        setmetatable({
+            state = state,
+            __is_wrapped_state = true,
+            __is_wrapped = true,
+        }, self.wrapped_state_mt)
+end
+
+-------------------------------------------------------------------------------------
+
+--[[
+
+local function MakeMapping(env)
+    return function(data)
+        if #data ~= 2 then
+            env.error("Boolean operator requires three arguments")
+        end
+        return MakeStateRule {
+            class = StateClassMapping.StateMapping,
+            mapping_mode = "any",
+            source_dependencies = {data[1]},
+            mapping = data[2]
+        }
+    end
+end
+
+local function MakeStringMapping(env)
+    return function(data)
+        if #data ~= 2 then
+            env.error("Boolean operator requires three arguments")
+        end
+        return MakeStateRule{
+            class = StateClassMapping.StateMapping,
+            mapping_mode = "string",
+            source_dependencies = {data[1]},
+            mapping = data[2],
+        }
+    end
+end
+
+local function MakeBooleanMapping(env)
+    return function(data)
+        if #data ~= 3 then
+            env.error("BooleanMapping operator requires three arguments")
+        end
+        return MakeStateRule {
+            class = StateClassMapping.StateMapping,
+            source_dependencies = {data[1]},
+            mapping_mode = "boolean",
+            mapping = {[true] = data[2], [false] = data[3]}
+        }
+    end
+end
+
+local function MakeIntegerMapping(env)
+    -- return function(data)
+    -- if #data ~= 2 then
+    --     env.error("TimeSchedule operator requires two arguments")
+    -- end
+    -- return MakeStateRule{
+    --     class = StateClassMapping.StateTime,
+    --     range = {from = tonumber(data[1]), to = tonumber(data[2])}
+    -- }
+    -- end
+end
+
+-------------------------------------------------------------------------------------
+
+local function MakeFunction(env)
+    return function(data)
+        -- input = { Homie.NightLamp0.adc.value },
+        -- init = {  },
+        -- func = function(adc_value)
+        -- end,
+
+        if type(data.func) ~= "function" then
+            env.error("Function state 'func' argument")
+            return
+        end
+
+        local func = data.func
+
+        local funcG = getfenv(func)
+        funcG = tablex.copy(funcG)
+        setfenv(func, funcG)
+        if data.info then setfenv(data.info, funcG) end
+
+        return MakeStateRule {
+            source_dependencies = data.input or {},
+            class = StateClassMapping.StateFunction,
+            info_func = data.info,
+            func = func,
+            funcG = funcG,
+            object = data.init or {},
+            dynamic = data.dynamic and true or false,
+            result_type = tostring(data.result_type), --TODO validate
+            setup_errors = function(log_tag, errors)
+                SetupErrorFunctions(funcG, log_tag, errors)
+            end
+        }
+    end
+end
+
+-------------------------------------------------------------------------------------
+
+local function ValidateMapping(env, state_def)
+    if not state_def.mapping then return end
+
+    local key_types_in_map = {}
+    local value_types_in_map = {}
+
+    for key, value in pairs(state_def.mapping) do
+        key_types_in_map[type(key)] = true
+        local v_type = type(value)
+        value_types_in_map[v_type] = true
+        if v_type == "table" then
+            env.error("Mapping to table is not allowed")
+            return
+        end
+    end
+
+    key_types_in_map = tablex.keys(key_types_in_map)
+    value_types_in_map = tablex.keys(value_types_in_map)
+
+    if #key_types_in_map ~= 1 then
+        env.error("multiple types used as keys for mapping")
+        return
+    end
+
+    if #value_types_in_map == 1 then
+        state_def.result_type = value_types_in_map[1]
+        return
+    end
+
+    env.error("WARNING: Inconsistent result types used for mapping")
+end
+
+--]]
 
 return RuleRuntime
