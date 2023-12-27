@@ -281,6 +281,9 @@ function Storage:RegisterLocalComponent(local_device)
         name = "Storage",
         id = "storage",
 
+        persistence = true,
+        volatile = true,
+
         values = {
             cache_size = { name = "Cache size", datatype = "float", unit = "KiB" },
             cache_entries = { name = "Cache entries", datatype = "integer" },

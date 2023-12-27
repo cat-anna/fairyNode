@@ -65,11 +65,11 @@ end
 
 function ClassLoader:ReloadClass(class)
     local att = lfs.attributes(class.file)
-    if att == nil or att.modification == class.timestamp then
+    if (att == nil) or (att.modification == class.timestamp) then
         return
     end
 
-    if class.timestamp ~= 0 or self.verbose then
+    if (class.timestamp ~= 0) or self.verbose then
         printf("CLASS: Reloading class %s", class.name)
     end
 
@@ -113,7 +113,10 @@ function ClassLoader:ReloadClass(class)
         end
         updated = updated + 1
     end
-    printf("CLASS: Update mt %s, updated instances: %d", class.name, updated)
+
+    if self.verbose then
+        printf("CLASS: Update mt %s, updated instances: %d", class.name, updated)
+    end
 end
 
 -------------------------------------------------------------------------------

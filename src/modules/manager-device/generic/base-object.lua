@@ -9,9 +9,12 @@ BaseObject.__name = "BaseObject"
 function BaseObject:Init(config)
     BaseObject.super.Init(self, config)
 
-    self.name = config.name or "?"
+    self.name = config.name
     self.ready = config.ready
+
     self.persistence = config.persistence
+    self.volatile = config.volatile
+
 
     self.id = config.id
     self.global_id = config.global_id
@@ -26,7 +29,11 @@ end
 -------------------------------------------------------------------------------------
 
 function BaseObject:WantsPersistence()
-    return self.persistence
+    return self.persistence or false
+end
+
+function BaseObject:IsVolatile()
+    return self.volatile or false
 end
 
 function BaseObject:SetReady(r)
@@ -50,7 +57,7 @@ function BaseObject:GetGlobalId()
 end
 
 function BaseObject:GetName()
-    return self.name
+    return self.name or self:GetId()
 end
 
 -------------------------------------------------------------------------------------

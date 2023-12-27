@@ -15,9 +15,7 @@ function LocalSensor:Init(config)
     assert(self.component_type == "sensor")
 
     self.owner_module = config.owner_module
-    self.persistence = not config.volatile
     local values = config.values
-
 
     if config.probe then
         local probe_result = self:ProbeSensor()
@@ -27,7 +25,8 @@ function LocalSensor:Init(config)
             values = probe_result.values
             self.id = probe_result.id
             self.name = probe_result.name
-            self.persistence = not probe_result.volatile
+            self.volatile = probe_result.volatile
+            self.persistence = probe_result.persistence
         end
     end
 
@@ -40,7 +39,14 @@ function LocalSensor:StartComponent()
         self:ResetValues(self.values or { })
         self.values = nil
     end
-    self:SetReady(true)
+
+    local owner_module = self.owner_module
+    if owner_module and owner_module.IsSenorReady then
+        self:SetReady(owner_module:IsSenorReady(self))
+
+    else
+        self:SetReady(true)
+    end
     self:Readout(false)
 end
 

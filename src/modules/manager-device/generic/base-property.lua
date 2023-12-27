@@ -56,12 +56,22 @@ function BaseProperty:GetOwnerComponentName()
     return self.owner_component:GetName()
 end
 
-function BaseProperty:GetType()
-    return self.property_type
+function BaseProperty:WantsPersistence()
+    if self.persistence == nil then
+        return self.owner_component:WantsPersistence()
+    end
+    return self.persistence or false
 end
 
 function BaseProperty:IsVolatile()
+    if self.volatile == nil then
+        return self.owner_component:IsVolatile()
+    end
     return self.volatile or false
+end
+
+function BaseProperty:GetType()
+    return self.property_type
 end
 
 function BaseProperty:IsSettable()
@@ -77,10 +87,12 @@ function BaseProperty:SetValue(value, timestamp)
     local changed = self.value == value
     self.value = value
     self.timestamp = timestamp
-
-    self:CallSubscribers("SetValue", { changed = changed })
-
+    self:NotifyValueChanged(changed)
     return changed
+end
+
+function BaseProperty:NotifyValueChanged(changed)
+    self:CallSubscribers("SetValue", { changed = changed })
 end
 
 function BaseProperty:GetDatatype()

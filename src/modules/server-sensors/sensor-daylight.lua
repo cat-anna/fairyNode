@@ -46,7 +46,10 @@ function DaylightSensor:ProbeSensor()
     return {
         name = "Daylight",
         id = "daylight",
+
+        persistence = false,
         volatile = true,
+
         values = {
             -- fast
             sun_azimuth = { datatype = "float", name = "Sun azimuth", },

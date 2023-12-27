@@ -188,6 +188,10 @@ function HealthMonitor:RegisterLocalComponent(local_device)
         owner_module = self,
         name = "System info",
         id = "sysinfo",
+
+        persistence = true,
+        volatile = true,
+
         values = {
             -- errors = { name = "Active errors", datatype = "string", volatile = true },
 

@@ -7,16 +7,16 @@ LocalSensorValue.__name = "LocalSensorValue"
 -------------------------------------------------------------------------------------
 
 function LocalSensorValue:Init(config)
+    if config.volatile == nil then
+        config.volatile = true
+    end
+
     LocalSensorValue.super.Init(self, config)
 
     self.datatype = config.datatype
     self.unit = config.unit
     self.value = config.value
     self.timestamp = config.timestamp
-
-    if config.volatile or (not self.owner_component:WantsPersistence()) then
-        self.persistence = false
-    end
 
     self:TestError(self.datatype, "Datatype is not set")
     self:TestError(self.unit, "Unit is not set")
@@ -33,10 +33,6 @@ function LocalSensorValue:StopProperty()
 end
 
 -------------------------------------------------------------------------------------
-
-function LocalSensorValue:IsVolatile()
-    return true
-end
 
 function LocalSensorValue:IsSettable()
     return false
