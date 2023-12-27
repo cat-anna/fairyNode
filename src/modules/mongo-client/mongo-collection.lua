@@ -27,11 +27,18 @@ end
 
 function MongoCollection:Init(config)
     MongoCollection.super.Init(self, config)
+    -- self.database = config.database
     self.collection_handle = config.collection_handle
     self.name = config.name
 end
 
 function MongoCollection:PostInit()
+end
+
+-------------------------------------------------------------------------------------
+
+function MongoCollection:GetName()
+    return self.name
 end
 
 -------------------------------------------------------------------------------------
@@ -81,6 +88,23 @@ function MongoCollection:InsertOrReplace(condition, data)
     if not update_success then
         print(self, "InsertOrReplace: update:", update_err_msg)
     end
+end
+
+function MongoCollection:InsertOrUpdate(condition, data)
+    local query = mongo.BSON(condition)
+
+--     local update_success, update_err_msg
+
+    local updated, updated_err_msg = self.collection_handle:updateOne(query, data)
+    if updated then
+        return
+    end
+
+    local insert = { }
+    for k,v in pairs(data) do insert[k] = v end
+    for k,v in pairs(condition) do insert[k] = v end
+
+    local success, err_msg = self.collection_handle:insertOne(insert)
 end
 
 function MongoCollection:Replace(condition, data)

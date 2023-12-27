@@ -1,5 +1,5 @@
 -- local scheduler = require "fairy_node/scheduler"
--- local loader_module = require "fairy_node/loader-module"
+local loader_module = require "fairy_node/loader-module"
 
 -------------------------------------------------------------------------------------
 
@@ -40,6 +40,43 @@ function Module:EmitEvent(event, arg)
         sender = self,
         argument = arg or { }
     })
+end
+
+-------------------------------------------------------------------------------------
+
+function Module:GetMongoClient()
+    return loader_module:GetModule("mongo-client")
+end
+
+function Module:GetFullMongoCollectionName(name)
+    assert(self.module_prefix)
+    return string.format("module.%s.%s", self.module_prefix, name)
+end
+
+function Module:SetupDatabase(opt)
+    assert(opt.name)
+    assert(opt.index)
+
+    if not self.mongo_collections then
+        self.mongo_collections = { }
+    end
+
+    local id = self:GetFullMongoCollectionName(opt.name)
+    local entry = {
+        handle = self:GetMongoClient():CreateCollection(id, opt.index),
+        collection_id = id
+    }
+    self.mongo_collections[opt.name] = entry
+
+    if (not self.mongo_collections["_"]) or opt.default then
+        self.mongo_collections["_"] = entry
+    end
+end
+
+function Module:GetDatabase(name)
+    name = name or "_"
+    assert(self.mongo_collections)
+    return self.mongo_collections[name].handle
 end
 
 -------------------------------------------------------------------------------------

@@ -28,10 +28,26 @@ function MongoClient:PostInit()
 
     self.mongo_client = mongo.Client(uri)
     self.mongo_database = self.mongo_client:getDatabase(self.database_name)
+
+    self.collection = {
+        open_log = self:CreateCollection(self:GetFullMongoCollectionName("open_log"), "collection")
+    }
+
+    self:UpdateOpenTimestamp(self.collection.open_log:GetName())
 end
 
 function MongoClient:StartModule()
     MongoClient.super.StartModule(self)
+end
+
+-------------------------------------------------------------------------------------
+
+function MongoClient:UpdateOpenTimestamp(name)
+    if self.collection then
+        self.collection.open_log:InsertOrUpdate({ collection = name }, {
+            timestamp_open = os.timestamp(),
+        })
+    end
 end
 
 -------------------------------------------------------------------------------------
@@ -44,6 +60,8 @@ function MongoClient:MakeHandle(name, collection)
     })
 
     self.opened_collections[name] = obj
+    self:UpdateOpenTimestamp(name)
+
     return obj
 end
 
@@ -61,7 +79,7 @@ end
 function MongoClient:CreateCollection(name, index_name)
     local new_collection = not self.mongo_database:hasCollection(name)
     if not new_collection then
-        return self:GetCollection(name)
+        return self:OpenCollection(name)
     end
 
     if self.verbose then
