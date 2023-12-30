@@ -1,80 +1,53 @@
 <template>
   <div>
     <va-card class="mb-2">
-      <va-card-title> TODO selector </va-card-title>
-      <va-card-content> </va-card-content>
-    </va-card>
-
-    <va-card class="mb-2">
-      <va-card-title> TODO selected rule </va-card-title>
-      <va-card-title>
-        <div>left</div>
-        <va-spacer />
-        <div>
-          <va-button plain @click="openCodeEditor">
-            <va-icon name="material-icons-edit" />
-            {{ t('rule.state.edit') }}
-          </va-button>
-        </div>
-      </va-card-title>
+      <va-card-title> {{ t('rules.state.title') }} </va-card-title>
       <va-card-content>
-        <busy-spinner v-if="graphSvg == ''" />
-        <div v-else v-html="graphSvg"></div>
+        <rule-selector @rule-selected="onRuleSelected" />
       </va-card-content>
     </va-card>
+
+    <rule-card v-for="rule in selectedRule" :key="rule" :rule-id="rule" @rule-removed="removeCard" />
+
+    <add-rule @rule-added="onRuleAdded" />
   </div>
 </template>
 
 <script lang="ts">
   import { useI18n } from 'vue-i18n'
   import { defineComponent } from 'vue'
-  import ruleStateService from '../../../services/fairyNode/RuleStateService'
+  // import ruleStateService from '../../../services/fairyNode/RuleStateService'
+
+  import RuleSelector from './controls/RuleSelector.vue'
+  import RuleCard from './controls/RuleCard.vue'
+  import AddRule from './controls/AddRule.vue'
 
   export default defineComponent({
+    components: {
+      RuleSelector,
+      RuleCard,
+      AddRule,
+    },
     setup() {
       const { t } = useI18n()
       return { t }
     },
     data() {
       return {
-        ruleName: 'first',
-        graphUrl: '',
-        timerId: 0,
-        graphSvg: '',
+        selectedRule: new Array<string>(),
       }
     },
-    mounted() {
-      this.getData()
-      if (this.timerId == 0) {
-        this.timerId = window.setInterval(() => {
-          this.getData()
-        }, 5 * 1000)
-      }
-    },
-    unmounted() {
-      if (this.timerId != 0) {
-        window.clearInterval(this.timerId)
-        this.timerId = 0
-      }
-    },
-
+    // mounted() { },
+    // unmounted() { },
     methods: {
-      // getStatusColor(v: string) {
-      //   return deviceService.getStatusColor(v)
-      // },
-      // formatSeconds(v: number) {
-      //   return formatting.formatSeconds(v)
-      // },
-
-      openCodeEditor() {
-        // TODO
+      onRuleAdded(id: string) {
+        this.selectedRule.push(id)
       },
-      async getData() {
-        const response = await ruleStateService.getGraphUrl(this.ruleName)
-        if (response.url != this.graphUrl) {
-          this.graphUrl = response.url
-          this.graphSvg = await fetch(response.url).then((response) => response.text())
-        }
+      onRuleSelected(list: Array<string>) {
+        this.selectedRule = list
+      },
+      removeCard(id: string) {
+        this.selectedRule = this.selectedRule.filter((item) => item != id)
       },
     },
   })

@@ -12,13 +12,14 @@ local RuleState = {}
 RuleState.__tag = "RuleState"
 RuleState.__type = "module"
 RuleState.__deps = {
-    -- server_storage = "base/server-storage",
+    device_manager = "manager-device",
 }
 
 -------------------------------------------------------------------------------------
 
 function RuleState:Init(opt)
     RuleState.super.Init(self, opt)
+    self.rules = { }
 end
 
 function RuleState:PostInit()
@@ -27,60 +28,159 @@ end
 
 function RuleState:StartModule()
     RuleState.super.StartModule(self)
---     print(self, "Starting state rule engine")
---     self:ReloadAllScripts()
+    print(self, "Starting state rule engine")
+
+    self:SetupDatabase({
+        default = true,
+        name = "rules",
+        index = "id",
+    })
+    self:ReloadAllScripts()
 end
 
 function RuleState:IsReady()
-    return false
---     return self.rule_env and self.rule_env:IsReady()
-end
-
--------------------------------------------------------------------------------------
-
-function RuleState:GetRule(id, can_crete)
-    can_crete = true
-    -- print(self, "get", id, can_crete)
-
-    if not self.rule_handler then
-        self.rule_handler = loader_class:CreateObject("rule-state/rule-handler")
+    for k,v in pairs(self.rules) do
+        if not v:IsReady() then
+            return false
+        end
     end
 
-    return self.rule_handler
+    return self.started
 end
 
 -------------------------------------------------------------------------------------
+
+function RuleState:HasRule(id)
+    return self.rules[id] ~= nil
+end
+
+function RuleState:GetRule(id)
+    return self.rules[id]
+end
+
+function RuleState:GetRuleIds()
+    return table.sorted_keys(self.rules)
+end
+
+function RuleState:InstantiateRule(id, details, script)
+    local has_id = id ~= nil
+    local opt = {
+        local_device = self.device_manager:GetLocalDevice(),
+        id = id or "",
+        script = script,
+        details = details,
+    }
+    local rule = loader_class:CreateObject("rule-state/rule-handler", opt)
+    if has_id then
+        self.rules[id] = rule
+        print(self, "Created rule", id)
+    end
+
+    return rule
+end
+
 -------------------------------------------------------------------------------------
+
+function RuleState:CreateRule(id, details)
+    if self:HasRule(id) then
+        return nil
+    end
+
+    self:GetDatabase("rules"):Insert({
+        id = id,
+        script = nil,
+        details = details,
+        timestamp = os.timestamp(),
+    })
+
+    return self:InstantiateRule(id, details)
+end
+
+function RuleState:RemoveRule(id)
+    if not self:HasRule(id) then
+        return false
+    end
+
+    self:GetDatabase("rules"):DeleteOne({ id = id, })
+
+    local rule = self.rules[id]
+    self.rules[id] = nil
+
+    rule:Shutdown()
+
+    return true
+end
+
+function RuleState:SetScript(id, script)
+    if not self:HasRule(id) then
+        return nil
+    end
+
+    local result = self:GetRule(id):SetScript(script)
+
+    if result.success then
+        self:GetDatabase("rules"):UpdateOne({ id = id }, {
+            script = script,
+            timestamp = os.timestamp(),
+        })
+    end
+
+    return result
+end
+
+function RuleState:GetScript(id, script)
+    if not self:HasRule(id) then
+        return nil
+    end
+    local entry = self:GetDatabase("rules"):FetchOne({ id = id })
+
+    return true, entry.script
+end
+
+function RuleState:ValidateScript(script)
+    local rule = self:InstantiateRule(nil, nil)
+    return rule:SetScript(script, true)
+end
+
 -------------------------------------------------------------------------------------
 
--- function RuleState:SaveRule(script_text, script_name)
---     self.server_storage:WriteStorage(self:GetRuleScriptId(script_name), script_text)
--- end
+function RuleState:IsSenorReady(sensor)
+    return self:IsReady()
+end
 
--- function RuleState:LoadRule(script_name)
---     return self.server_storage:GetFromStorage(self:GetRuleScriptId(script_name))
--- end
+function RuleState:RegisterLocalComponent(local_device)
+    self.status_sensor = local_device:AddSensor {
+        owner_module = self,
+        name = "State rules",
+        id = "rule_state",
+
+        persistence = true,
+        volatile = false,
+
+        values = {
+            rule_count = { name = "Rule count", datatype = "integer", unit = "#" },
+        }
+    }
+end
 
 -------------------------------------------------------------------------------------
 
--- function RuleState:GetLocalStateIds()
-    -- local r = { }
-    -- for id,state in pairs(self.states_by_id or {}) do
-    --     local locally_owned, _ = stat:IsLocal()
-    --     if locally_owned then
-    --         table.insert(r, id)
-    --     end
-    -- end
-    -- return r
--- end
+function RuleState:ReloadAllScripts()
+    for k,v in pairs(self.rules) do
+        v:Reset()
+    end
 
--- function RuleState:GetStateNodeHash()
-    -- local keys = self:GetLocalStateIds()
-    -- table.sort(keys)
-    -- local key_text = table.concat(keys, "|")
-    -- local hash = md5.sumhexa(key_text)
-    -- return hash
--- end
+    self.rules = { }
+
+    for _,v in ipairs(self:GetDatabase("rules"):FetchAll()) do
+        self:InstantiateRule(v.id, v.details, v.script)
+    end
+
+    self.status_sensor:SetReady(true)
+end
+
+function RuleState:SaveAllScripts()
+end
 
 -------------------------------------------------------------------------------------
 

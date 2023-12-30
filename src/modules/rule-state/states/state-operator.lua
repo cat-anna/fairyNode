@@ -139,12 +139,13 @@ StateOperator.OperatorFunctors = {
     ["Sum"] = SimpleOperator:MakeFrom{name = "Sum", func = DoSum,    lua_metafunc = "__add", result_type = "float"},
     -- ["mul"] = FunctionOperator("mul", DoMul),
 
-    ["NotEqual"]     = BinaryOperator:MakeFrom{name = "Equal",        lua_metafunc = nil,        operator = "~="},
-    ["Equal"]        = BinaryOperator:MakeFrom{name = "NotEqual",     lua_metafunc = "__eq",     operator = "=="},
-    ["Lesser"]       = BinaryOperator:MakeFrom{name = "Lesser",       lua_metafunc = "__lt",     operator = "<" },
-    ["LesserEqual"]  = BinaryOperator:MakeFrom{name = "LesserEqual",  lua_metafunc = "__le",     operator = "<="},
-    ["Greater"]      = BinaryOperator:MakeFrom{name = "Greater",      lua_metafunc = nil,        operator = ">" },
-    ["GreaterEqual"] = BinaryOperator:MakeFrom{name = "GreaterEqual", lua_metafunc = nil,        operator = ">="},
+    ["NotEqual"]     = BinaryOperator:MakeFrom{name = "Equal",        lua_metafunc = nil,    operator = "~=", result_type = "boolean"},
+    ["Equal"]        = BinaryOperator:MakeFrom{name = "NotEqual",     lua_metafunc = "__eq", operator = "==", result_type = "boolean"},
+    ["Lesser"]       = BinaryOperator:MakeFrom{name = "Lesser",       lua_metafunc = "__lt", operator = "<",  result_type = "boolean"},
+    ["LesserEqual"]  = BinaryOperator:MakeFrom{name = "LesserEqual",  lua_metafunc = "__le", operator = "<=", result_type = "boolean"},
+    ["Greater"]      = BinaryOperator:MakeFrom{name = "Greater",      lua_metafunc = nil,    operator = ">",  result_type = "boolean"},
+    ["GreaterEqual"] = BinaryOperator:MakeFrom{name = "GreaterEqual", lua_metafunc = nil,    operator = ">=", result_type = "boolean"},
+
     -- ["Concat"]       = BinaryOperator:MakeFrom{name = "Concat",       lua_metafunc = "__concat", operator = ".."},
 
     -- ["Range"] = MakeRangeOperator(env),
@@ -168,8 +169,8 @@ StateOperator.OperatorFunctors = {
     -- }
 }
 
-function StateOperator:IsLocal()
-    return true
+function StateOperator:IsProxy()
+    return false
 end
 
 function StateOperator:GetDatatype()

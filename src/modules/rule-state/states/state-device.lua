@@ -33,11 +33,8 @@ function StateDevice:GetName()
     return self.global_id
 end
 
-function StateDevice:IsLocal()
-    if self.handle.device then
-        return self.handle.device:IsLocal()
-    end
-    return false
+function StateDevice:IsProxy()
+    return true
 end
 
 function StateDevice:IsSettable()

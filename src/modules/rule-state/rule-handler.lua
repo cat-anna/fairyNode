@@ -5,16 +5,49 @@ local loader_class = require "fairy_node/loader-class"
 local RuleHandler = {}
 RuleHandler.__name = "RuleHandler"
 RuleHandler.__type = "class"
-RuleHandler.__deps = {}
+RuleHandler.__deps = {
+}
 
 -------------------------------------------------------------------------------------
 
 function RuleHandler:Init(opt)
     RuleHandler.super.Init(self, opt)
 
+    self.id = opt.id
+    assert(self.id)
+
+    self.details = opt.details
+
+    self.local_device = opt.local_device
+    assert(self.local_device)
+
     self:AddTask("rule", 10, self.RuleTick)
 
     self:Reset()
+
+    if opt.script then
+        self:SetScript(opt.script)
+    end
+end
+
+function RuleHandler:Shutdown()
+    if self.local_component then
+        self.local_component:DeleteAllProperties()
+        self.local_device:DeleteComponent(self.local_component:GetId())
+        self.local_component = nil
+    end
+    self:Reset()
+    RuleHandler.super.Shutdown(self)
+end
+
+-------------------------------------------------------------------------------------
+
+function RuleHandler:GetId()
+    return self.id
+end
+
+function RuleHandler:GetDetails()
+    return self.details
 end
 
 -------------------------------------------------------------------------------------
@@ -26,24 +59,33 @@ function RuleHandler:Reset()
     self.states = { }
     self.states_to_tick = { }
     self.states_not_ready = { }
+    self.states_owned = { }
 end
 
-function RuleHandler:SetScript(script)
-    self.script = script
-    self:Reset()
 
-    local script_name = "test" -- TODO
-
+function RuleHandler:SetScript(script, validate_only)
     local init_config = {
         handler = self
     }
     local environment = loader_class:CreateObject("rule-state/rule-runtime", init_config)
-    local result = environment:ExecuteScript(script, script_name)
+    local result = environment:ExecuteScript(script, self:GetId())
 
     if result then
-    end
+        if not validate_only then
+            self.script = script
+            self:Reset()
 
-    return result and true or false
+            for k,v in pairs(environment:GetStates()) do
+                self:AddState(v)
+            end
+
+            self:ResetComponent()
+            self:RuleTick(nil)
+        end
+        return true
+    else
+        return false, environment.errors
+    end
 end
 
 -------------------------------------------------------------------------------------
@@ -63,38 +105,82 @@ end
 function RuleHandler:AddState(state)
     table.insert(self.states, state)
 
+    if not state:IsProxy() then
+        table.insert(self.states_owned, state)
+    end
+
     if state:IsReady() then
         if state:WantsTick() then
             table.insert(self.states_to_tick, state)
         end
     else
+        self.states_not_ready = self.states_not_ready or {}
         table.insert(self.states_not_ready, state)
     end
 end
 
 -------------------------------------------------------------------------------------
 
+function RuleHandler:ResetComponent()
+    local has_owned_states = #self.states_owned > 0
+
+    if has_owned_states then
+        if not self.local_component then
+            self.local_component = self.local_device:AddComponent({
+                class = "rule-state/rule-handler-component",
+                id = self:GetId(),
+
+                rule_handler = self,
+
+                name = self:GetId(), --todo
+            })
+        end
+
+        self.local_component:ResetProperties(self.states_owned)
+    else
+        if self.local_component then
+            self.local_device:DeleteComponent(self.local_component:GetId())
+            self.local_component = nil
+        end
+    end
+end
+
+-------------------------------------------------------------------------------------
+
+function RuleHandler:IsReady()
+    return self.states_not_ready == nil
+end
+
 function RuleHandler:RuleTick(task)
     for _,state in ipairs(self.states_to_tick) do
         state:Tick()
     end
 
-    local not_ready = { }
-    for _,state in ipairs(self.states_not_ready) do
-        state:Update()
-        if not state:IsReady() then
-            table.insert(not_ready, state)
-            print(self, "State is not yet ready:",  state:GetId())
-        else
-            if state:WantsTick() then
-                table.insert(self.states_to_tick, state)
+    if self.states_not_ready then
+        local not_ready = { }
+        for _,state in ipairs(self.states_not_ready) do
+            state:Update()
+            if not state:IsReady() then
+                table.insert(not_ready, state)
+                print(self, "State is not yet ready:",  state:GetId())
+            else
+                if state:WantsTick() then
+                    table.insert(self.states_to_tick, state)
+                end
             end
         end
+        if #not_ready == 0 then
+            if self.local_component then
+                self.local_component:SetReady(true)
+            end
+            not_ready = nil
+        end
+        self.states_not_ready = not_ready
     end
-    self.states_not_ready = not_ready
 end
 
 -------------------------------------------------------------------------------------
+
 --[==[
 -- function RuleService:GenerateStateDiagramElements()
 --     local elements = {
@@ -106,15 +192,11 @@ end
 
 --     for _, state in pairs(self.rule_state:GetStates() or {}) do
 --         local group = state:GetGroup()
-
 --         elements.groups[group] = true
-
 --         elements.transitions_wanted_by_group[group] = elements.transitions_wanted_by_group[group] or {}
 --         elements.states_wanted_by_group[group] = elements.states_wanted_by_group[group] or {}
-
 --         elements.transitions_wanted_by_group[group][state.global_id]=true
 --         elements.states_wanted_by_group[group][state.global_id]=true
-
 --         elements.state[state.global_id] = {
 --             transitions = { }
 --         }
@@ -123,18 +205,14 @@ end
 --     for _, state in pairs(self.rule_state:GetStates() or {}) do
 --         local ready, value = state:Status()
 --         value = value or {}
-
 --         local state_style = {
 --             SelectColor(value.value, ready),
 --         }
-
 --         local state_style_text = "#" .. table.concat(state_style, ";")
-
 --         local desc = {
 --             -- print((myString:gsub("\\([nt])", {n="\n", t="\t"})))
 --             table.concat(state:GetDescription() or { }, "\\\\\\n")
 --         }
-
 --         local group = state:GetGroup()
 --         if group and group ~= "" then
 --             table.insert(desc, 1, string.format("\ngroup: %s", state:GetGroup()))
@@ -142,7 +220,6 @@ end
 --         else
 --             if #desc > 0 then table.insert(desc, 1, "\n..") end
 --         end
-
 --         local members = table.concat(desc, "\n")
 --         local formatted_value = FormatValue(value.value)
 --         local mode = StateClassMapping[state.__id] or "entity"
@@ -150,7 +227,6 @@ end
 --         if value.timestamp then
 --             string_timestamp = os.timestamp_to_string_short(value.timestamp)
 --         end
-
 --         local state_line = string.format([[
 -- %s %s as "%s" %s {
 -- value: %s
@@ -165,10 +241,8 @@ end
 --     formatted_value, string_timestamp,
 --     members,
 --     state.global_id)
-
 --         local state_info = elements.state[state.global_id]
 --         state_info.definition = state_line
-
 --         for _, dep in ipairs(state:GetSinkDependencyList() or {}) do
 --             local l = FormatDependency(self.plantuml, state.global_id, dep.id, dep.virtual)
 --             table.insert(state_info.transitions, l)
@@ -182,7 +256,6 @@ end
 --             end
 --         end
 --     end
-
 --     return elements
 -- end
 
@@ -193,19 +266,15 @@ end
 --         "skinparam ClassBorderColor black", --
 --         "skinparam ranksep 20", --
 --     }
-
 --     local transitions = { }
-
 --     for global_id,_ in pairs(elements.states_wanted_by_group[group] or {}) do
 --         local s = elements.state[global_id]
 --         table.insert(lines, s.definition)
 --     end
-
 --     for global_id,_ in pairs(elements.transitions_wanted_by_group[group] or {}) do
 --         local s = elements.state[global_id]
 --         table.insert(transitions, table.concat(s.transitions, "\n"))
 --     end
-
 --     table.insert(lines, "")
 --     table.insert(lines,  table.concat(transitions, "\n"))
 
@@ -274,7 +343,7 @@ function RuleHandler:GenerateDiagram(graph_builder)
         end
 
         table.insert(desc, string.format("type: %s", state.__name or "?"))
-        table.insert(desc, string.format("group: %s", state:GetGroup() or "default"))
+        -- table.insert(desc, string.format("group: %s", state:GetGroup() or "default"))
         table.insert(desc, '..')
         table.insert(desc, string.format("value: %s", graph_builder.FormatValue(current_value.value)))
         table.insert(desc, string.format("timestamp: %s", os.timestamp_to_string_short(current_value.timestamp)))
@@ -291,7 +360,7 @@ function RuleHandler:GenerateDiagram(graph_builder)
         end
 
         local line_mode
-        if not state:IsLocal() then
+        if state:IsProxy() then
             line_mode =  "dotted"
         end
 
@@ -320,4 +389,3 @@ end
 -------------------------------------------------------------------------------------
 
 return RuleHandler
-

@@ -15,8 +15,8 @@ end
 
 -------------------------------------------------------------------------------------
 
-function StateTime:IsLocal()
-    return true
+function StateTime:IsProxy()
+    return false
 end
 
 function StateTime:GetDatatype()

@@ -28,8 +28,9 @@ function RuleRuntime:Init(opt)
     self.meta_objects = { }
     self.meta_operators = { }
     self.wrapped_state_mt = { }
-    self.local_states =  { }
+    self.owned_states =  { }
     self.states_by_id = { }
+    self.errors = { }
 
     self:InitErrorHandling()
     self:InitEnvBase()
@@ -47,6 +48,10 @@ end
 -- function RuleRuntime:Shutdown()
 -- end
 
+function RuleRuntime:GetStates()
+    return self.states_by_id
+end
+
 -------------------------------------------------------------------------------------
 
 function RuleRuntime:ExecuteScript(script_text, script_name)
@@ -62,11 +67,15 @@ function RuleRuntime:ExecuteScript(script_text, script_name)
         return
     end
 
-    local success, mt_errmgs = pcall(script)
+    local function error_handler(message)
+        self:ReportRuleError(nil, message, 2, true)
+    end
+
+    local success = xpcall(script, error_handler)
     if (not success) then
-        local msg = string.format("The '%s' script chunk failed to execute", script_name)
-        self:ReportRuleError(nil, msg, mt_errmgs, true)
-        return
+        -- local msg = string.format("The '%s' script chunk failed to execute", script_name)
+        -- self:ReportRuleError(nil, msg, mt_errmgs, true)
+        return false
     end
 
     -- self:Update()
@@ -80,25 +89,34 @@ end
 
 function RuleRuntime:ReportRuleError(rule_object, message, trace_level, continue_execution)
     local trace = trace_level
+    local _,line,error_message = message:match([==[%s-%[(.+)%]:(%d+):%s+(.*)%s-]==])
+
     if type(trace) == "number" then
-        trace = debug.traceback(message, trace_level)
+        trace = debug.traceback(message, trace_level+1)
     end
 
     local err_info = {
+        line = tonumber(line),
+        message = message,
+        error_message = error_message,
         trace = trace,
+
         trace_level = trace_level,
-        rule_object = rule_object,
-        continue_execution = continue_execution,
+        rule_object = rule_object and rule_object:GetId(),
+        -- continue_execution = continue_execution,
         timestamp = os.timestamp()
     }
 
-    print(self, "Got error:", message, trace)
-
-    self.handler:AddError(err_info)
+    self:AddError(err_info)
 
     if not continue_execution then
         error("State script error")
     end
+end
+
+function RuleRuntime:AddError(err_info)
+    table.insert(self.errors, err_info)
+    print(self, "Rule error:", err_info.message)
 end
 
 -------------------------------------------------------------------------------------
@@ -201,7 +219,7 @@ function RuleRuntime:InitStateEnvObject()
     --     end
     end
     function StateMt.__index(t, name)
-        local state = self.local_states[name]
+        local state = self.owned_states[name]
         if state then
             return self:WrapState(state)
         end
@@ -216,7 +234,6 @@ function RuleRuntime:FindAndInitStateClasses()
     local classes = loader_class:FindClasses("*/state-*")
 
     for _,class_name in ipairs(classes) do
-        print(self, class_name)
         local class = loader_class:GetClass(class_name)
 
         if class.metatable.RegisterStateClass then
@@ -497,14 +514,12 @@ function RuleRuntime:CreateState(state_proto)
     state_config.source_dependencies = tablex.sub(args, 1, #args)
 
     local state = loader_class:CreateObject(state_info.class, state_config)
-    if state:IsLocal() then
-        self.local_states[state_proto.id] = state
+    if not state:IsProxy() then
+        self.owned_states[state_proto.id] = state
     end
 
     assert(self.states_by_id[state:GetGlobalId()] == nil)
     self.states_by_id[state:GetGlobalId()] = state
-
-    self.handler:AddState(state)
 
     return state
 end

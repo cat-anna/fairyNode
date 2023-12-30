@@ -2,6 +2,7 @@ local http = require "fairy_node/http-code"
 local tablex = require "pl.tablex"
 local stringx = require "pl.stringx"
 local md5 = require "md5"
+local uuid = require "uuid"
 
 -------------------------------------------------------------------------------------
 
@@ -15,31 +16,100 @@ RuleService.__deps = {
 
 -------------------------------------------------------------------------------------
 
-function RuleService:CreateRule(request, id)
-    id = "test"
+function RuleService:GetStatus(request)
 
-    return http.OK, { success = true }
+    local rules = { }
+    for _,v in ipairs(self.rule_state:GetRuleIds()) do
+        local rule = self.rule_state:GetRule(v)
+        local details = rule:GetDetails() or { }
+        table.insert(rules, { id = v, name = details.name or "unnamed rule"})
+    end
+
+    local response = {
+        rules = rules,
+    }
+
+    return http.OK, response
+end
+
+-------------------------------------------------------------------------------------
+
+function RuleService:CreateRule(request)
+    local id = uuid()
+    local details = {
+        name = request.name and tostring(request.name) or "unnamed rule"
+    }
+    local rule = self.rule_state:CreateRule(id, details)
+    if rule then
+        return http.Created, {
+            id = rule:GetId(),
+            success = true,
+        }
+    else
+        return http.InternalServerError, { success = false }
+    end
 end
 
 function RuleService:RemoveRule(request, id)
-    id = "test"
+    if not self.rule_state:HasRule(id) then
+        return http.NotFound, { success = false }
+    end
 
-    return http.OK, { success = true }
+    local success = self.rule_state:RemoveRule(id)
+    if success then
+        return http.Accepted, { success = true }
+    else
+        return http.InternalServerError, { success = false }
+    end
+end
+
+function RuleService:GetRuleDetails(request, id)
+    if not self.rule_state:HasRule(id) then
+        return http.NotFound, { success = false }
+    end
+    local rule = self.rule_state:GetRule(id)
+
+    return http.OK, rule:GetDetails() or { }
 end
 
 -------------------------------------------------------------------------------------
 
 function RuleService:SetRuleCode(request, id)
-    id = "test"
-
-    local rule = self.rule_state:GetRule(id)
-    if not rule then
+    local result = self.rule_state:SetScript(id, request)
+    if not result then
         return http.BadRequest, { success = false }
     end
 
-    local result = rule:SetScript(request)
+    return http.OK, { success = result.success }
+end
 
-    return http.OK, { success = result }
+function RuleService:GetRuleCode(request, id)
+    local result, code = self.rule_state:GetScript(id)
+    if result then
+        return http.OK, code
+    end
+    return http.BadRequest, ""
+end
+
+function RuleService:ValidateCode(request)
+    local success, errors = self.rule_state:ValidateScript(request)
+    errors = errors or {}
+    print(self, "Validate:", success, #errors)
+
+    local lst = { }
+    for _,v in pairs(errors) do
+        table.insert(lst, {
+            line = v.line,
+            message = v.message,
+            error = v.error_message,
+        })
+    end
+
+    return http.OK, {
+        success = true,
+        validation_success = success,
+        errors = lst,
+    }
 end
 
 -------------------------------------------------------------------------------------
@@ -63,7 +133,6 @@ function RuleService:BuildGraph(id, color_mode)
 end
 
 function RuleService:GetRuleGraphText(request, id)
-    id = "test"
 
     local code, builder = self:BuildGraph(id, request.colors)
     if code ~= http.OK then
@@ -73,8 +142,6 @@ function RuleService:GetRuleGraphText(request, id)
 end
 
 function RuleService:GetRuleGraphUrl(request, id)
-    id = "test"
-
     local code, builder = self:BuildGraph(id, request.colors)
     if code ~= http.OK then
         return code, builder
@@ -132,12 +199,6 @@ end
 -- end
 
 -------------------------------------------------------------------------------------
-
--- function RuleService:ListRules(request)
---     local rule_list = {}
---     for k, _ in pairs(self.rule_script.rules) do script.insert(rule_list, k) end
---     return http.OK, rule_list
--- end
 
 -- function RuleService:SetComplexRule(request, rule_id)
 --     self.rule_script:SetRuleTescript(rule_id, request)

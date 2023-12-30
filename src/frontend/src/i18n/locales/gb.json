@@ -13,7 +13,8 @@
     "dashboard": "Dashboard",
     "devices": "Devices",
     "charts": "Charts",
-    "server": "Server"
+    "server": "Server",
+    "rules": "Rules"
   },
   "deviceInfo": {
     "title": "Device info",
@@ -97,6 +98,33 @@
     "move_down": "Move down",
     "edit": "Edit chart",
     "samples": "samples"
+  },
+  "rules": {
+    "state": {
+      "title": "State rules",
+      "select_rule": "Select rule",
+      "selected": "Rule:",
+      "select_all": "Select all rules",
+      "selected_all": "Selected all",
+      "rule_name_label": "Rule name",
+      "edit": "Edit rule code",
+      "remove": "Remove rule",
+      "code_editor_label": "Lua code for rule",
+      "cancel": "Cancel",
+      "update_code": "Update",
+      "line": "Line",
+      "toast": {
+        "rule_added": "Rule added",
+        "failed_to_add_rule": "Failed to create rule",
+        "rule_removed": "Rule removed",
+        "failed_to_remove_rule": "Failed to remove rule",
+        "failed_to_load_code": "Failed to load rule code",
+        "code_upload_success": "Code updated"
+      },
+      "modal": {
+        "rule_removal_confirm": "Are you sure to remove this rule?"
+      }
+    }
   },
   "server": {
     "debug": {

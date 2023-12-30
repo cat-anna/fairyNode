@@ -30,6 +30,11 @@ end
 function Module:AfterReload()
 end
 
+function Module:Shutdown()
+    self.mongo_collections = nil
+    Module.super.Shutdown(self)
+end
+
 -------------------------------------------------------------------------------------
 
 function Module:EmitEvent(event, arg)

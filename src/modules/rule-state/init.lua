@@ -3,7 +3,9 @@ local M = { }
 
 M.name = "State rules"
 -- M.description = ""
-M.depends = { }
+M.depends = {
+    "manager-device",
+}
 M.config = {
 }
 

@@ -69,8 +69,8 @@ end
 
 --------------------------------------------------------------------------
 
-function State:IsLocal()
-    return true
+function State:IsProxy()
+    return false
 end
 
 function State:GetDatatype()
@@ -157,7 +157,7 @@ function State:SetCurrentValue(cv)
     self.current_value = cv
 
     self:CallSinkListeners(cv)
-    self:CallObservers(cv)
+    self:CallSubscribers("changed", cv)
 
     return cv
 end
@@ -304,18 +304,6 @@ end
 function State:SourceChanged(source, source_value)
     if self:IsReady() then
         self:Update()
-    end
-end
-
--------------------------------------------------------------------------------------
-
-function State:AddObserver(target)
-    self.observers[target.uuid] = target
-end
-
-function State:CallObservers(current_value)
-    for _, v in pairs(self.observers) do
-        v:StateRuleValueChanged(self, current_value)
     end
 end
 

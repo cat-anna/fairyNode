@@ -42,12 +42,12 @@ const base_url = '/api'
 
 class HttpError {
   message: string
-  status: number
+  resultCode: number
   statusText: string
 
-  constructor(message: string, status: number, statusText: string) {
+  constructor(message: string, resultCode: number, statusText: string) {
     this.message = message
-    this.status = status
+    this.resultCode = resultCode
     this.statusText = statusText
   }
 }
@@ -94,6 +94,23 @@ class HttpHandler {
       body: JSON.stringify(data),
       headers: {
         'content-type': 'application/json',
+      },
+    }).then((response) => {
+      if (response.ok) {
+        return response.json()
+      }
+      throw new HttpError('Something went wrong', response.status, response.statusText)
+    })
+  }
+
+  post_text(path: string, data: string) {
+    const url = base_url + path
+    console.log('POST ' + url)
+    return fetch(url, {
+      method: 'post',
+      body: data,
+      headers: {
+        'content-type': 'text/plain',
       },
     }).then((response) => {
       if (response.ok) {

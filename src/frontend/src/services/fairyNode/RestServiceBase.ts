@@ -13,7 +13,9 @@ export class RestServiceBase {
   protected post_json(url: string, data: object) {
     return http.post_json('/' + this.service_name + url, data)
   }
-
+  protected post_text(url: string, data: string) {
+    return http.post_text('/' + this.service_name + url, data)
+  }
   constructor(service_name: string) {
     this.service_name = service_name
   }

@@ -10,6 +10,7 @@ export const useGlobalStore = defineStore('global', {
     isSidebarMinimized: false,
     userName: 'Admin',
     currentTheme: 'dark',
+    selectedStateRule: '@',
 
     addedCharts: new Array<ChartDesc>(),
     chartDuration: 12 * 60 * 60,
@@ -32,6 +33,10 @@ export const useGlobalStore = defineStore('global', {
     },
     setChartDuration(chartDuration: number) {
       this.chartDuration = chartDuration
+    },
+
+    setSelectedStateRules(list: string) {
+      this.selectedStateRule = list
     },
   },
   persist: {

@@ -67,7 +67,7 @@ export default {
       name: 'rules',
       displayName: 'menu.rules',
       meta: {
-        icon: 'vuestic-iconset-ui-elements',
+        icon: 'vuestic-iconset-components',
       },
       children: [
         {

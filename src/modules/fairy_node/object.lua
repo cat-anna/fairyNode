@@ -54,6 +54,12 @@ function Object:Init(config)
     self.verbose = self.config.verbose
 end
 
+function Object:Shutdown()
+    self:StopAllTasks()
+    self.error_manager = nil
+    self.event_bus = nil
+end
+
 function Object:Tag()
     local tag = self.__tag
     if not tag then
@@ -128,9 +134,20 @@ end
 -------------------------------------------------------------------------------------
 
 function Object:StopAllTasks()
+    if self.tasks then
+        for _,key in ipairs(tablex.keys(self.tasks)) do
+            self.tasks[key]:Stop()
+            self.tasks[key] = nil
+        end
+        self.tasks = nil
+    end
 end
 
 function Object:StopTask(name)
+    if self.tasks and self.tasks[name] then
+        self.tasks[name]:Stop()
+        self.tasks[name] = nil
+    end
 end
 
 function Object:AddTask(name, interval, func)
