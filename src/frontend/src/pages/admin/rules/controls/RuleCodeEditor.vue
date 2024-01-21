@@ -5,7 +5,7 @@
         <va-icon :name="'material-icons-clear'" />
         {{ t('rules.state.cancel') }}
       </va-button>
-      <va-button class="mx-1" :disabled="!validation_success && !validation_pending && !validation_delay" @click="postCode(true)">
+      <va-button class="mx-1" :disabled="!validation.success && !validation.pending && !validation.delay" @click="postCode(true)">
         <va-icon :name="'material-icons-done'" />
         {{ t('rules.state.update_code') }}
       </va-button>
@@ -44,11 +44,20 @@
   import ruleStateService from '../../../../services/fairyNode/RuleStateService'
 
   import { Codemirror } from 'vue-codemirror'
-  import { oneDark } from '@codemirror/theme-one-dark'
+  import { EditorView } from '@codemirror/view'
   import { StreamLanguage } from '@codemirror/language'
+  import { oneDark } from '@codemirror/theme-one-dark'
   import { lua } from '@codemirror/legacy-modes/mode/lua'
 
   import { linter, Diagnostic, setDiagnostics } from '@codemirror/lint'
+
+  class ValidationStatus {
+    success = true
+    in_progress = false
+    pending = false
+    delay = false
+    delay_timer: any = null
+  }
 
   export default defineComponent({
     components: {
@@ -97,11 +106,7 @@
       return {
         code: '',
         busy: false,
-        validation_success: true,
-        validation_in_progress: false,
-        validation_pending: false,
-        validation_delay: false,
-        validation_delay_timer: null,
+        validation: new ValidationStatus(),
         codeErrors: Array<CodeError>(),
       }
     },
@@ -116,7 +121,7 @@
           .getRuleCode(this.ruleId)
           .then((code) => {
             this.code = code
-            this.validation_success = true
+            this.validation.success = true
           })
           .catch(() => {
             this.code = ''
@@ -131,61 +136,67 @@
           })
       },
       onChange() {
-        this.validation_delay = true
-        if (this.validation_delay_timer) {
-          clearTimeout(this.validation_delay_timer)
+        this.validation.delay = true
+        if (this.validation.delay_timer) {
+          clearTimeout(this.validation.delay_timer)
         }
-        this.validation_delay_timer = setTimeout(() => {
-          this.validation_delay = false
-          this.validation_delay_timer = null
+        this.validation.delay_timer = setTimeout(() => {
+          this.validation.delay = false
+          this.validation.delay_timer = null
           this.validate()
         }, 1000)
       },
 
       async translateErrors(errors: Array<CodeError>) {
+        if (!this.editorView) {
+          return
+        }
+
         this.codeErrors = errors
         let diagnostics: Diagnostic[] = []
         let doc = this.editorView.state.doc
 
         errors.forEach((item) => {
-          let line = doc.line(item.line)
-          diagnostics.push({
-            from: line.from,
-            to: line.to,
-            severity: 'error',
-            message: item.error || item.message || 'unknown',
-            actions: [],
-          })
+          if (item.line) {
+            let line = doc.line(item.line)
+            diagnostics.push({
+              from: line.from,
+              to: line.to,
+              severity: 'error',
+              message: item.error || item.message || 'unknown',
+              actions: [],
+            })
+          }
         })
 
         let tr = setDiagnostics(this.editorView.state, diagnostics)
         this.editorView.dispatch(tr)
       },
       async validate() {
-        if (this.validation_in_progress) {
-          this.validation_pending = true
+        if (this.validation.in_progress) {
+          this.validation.pending = true
           return
         }
 
-        this.validation_in_progress = true
-        this.validation_pending = false
+        this.validation.in_progress = true
+        this.validation.pending = false
 
         ruleStateService
           .validateCode(this.code)
           .then((result) => {
-            this.validation_success = result.validation_success
-            if (this.validation_success) {
+            this.validation.success = result.validation_success
+            if (this.validation.success) {
               this.translateErrors([])
             } else {
               this.translateErrors(result.errors)
             }
           })
           .catch(() => {
-            this.validation_success = false
+            this.validation.success = false
           })
           .finally(() => {
-            this.validation_in_progress = false
-            if (this.validation_pending) {
+            this.validation.in_progress = false
+            if (this.validation.pending) {
               this.validate()
             }
           })

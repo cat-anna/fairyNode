@@ -86,7 +86,7 @@
           }
 
           if (this.selectedStateRule == '' && this.ruleList.length > 0) {
-            this.selectRule(this.ruleList[0])
+            this.selectRule(this.ruleList[0].id)
           }
         })
       },

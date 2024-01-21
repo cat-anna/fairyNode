@@ -80,7 +80,7 @@ function RuleService:SetRuleCode(request, id)
         return http.BadRequest, { success = false }
     end
 
-    return http.OK, { success = result.success }
+    return http.OK, { success = result and true or false }
 end
 
 function RuleService:GetRuleCode(request, id)

@@ -118,7 +118,7 @@ function RuleState:SetScript(id, script)
 
     local result = self:GetRule(id):SetScript(script)
 
-    if result.success then
+    if result then
         self:GetDatabase("rules"):UpdateOne({ id = id }, {
             script = script,
             timestamp = os.timestamp(),
