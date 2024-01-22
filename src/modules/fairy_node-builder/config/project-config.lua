@@ -1,21 +1,21 @@
 
 local path = require "pl.path"
-local file = require "pl.file"
-local json = require "json"
-local md5 = require "md5"
-local pretty = require 'pl.pretty'
-local file_image = require "lib/file-image"
-local shell = require "lib/shell"
-local tablex = require "pl.tablex"
-local stringx = require "pl.stringx"
-local lfs = require "lfs"
+-- local file = require "pl.file"
+-- local json = require "rapidjson"
+-- local md5 = require "md5"
+-- local pretty = require 'pl.pretty'
+-- local file_image = require "fairy_node/tools/file-image"
+-- local shell = require "lib/shell"
+-- local tablex = require "pl.tablex"
+-- local stringx = require "pl.stringx"
+-- local lfs = require "lfs"
 
 -------------------------------------------------------------------------------------
 
 -- local CONFIG_HASH_NAME = "config_hash.cfg"
 
 local function sha256(data)
-    local sha2 = require "lib/sha2"
+    local sha2 = require "fairy_node/sha2"
     return sha2.sha256(data):lower()
 end
 
@@ -28,6 +28,7 @@ end
 
 local ProjectConfig = { }
 ProjectConfig.__name = "ProjectConfig"
+ProjectConfig.__type = "class"
 
 -------------------------------------------------------------------------------------
 
@@ -36,6 +37,8 @@ function ProjectConfig:Tag()
 end
 
 function ProjectConfig:Init(arg)
+    ProjectConfig.super.Init(self, arg)
+
     self.firmware = arg.firmware
 
     self.name = arg.name

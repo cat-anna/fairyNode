@@ -1,70 +1,90 @@
 #!/usr/bin/lua
 
-package.path = package.path .. ";/usr/lib/lua/?.lua;/usr/lib/lua/?/init.lua"
-local path = require "pl.path"
-local copas = require "copas"
-
 require("uuid").seed()
+local path = require "pl.path"
 
-local fairy_node_base = path.abspath(path.normpath(path.dirname(arg[0]) .. "/.."))
-package.path = package.path .. ";" ..
-            fairy_node_base .. "/host/?.lua" .. ";" ..
-            fairy_node_base .. "/host/?/init.lua"
-
-require("lib/ext")
-require("lib/logger"):Init()
-require("lib/setup-alternatives")
-
-local args = require('pl.lapp')([[
+local function GetArgs()
+    local args = require ('pl.lapp') [[
 fairyNode firmware builder
     -d,--debug                         Enter debug mode
     -v,--verbose                       Print more logs
 
-    --package (string)                 TODO
+    --nodemcu_path (string)   Nodemcu fw path
 
-    --nodemcu_firmware_path (string)   Nodemcu fw path
+    --host (default localhost:8080)    fairyNode host
 
-    --host (default localhost:8000)    fairyNode host
-
-    --device (optional string)         TODO
+    --device_port (optional string)    TODO
+    --device      (optional string)    TODO
+    --all_devices
     --rebuild                          TODO
-    --port (optional string)           TODO
-]])
+    --package (optional string)        TODO
+]]
 
-local config_handler = require "lib/config-handler"
-config_handler:SetBaseConfig{
-    debug = false,
-    verbose = false,
-    ["path.fairy_node"] = fairy_node_base,
-    ["loader.package.list"] = {
-        fairy_node_base .. "/host/apps/fairy-node-fw-builder.lua"
-    },
-}
-
-local function SplitArg(v, c)
-    if v then
-        return v:split(c)
-    end
+    -- local r = {}
+    -- if args.argfile then
+    --     r = dofile(args.argfile)
+    -- else
+    --     r.packages = args.packages
+    -- end
+    -- r.debug = r.debug or args.debug
+    -- r.verbose = r.verbose or args.verbose
+    return args
 end
 
-config_handler:SetCommandLineArgs{
-    debug = args.debug,
-    verbose = args.verbose,
-    ["loader.config.list"] = { },-- args.config:split(","),
-    ["loader.package.list"] = { args.package },
-    ["fw-builder.config"] = {
-        device = SplitArg(args.device, ","),
-        port = SplitArg(args.port, ":"),
-        nodemcu_firmware_path = args.nodemcu_firmware_path,
-        host = args.host,
-        rebuild = args.rebuild,
-    },
-    ["project.source.path"] = { fairy_node_base .. "/../DeviceConfig/projects/" },
-}
+local function SetupPath(base)
+    local lib_path = base .. "/src"
 
-require("lib/loader-package"):Init()
-require("lib/loader-module"):Init()
-require("lib/loader-class"):Init()
-require("lib/logger"):Start()
+    package.path = table.concat({
+        package.path,
+        "/usr/lib/lua/?.lua",
+        "/usr/lib/lua/?/init.lua",
+        lib_path .. "/?.lua",
+        lib_path .. "/?/init.lua",
+    }, ';')
+end
 
-copas.loop()
+local function SetupBaseArgs(base_path)
+    local args = GetArgs()
+    require("fairy_node/config-handler"):SetBaseConfig{
+        debug = args.debug,
+        verbose = args.verbose,
+        ["path.fairy_node"] = base_path,
+        ["loader.package.list"] = string.split(args.package, ","),
+        ["loader.module.list"] = {
+            "fairy_node-builder",
+        },
+
+        ["module.fairy_node-builder.host"] = args.host,
+        ["module.fairy_node-builder.rebuild"] = args.rebuild,
+        ["module.fairy_node-builder.device_port"] = args.device_port,
+        ["module.fairy_node-builder.device"] = args.device,
+        ["module.fairy_node-builder.all_devices"] = args.all_devices,
+        ["module.fairy_node-builder.nodemcu_path"] = args.nodemcu_path,
+
+        ["module.fairy_node-builder.firmware_path"] = {
+            path.normpath(base_path .. "/firmware/src"),
+        },
+        ["module.fairy_node-builder.project_paths"] = {
+            path.normpath(base_path .. "/firmware/config"),
+        },
+
+    --     ["loader.config.list"] = args.config,
+    --     ["loader.package.paths"] = { , },
+    }
+end
+
+local base_path = path.abspath(path.normpath(path.dirname(arg[0]) .. "/../../"))
+SetupPath(base_path)
+
+require("fairy_node/stdlib")
+require("fairy_node/logger"):Init()
+SetupBaseArgs(base_path)
+
+require("fairy_node/loader-package"):Init()
+require("fairy_node/loader-class"):Init()
+require("fairy_node/loader-module"):Init()
+require("fairy_node/logger"):Start()
+
+require("copas").loop()
+
+print("== EXITING ==")

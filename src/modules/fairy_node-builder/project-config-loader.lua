@@ -1,9 +1,9 @@
 local tablex = require "pl.tablex"
-local loader_class = require "lib/loader-class"
+local loader_class = require "fairy_node/loader-class"
 local path = require "pl.path"
 local dir = require "pl.dir"
 local file = require "pl.file"
-local json = require "json"
+local json = require "rapidjson"
 
 -------------------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ local function LoadProject(owner, name, proj_path)
 
     printf(owner, "Found project '%s'", name)
 
-    return loader_class:CreateObject("fairy-node-firmware/config/project-config", {
+    return loader_class:CreateObject("fairy_node-builder/config/project-config", {
         name = name,
         config_file = config_file,
         path = proj_path,
@@ -32,14 +32,17 @@ local ProjectConfigLoader = { }
 ProjectConfigLoader.__index = ProjectConfigLoader
 ProjectConfigLoader.__name = "ProjectConfigLoader"
 
-function ProjectConfigLoader:Init(project_paths)
+function ProjectConfigLoader:Init(opt)
+    -- ProjectConfigLoader.super.Init(self, opt)
+
     self.chip_id = { }
     self.projects = { }
-    self.project_paths = project_paths
+    self.project_paths = opt.project_paths
 
     local configs_to_load = { }
 
-    for _,p in ipairs(project_paths) do
+
+    for _,p in ipairs(self.project_paths) do
         for i,full in ipairs(dir.getdirectories(path.normpath(p))) do
             local name = path.basename(full)
             assert(self.projects[name] == nil)
@@ -125,36 +128,35 @@ end
 
 -------------------------------------------------------------------------------------
 
-local CONFIG_KEY_SRC_PATH = "firmware.source.path"
-local CONFIG_KEY_PROJECT_PATH = "project.source.path"
-
 local ProjectModule = {}
 ProjectModule.__name = "ProjectModule"
-ProjectModule.__config = {
-    [CONFIG_KEY_SRC_PATH] = { type = "string", },
-    [CONFIG_KEY_PROJECT_PATH] = { mode = "merge", type = "string-table", default = { } },
-}
+ProjectModule.__type = "class"
 
-function ProjectModule:Init()
+function ProjectModule:Init(opt)
+    ProjectModule.super.Init(self, opt)
+
+    self.project_paths = opt.project_paths
+    self.firmware_path = opt.firmware_path
+
     self:LoadFirmwareConfig()
-
-    local project_path = self.config[CONFIG_KEY_PROJECT_PATH]
 
     self.project_config = setmetatable({
         firmware = self.firmware
     }, ProjectConfigLoader)
 
-    self.project_config:Init(project_path)
+    self.project_config:Init({
+        project_paths = self.project_paths,
+    })
 end
 
 function ProjectModule:LoadFirmwareConfig()
-    local config_file = path.normpath(self.config[CONFIG_KEY_SRC_PATH] .. "/firmware-config.json")
+    local config_file = path.normpath(self.firmware_path .. "/firmware-config.json")
     print(self, "Firmware config file:", config_file)
     local content = file.read(config_file)
     local cfg = json.decode(content)
 
     self.firmware = {
-        path = self.config[CONFIG_KEY_SRC_PATH],
+        path = self.firmware_path,
         config = cfg,
         config_file = config_file,
     }
@@ -184,7 +186,7 @@ function ProjectModule:LoadProjectForChip(chip_id)
     }
 
     print(string.format("Loading project %s for chip %s", proj.chip.name or "?", chip_id))
-    return loader_class:CreateObject("fairy-node-firmware/config/device-config", proj)
+    return loader_class:CreateObject("fairy_node-builder/config/device-config", proj)
 end
 
 -------------------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 #!/usr/bin/lua
 
+require("uuid").seed()
 local path = require "pl.path"
 
 local function GetArgs()
@@ -47,7 +48,6 @@ local function SetupBaseArgs(base_path)
     }
 end
 
-require("uuid").seed()
 local base_path = path.abspath(path.normpath(path.dirname(arg[0]) .. "/../../"))
 SetupPath(base_path)
 

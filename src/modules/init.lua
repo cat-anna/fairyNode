@@ -60,7 +60,9 @@ function M.LoadModuleDefs(module_dirs)
                 -- print("init returned nil", v.init)
             else
                 UpdateModuleDef(proto, result)
-                print("found module", result.name)
+                -- if self.verbose then
+                    -- print("found module", result.name)
+                -- end
                 modules[proto.name] = result
             end
         end

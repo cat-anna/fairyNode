@@ -19,7 +19,7 @@ local OTA_COMPONENT_FILE = {
 }
 
 local function sha256(data)
-    local sha2 = require "lib/sha2"
+    local sha2 = require "fairy_node/sha2"
     return sha2.sha256(data):lower()
 end
 

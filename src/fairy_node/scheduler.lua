@@ -46,10 +46,41 @@ function Scheduler.Sleep(timeout)
     end
 end
 
+function Scheduler.CurrentThread()
+    local current = coroutine.running()
+    return current
+end
+
+function Scheduler.SuspendCurrentThread()
+    copas.pauseforever()
+end
+
+function Scheduler.ResumeThread(thread)
+    Scheduler.CallLater(function ()
+        copas.wakeup(thread)
+    end)
+end
+
 -------------------------------------------------------------------------------
 
 local Task = { }
 Task.__index = Task
+
+local function TaskTick(timer_obj, task)
+    task.run_count = task.run_count + 1
+    task.last_runtime = gettime()
+
+    local before = gettime()
+    SafeCall(task.callback, task.owner, task)
+    local after = gettime()
+
+    local dt = (after - before)
+    task.total_runtime = task.total_runtime + dt
+    task.max_runtime = max(task.max_runtime, dt)
+    if not task.opts.recurring then
+        task.completed = true
+    end
+end
 
 function Task:__gc()
     if self.timer then
@@ -70,6 +101,10 @@ function Task:Stop()
     self.scheduler:CancelTask(self)
 end
 
+function Task:IsCompleted()
+    return self.completed
+end
+
 function Task:SetInterval(interval)
     self.timer:cancel()
     local opts = {
@@ -78,25 +113,20 @@ function Task:SetInterval(interval)
         delay = interval,
         initial_delay = interval,
         params = self,
-        callback = Task.Tick,
+        callback = TaskTick,
     }
+    self.completed = nil
+    self.opts = opts
     self.timer = copas_timer.new(opts)
 end
 
-function Task.Tick(timer_obj, task)
-    task.run_count = task.run_count + 1
-    task.last_runtime = gettime()
-
-    local before = gettime()
-    SafeCall(task.callback, task.owner, task)
-    local after = gettime()
-
-    local dt = (after - before)
-    task.total_runtime = task.total_runtime + dt
-    task.max_runtime = max(task.max_runtime, dt)
-end
-
 function Scheduler:CreateTask(owner, name, interval, func)
+
+    if type(interval) == "function" then
+        func = interval
+        interval = 0
+    end
+
     local t = {
         uuid = uuid(),
         owner = owner,
@@ -117,11 +147,12 @@ function Scheduler:CreateTask(owner, name, interval, func)
         delay = interval,
         initial_delay = interval,
         params = t,
-        callback = Task.Tick,
+        callback = TaskTick,
     }
 
     local timer = copas_timer.new(opts)
     t.timer = timer
+    t.opts = opts
     self.tasks[t.uuid] = t
     setmetatable(t, Task)
 
@@ -135,7 +166,6 @@ function Scheduler:CancelTask(t)
         t.timer = nil
     end
 end
-
 
 function Scheduler:CreateTaskSequence(owner, name, interval, sequence, arg)
     local state = {

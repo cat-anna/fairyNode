@@ -1,5 +1,6 @@
 -- local scheduler = require "fairy_node/scheduler"
 local loader_module = require "fairy_node/loader-module"
+local loader_class = require "fairy_node/loader-class"
 
 -------------------------------------------------------------------------------------
 
@@ -35,6 +36,13 @@ function Module:Shutdown()
     Module.super.Shutdown(self)
 end
 
+function Module:StartSystemTick()
+    loader_module:RegisterSystemTick(self)
+end
+
+function Module:OnSystemTick()
+end
+
 -------------------------------------------------------------------------------------
 
 function Module:EmitEvent(event, arg)
@@ -45,6 +53,18 @@ function Module:EmitEvent(event, arg)
         sender = self,
         argument = arg or { }
     })
+end
+
+-------------------------------------------------------------------------------------
+
+function Module:CreateSubObject(sub_class, opt)
+    opt = opt or { }
+    opt.module_prefix = self.module_prefix
+    opt.module_owner = self
+    return loader_class:CreateObject(
+        string.format("%s/%s", self.module_prefix, sub_class),
+        opt
+    )
 end
 
 -------------------------------------------------------------------------------------

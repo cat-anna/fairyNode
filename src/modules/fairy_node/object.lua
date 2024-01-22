@@ -151,6 +151,12 @@ function Object:StopTask(name)
 end
 
 function Object:AddTask(name, interval, func)
+
+    if type(interval) == "function" then
+        func = interval
+        interval = 0
+    end
+
     self.tasks = self.tasks or { }
 
     if self.tasks[name] then
@@ -162,6 +168,27 @@ function Object:AddTask(name, interval, func)
     self.tasks[name] = task
 
     return task
+end
+
+function Object:RemoveCompletedTasks()
+    if self.tasks then
+        for _,key in ipairs(tablex.keys(self.tasks)) do
+            local task = self.tasks[key]
+            if task:IsCompleted() then
+                self.tasks[key] = nil
+                printf(self, "Removing completed task '%s'", task.name)
+                task:Stop()
+            end
+        end
+    end
+end
+
+function Object:GetTaskCount()
+    local count = 0
+    for _,_ in pairs(self.tasks or {}) do
+        count = count + 1
+    end
+    return count
 end
 
 -------------------------------------------------------------------------------------

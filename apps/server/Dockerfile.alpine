@@ -24,8 +24,6 @@ RUN \
 RUN mkdir -p /service/run /service/fairyNode/src/
 
 RUN apk --update add nginx supervisor
-ENV TZ=Europe/Warsaw
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 COPY --from=build_box /service/frontend/dist /service/frontend
 COPY . /service/fairyNode/

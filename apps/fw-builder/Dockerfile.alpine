@@ -1,0 +1,26 @@
+FROM fairy_node_base:latest
+
+# lua5.3-mosquitto lua5.3-lzmq
+
+RUN \
+    apk --update add make git gcc musl-dev && \
+    true
+
+# RUN \
+    # apk --update add mongo-c-driver git musl-dev lua5.3-dev gcc mongo-c-driver-dev && \
+    # luarocks-5.3 install restserver  && \
+    # luarocks-5.3 install restserver-xavante  && \
+    # luarocks-5.3 install wsapi && \
+    # luarocks-5.3 install wsapi-xavante && \
+    # luarocks-5.3 install xavante && \
+    # luarocks-5.3 install lua-mongo && \
+    # apk del '*-dev' gcc && \
+    # true
+
+# RUN mkdir -p /service/run /service/fairyNode/src/
+
+# COPY . /service/fairyNode/
+
+EXPOSE 8080/tcp
+WORKDIR /service
+ENTRYPOINT ["lua5.3", "/service/fairyNode/apps/fw-builder/entry.lua"]

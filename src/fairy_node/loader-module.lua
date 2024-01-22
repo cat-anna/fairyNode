@@ -7,6 +7,7 @@ local config_handler = require "fairy_node/config-handler"
 local loader_class = require "fairy_node/loader-class"
 local scheduler = require "fairy_node/scheduler"
 
+
 -------------------------------------------------------------------------------
 
 local ModuleStatus = {
@@ -280,6 +281,27 @@ end
 
 -------------------------------------------------------------------------------
 
+local function CallModuleTick(target)
+    if target.started then
+        target:OnSystemTick()
+    end
+end
+
+function ModuleLoader:RegisterSystemTick(target)
+    self.system_tick_handlers[target.uuid] = target
+
+    if not self.system_tick_task then
+        self.system_tick_task = scheduler:CreateTask(self, "System tick", 0.1, function ()
+            for _,target_module in pairs(self.system_tick_handlers) do
+                SafeCall(CallModuleTick, target_module)
+            end
+        end)
+    end
+end
+
+
+-------------------------------------------------------------------------------
+
 function ModuleLoader:UpdateTask(task)
     local done = self:Update()
     local debug = self.debug
@@ -380,7 +402,10 @@ end
 -------------------------------------------------------------------------------
 
 return setmetatable({
+    uuid = uuid(),
     loaded_modules = { },
     watchers = { },
     current_status = ModuleStatus.New,
+
+    system_tick_handlers = table.weak_keys(),
 }, ModuleLoader)

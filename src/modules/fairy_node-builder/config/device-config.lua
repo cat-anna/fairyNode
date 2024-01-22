@@ -1,13 +1,13 @@
 
 local path = require "pl.path"
 local file = require "pl.file"
-local json = require "json"
-local md5 = require "md5"
+local json = require "rapidjson"
+-- local md5 = require "md5"
 local pretty = require 'pl.pretty'
-local file_image = require "lib/file-image"
-local shell = require "lib/shell"
+local file_image = require "fairy_node/tools/file-image"
+local shell = require "fairy_node/shell"
 local tablex = require "pl.tablex"
-local stringx = require "pl.stringx"
+-- local stringx = require "pl.stringx"
 local lfs = require "lfs"
 
 -------------------------------------------------------------------------------------
@@ -15,7 +15,7 @@ local lfs = require "lfs"
 local CONFIG_HASH_NAME = "config_hash.cfg"
 
 local function sha256(data)
-    local sha2 = require "lib/sha2"
+    local sha2 = require "fairy_node/sha2"
     return sha2.sha256(data):lower()
 end
 
@@ -27,8 +27,11 @@ end
 -------------------------------------------------------------------------------------
 
 local DeviceConfig = { }
+DeviceConfig.__type = "class"
 
 function DeviceConfig:Init(arg)
+    DeviceConfig.super.Init(self, arg)
+
     self.project = arg.project
     self.chip = arg.chip
     self.owner = arg.owner
@@ -253,7 +256,7 @@ end
 function DeviceConfig:BuildLFS(luac)
     if not luac then error("LFS compiler is not available") end
 
-    local generated_storage = require("lib/file-temp-storage").new()
+    local generated_storage = require("fairy_node/tools/file-temp-storage").new()
 
     local fileList = {}
     local generateList = {}
