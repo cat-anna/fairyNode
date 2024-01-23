@@ -9,7 +9,9 @@ local SET_INTERNAL_ENVIRONMENT = "internal.environment"
 -------------------------------------------------------------------------------
 
 local ConfigHandler = { }
+ConfigHandler.__tag = "ConfigHandler"
 ConfigHandler.__index = ConfigHandler
+
 ConfigHandler.__default_config = {
     ["debug"] = { default = false, type = "boolean", },
     ["verbose"] = { default = false, type = "boolean", },
@@ -108,11 +110,11 @@ function ConfigHandler:QueryConfigItem(config_item, query_args)
 
     query_args = query_args or {}
     local merge = query_args.mode == "merge"
-    local v = query_args.default
+    local v
     local found = false
 
     if merge then
-        assert(type(v) == "table")
+        v = { }
     end
 
     for _,layer in ipairs(self.config_layers) do
@@ -124,6 +126,12 @@ function ConfigHandler:QueryConfigItem(config_item, query_args)
             else
                 v = lv
             end
+        end
+    end
+
+    if (not found) then
+        if query_args.default then
+            v = query_args.default
         end
     end
 
@@ -140,6 +148,9 @@ function ConfigHandler:AttachModuleParameters(module_name, parameters)
         v.origin = module_name
         assert(self.parameter_definitions[k] == nil)
         self.parameter_definitions[k] = v
+        if self.verbose then
+            print(self, "Attch mod args:", module_name, k)
+        end
     end
 end
 

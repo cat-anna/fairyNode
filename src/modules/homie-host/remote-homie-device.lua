@@ -27,11 +27,12 @@ function HomieRemoteDevice:Init(config)
     self.homie_controller = config.homie_controller
     self.state = homie_state.init
     self.fairy_node_mode = config.fairy_node_mode
+    self.homie_prefix = config.homie_prefix
 
     assert(self.fairy_node_mode)
 
     self.mqtt = require("modules/homie-common/homie-mqtt"):New({
-        base_topic = config.base_topic,
+        base_topic = { self.homie_prefix, self.id },
         owner = self,
     })
 end

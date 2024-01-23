@@ -15,7 +15,11 @@ function HomieLocalNodeProxy:Init(config)
     self.id = config.id
     self.homie_client = config.homie_client
     self.target_component = config.target_component
-    self.base_topic = config.base_topic
+
+    self.mqtt = require("modules/homie-common/homie-mqtt"):New({
+        base_topic = config.base_topic,
+        owner = self,
+    })
 
     assert(self.target_component)
     self:ResetProxies()
@@ -40,7 +44,7 @@ function HomieLocalNodeProxy:ResetProxies()
             node_proxy = self,
             target_property = property,
             id = id,
-            base_topic = self:Topic(id)
+            base_topic = self.mqtt:Topic(id)
         })
         self.proxies[id] = proxy
     end
@@ -63,7 +67,7 @@ end
 
 function HomieLocalNodeProxy:PushMessage(q, topic, payload, retain)
     table.insert(q, {
-        topic = self:Topic(topic),
+        topic = self.mqtt:Topic(topic),
         payload = payload,
         retain = (retain or retain == nil) and true or false,
         qos = self:GetQos(),

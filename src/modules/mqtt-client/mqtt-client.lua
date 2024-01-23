@@ -333,9 +333,11 @@ function MqttClient:WatchRegex(target, handler, topics, single_shot)
 
     for _,mqtt_regex in ipairs(topics) do
         if not self.regex_watchers[mqtt_regex] then
+            local lua_regex = topic2regexp(mqtt_regex)
             self.regex_watchers[mqtt_regex] = {
-                regex = topic2regexp(mqtt_regex)
+                regex = lua_regex,
             }
+            -- print(self, "WATCH REGEX", mqtt_regex, lua_regex)
         end
 
         local entry = self.regex_watchers[mqtt_regex]

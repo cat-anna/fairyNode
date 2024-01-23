@@ -5,13 +5,13 @@ M.name = "homie common"
 -- M.description = ""
 M.depends = {
 }
-M.config = { }
+M.config = {
+}
 
 M.parameters = {
 }
 
 M.submodules = {
-    -- ["server"] = { mandatory = true, },
 }
 
 -- M.exported_config = {

@@ -1,6 +1,3 @@
--- local json = require "rapidjson"
--- local loader_class = require "lib/loader-class"
--- local loader_module = require "lib/loader-module"
 local scheduler = require "fairy_node/scheduler"
 local class = require "fairy_node/class"
 
@@ -17,6 +14,7 @@ function DeviceConstructor:Init(opt)
     self.homie_version = opt.homie_version
     self.homie_host = opt.homie_host
     self.device_name = opt.device_name
+    self.homie_prefix = opt.homie_prefix
 
     self.mqtt:WatchTopic("$fw/FairyNode/mode", self.HandleMode, true)
 
@@ -39,7 +37,7 @@ function DeviceConstructor:CreateDevice()
         return
     end
     self.device_created = true
-    self.homie_host:CreateDevice(self.homie_version, self.device_name, self.device_mode)
+    self.homie_host:CreateDevice(self)
 end
 
 -------------------------------------------------------------------------------
@@ -51,7 +49,6 @@ HomieHost.__deps = {
     mqtt_client = "mqtt-client",
     device_manager = "manager-device",
 }
-HomieHost.__config = { }
 
 ------------------------------------------------------------------------------
 
@@ -63,19 +60,24 @@ function HomieHost:Init(opt)
     self.pending_deices = { }
 
     self.mqtt = require("modules/homie-common/homie-mqtt"):New({
-        base_topic = "homie",
+        base_topic = nil,
         owner = self,
     })
 end
 
 function HomieHost:PostInit()
     HomieHost.super.PostInit(self)
-    self.mqtt_client:AddSubscription(self, self.mqtt:Topic("#"))
+    for _,v in ipairs(self.config.homie_prefix) do
+        self.mqtt_client:AddSubscription(self, self.mqtt:Topic(v, "#"))
+    end
 end
 
 function HomieHost:StartModule()
     HomieHost.super.StartModule(self)
-    self.mqtt:WatchRegex("+/$homie", self.AddDevice)
+    for _,v in ipairs(self.config.homie_prefix) do
+        print(self, "WATCH ", v)
+        self.mqtt:WatchRegex(v .. "/+/$homie", self.AddDevice)
+    end
 end
 
 ------------------------------------------------------------------------------
@@ -87,10 +89,13 @@ end
 ------------------------------------------------------------------------------
 
 function HomieHost:AddDevice(topic, payload, timestamp)
-    local device_name = topic:match("homie/([^.]+)/$homie")
+    local homie_prefix, device_name = topic:match("([^/]+)/([^/]+)/$homie")
+    if (not homie_prefix) or (not device_name) then
+        print(self, "Got invalid device $homie topic: ", topic)
+        return
+    end
 
     if self.config.hostname == device_name then
-        print(self, "Skipping local device", device_name)
         return
     end
 
@@ -102,7 +107,8 @@ function HomieHost:AddDevice(topic, payload, timestamp)
         homie_host = self,
         homie_version = payload,
         device_name = device_name,
-        base_topic = self.mqtt:Topic(device_name)
+        homie_prefix = homie_prefix,
+        base_topic = self.mqtt:Topic(homie_prefix, device_name)
     })
 
     self.pending_deices[device_name] = constructor
@@ -110,9 +116,16 @@ end
 
 ------------------------------------------------------------------------------
 
-function HomieHost:CreateDevice(homie_version, device_name, device_mode)
+function HomieHost:CreateDevice(constructor)
+    local device_mode = constructor.device_mode
+    local device_name = constructor.device_name
+    local homie_prefix = constructor.homie_prefix
+    local homie_version = constructor.homie_version
 
-    print(self, "CreateDevice", homie_version, device_name, device_mode)
+    print(self, "Creating device", homie_version, homie_prefix, device_name, device_mode)
+
+    assert(constructor.homie_prefix)
+    assert(constructor.homie_version)
 
     device_mode = device_mode or "generic"
     device_mode = device_mode:lower()
@@ -130,9 +143,9 @@ function HomieHost:CreateDevice(homie_version, device_name, device_mode)
         homie_controller = self,
         id = device_name,
         homie_version = homie_version,
+        homie_prefix = homie_prefix,
         fairy_node_mode = device_mode,
         class = mode_class[device_mode] or mode_class.generic,
-        base_topic = self.mqtt:Topic(device_name),
     }
 
     local dev = self.device_manager:CreateDevice(proto)

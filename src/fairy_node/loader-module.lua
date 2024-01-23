@@ -189,6 +189,12 @@ function ModuleLoader:LoadBaseModule(name)
         print(self, "Unknown base module:", name)
         return
     end
+    for _,v in ipairs(definition.depends or {}) do
+        if self.verbose then
+            printf(self, "Loading module %s - dependency %s", name, v)
+        end
+        self:LoadModule(v)
+    end
 
     if self.verbose then
         printf(self, "Loading module %s", name)
@@ -206,7 +212,6 @@ function ModuleLoader:LoadBaseModule(name)
     if definition.exported_config then
         config_handler:SetPackageConfig(name, definition.exported_config)
     end
-
 
     if definition.has_master_module then
         self:InstantiateModule(mod_def)

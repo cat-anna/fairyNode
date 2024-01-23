@@ -16,7 +16,7 @@ HomieClient.__index = HomieClient
 HomieClient.__tag = "HomieClient"
 HomieClient.__type = "module"
 HomieClient.__deps = {
-    mqtt = "mqtt-client",
+    mqtt_client = "mqtt-client",
     device_manager = "manager-device",
 }
 HomieClient.__config = { }
@@ -28,7 +28,7 @@ function HomieClient:Init(opt)
 
     self.client_name = self.config.hostname
     self.global_id = self.client_name
-    self.base_topic = "homie/" .. self.client_name
+
     self.client_mode = "client"
 
     self.node_proxies = { }
@@ -36,8 +36,13 @@ function HomieClient:Init(opt)
     self.state_machine = require("modules/homie-client/client-fsm")
     self.state_machine.homie_client = self
 
-    self.mqtt:SetLastWill{
-        topic = self:Topic("$state"),
+    self.mqtt = require("modules/homie-common/homie-mqtt"):New({
+        base_topic = { self.config.homie_prefix, self.client_name },
+        owner = self,
+    })
+
+    self.mqtt_client:SetLastWill{
+        topic = self.mqtt:Topic("$state"),
         payload = homie_state.lost,
         retain = self.retained,
         qos = self.qos,
@@ -47,12 +52,14 @@ end
 function HomieClient:PostInit()
     HomieClient.super.PostInit(self)
 
-    self.mqtt:AddSubscription(self, self:Topic("#"))
+    self.mqtt_client:AddSubscription(self, self.mqtt:Topic("#"))
 
     local host = loader_module:GetModule("homie/homie-host")
     if host then
         self.client_mode = "host"
         host:SetLocalClient(self)
+    else
+        self.client_mode = "client"
     end
 end
 
@@ -77,7 +84,7 @@ end
 function HomieClient:SendProtocolState(protocol_state)
     local q = { }
     self:PushMessage(q, "$state", protocol_state)
-    self:BatchPublish(q, function ()
+    self.mqtt:BatchPublish(q, function ()
         scheduler.Sleep(0.1)
         self.state_machine:SendCompleted()
     end)
@@ -91,7 +98,7 @@ function HomieClient:SendInfoMessages()
     self:PushMessage(q, "$fw/FairyNode/version", "0.1.0")
     self:PushMessage(q, "$fw/FairyNode/mode", self:GetClientMode())
     -- self:PushMessage(q, "$fw/FairyNode/os", "linux")
-    self:BatchPublish(q, function ()
+    self.mqtt:BatchPublish(q, function ()
         scheduler.Sleep(0.1)
         self.state_machine:SendCompleted()
     end)
@@ -104,7 +111,7 @@ function HomieClient:SendNodeMessages()
     end
 
     self:PushMessage(q, "$nodes", table.concat(table.sorted_keys(self.node_proxies), ","))
-    self:BatchPublish(q, function ()
+    self.mqtt:BatchPublish(q, function ()
         scheduler.Sleep(0.1)
         self.state_machine:SendCompleted()
     end)
@@ -120,7 +127,7 @@ function HomieClient:ResetProxies()
             homie_client = self,
             target_component = component,
             id = id,
-            base_topic = self:Topic(id)
+            base_topic = self.mqtt:Topic(id)
         })
         if not proxy:IsReady() then
             return false
@@ -136,32 +143,11 @@ end
 
 function HomieClient:PushMessage(q, topic, payload, retain)
     table.insert(q, {
-        topic = self:Topic(topic),
+        topic = self.mqtt:Topic(topic),
         payload = payload,
         retain = (retain or retain == nil) and true or false,
         qos = self:GetQos(),
     })
-end
-
-function HomieClient:BatchPublish(queue, callback)
-    self.mqtt:BatchPublish(queue, callback)
-end
-
-function HomieClient:Publish(sub_topic, payload, retain)
-    retain = (retain or retain == nil) and true or false
-    local topic = self:Topic(sub_topic)
-    if self.verbose then
-        print(self, "Publishing:", topic, "=", payload)
-    end
-    self.mqtt:Publish(topic, payload, retain, self:GetQos())
-end
-
-function HomieClient:Topic(t)
-    if not t then
-        return self.base_topic
-    else
-        return string.format("%s/%s", self.base_topic, t)
-    end
 end
 
 function HomieClient:GetQos()

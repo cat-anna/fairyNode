@@ -23,39 +23,56 @@ local HomieMqtt = class.Class("HomieMqtt")
 
 function HomieMqtt:Init(config)
     self.mqtt_client = loader_module:GetModule("mqtt-client")
-    self.base_topic = config.base_topic
+
+    if type(config.base_topic) == "table" then
+        self.base_topic = table.concat(config.base_topic, "/")
+    else
+        self.base_topic = config.base_topic
+    end
+
     self.owner = config.owner
     self.qos = config.qos
 
     assert(self.owner)
-    assert(self.base_topic)
 end
 
 -------------------------------------------------------------------------------------
 
 function HomieMqtt:WatchTopic(topic, handler, single_shot)
-    self.mqtt_client:WatchTopic(self.owner, WatchFunctor(handler), self:Topic(topic), single_shot)
+    self.mqtt_client:WatchTopic(
+        self.owner,
+        WatchFunctor(handler),
+        self:Topic(topic),
+        single_shot
+    )
 end
 
 function HomieMqtt:WatchRegex(topic, handler, single_shot)
-    self.mqtt_client:WatchRegex(self.owner, WatchFunctor(handler), self:Topic(topic), single_shot)
+    self.mqtt_client:WatchRegex(
+        self.owner,
+        WatchFunctor(handler),
+        self:Topic(topic),
+        single_shot
+    )
 end
 
 function HomieMqtt:StopWatching()
     self.mqtt_client:StopWatching(self.owner)
 end
 
-function HomieMqtt:Topic(sub_topic)
-    assert(self.base_topic)
-    if sub_topic then
-        return string.format("%s/%s", self.base_topic, sub_topic)
+function HomieMqtt:Topic(...)
+    local sub_topics
+    if self.base_topic then
+        sub_topics = { self.base_topic, ... }
     else
-        return self.base_topic
+        sub_topics = { ... }
     end
+
+    return table.concat(sub_topics, "/")
 end
 
-function HomieMqtt:BatchPublish(q)
-    self.mqtt_client:BatchPublish(q)
+function HomieMqtt:BatchPublish(q, cb)
+    self.mqtt_client:BatchPublish(q, cb)
 end
 
 function HomieMqtt:Publish(sub_topic, payload, retain)

@@ -11,13 +11,15 @@ M.depends = {
 }
 M.config = {
     hostname = "hostname",
+
+    homie_prefix = "module.homie-host.prefix",
 }
 
 M.parameters = {
+    [M.config.homie_prefix] = {  mode = "merge", type = "string-table", default = { "homie" } },
 }
 
 M.submodules = {
--- ["server"] = { mandatory = true, },
 }
 
 -- M.exported_config = {

@@ -6,9 +6,7 @@ local formatting = require("modules/homie-common/formatting")
 local HomieLocalPropertyProxy = {}
 HomieLocalPropertyProxy.__name = "HomieLocalPropertyProxy"
 HomieLocalPropertyProxy.__type = "class"
-HomieLocalPropertyProxy.__deps = {
-    mqtt = "mqtt-client",
-}
+HomieLocalPropertyProxy.__deps = { }
 
 -------------------------------------------------------------------------------------
 
@@ -19,12 +17,16 @@ function HomieLocalPropertyProxy:Init(config)
     self.homie_client = config.homie_client
     self.node_proxy = config.node_proxy
     self.target_property = config.target_property
-    self.base_topic = config.base_topic
+
+    self.mqtt = require("modules/homie-common/homie-mqtt"):New({
+        base_topic = config.base_topic,
+        owner = self,
+    })
 
     assert(self.target_property)
     self.target_property:Subscribe(self, self.OnPropertyChanged)
 
-    self:WatchTopic("set", self.OnHomieSet)
+    self.mqtt:WatchTopic("set", self.OnHomieSet)
 end
 
 -------------------------------------------------------------------------------------
@@ -61,23 +63,11 @@ end
 
 function HomieLocalPropertyProxy:PushMessage(q, topic, payload, retain)
     table.insert(q, {
-        topic = self:Topic(topic),
+        topic = self.mqtt:Topic(topic),
         payload = payload,
         retain = (retain or retain == nil) and true or false,
         qos = self:GetQos(),
     })
-end
-
-function HomieLocalPropertyProxy:Topic(t)
-    if not t then
-        return self.base_topic
-    else
-        return string.format("%s/%s", self.base_topic, t)
-    end
-end
-
-function HomieLocalPropertyProxy:WatchTopic(topic, handler)
-    self.mqtt:WatchTopic(self, handler, self:Topic(topic))
 end
 
 function HomieLocalPropertyProxy:GetQos()

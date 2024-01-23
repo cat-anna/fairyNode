@@ -10,9 +10,14 @@ M.depends = {
 }
 M.config = {
     hostname = "hostname",
+
+    homie_prefix  = "module.homie-client.prefix",
 }
 
-M.parameters = {}
+M.parameters = {
+    [M.config.homie_prefix] = { type = "string", default = "homie", },
+}
+
 M.submodules = {
 }
 
