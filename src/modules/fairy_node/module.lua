@@ -96,6 +96,7 @@ function Module:SetupDatabase(opt)
     if (not self.mongo_collections["_"]) or opt.default then
         self.mongo_collections["_"] = entry
     end
+    return entry
 end
 
 function Module:GetDatabase(name)

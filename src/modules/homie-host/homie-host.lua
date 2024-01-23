@@ -70,11 +70,19 @@ function HomieHost:PostInit()
     for _,v in ipairs(self.config.homie_prefix) do
         self.mqtt_client:AddSubscription(self, self.mqtt:Topic(v, "#"))
     end
+
 end
 
 function HomieHost:StartModule()
     HomieHost.super.StartModule(self)
-    for _,v in ipairs(self.config.homie_prefix) do
+
+    self:SetupDatabase({
+        default = true,
+        name = "state",
+        index = "global_id",
+    })
+
+     for _,v in ipairs(self.config.homie_prefix) do
         print(self, "WATCH ", v)
         self.mqtt:WatchRegex(v .. "/+/$homie", self.AddDevice)
     end
@@ -138,9 +146,10 @@ function HomieHost:CreateDevice(constructor)
         generic     = "homie-host/remote-homie-device",
     }
 
+    local db = self:GetDatabase()
+
     local proto = {
         group = "homie",
-        homie_controller = self,
         id = device_name,
         homie_version = homie_version,
         homie_prefix = homie_prefix,
@@ -148,10 +157,21 @@ function HomieHost:CreateDevice(constructor)
         class = mode_class[device_mode] or mode_class.generic,
     }
 
+    local db_entry = table.shallow_copy(proto)
+    proto.homie_controller = self
+    proto.database = db
+
     local dev = self.device_manager:CreateDevice(proto)
     self.devices[device_name] = dev
     self.pending_deices[device_name] = nil
     dev:StartDevice()
+
+    if db then
+        db_entry.global_id = dev:GetGlobalId()
+        db_entry.type = "device"
+        db_entry.timestamp = os.timestamp()
+        db:InsertOrReplace({ global_id = db_entry.global_id }, db_entry)
+    end
 end
 
 ------------------------------------------------------------------------------

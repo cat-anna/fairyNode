@@ -57,6 +57,9 @@ function BaseComponent:GetOwnerDevice()
     return self.owner_device
 end
 
+function BaseComponent:GetOwnerDeviceId()
+    return self.owner_device:GetId()
+end
 
 function BaseComponent:IsReady()
     if not self.ready then

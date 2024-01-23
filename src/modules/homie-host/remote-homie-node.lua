@@ -20,6 +20,7 @@ function HomieRemoteNode:Init(config)
     HomieRemoteNode.super.Init(self, config)
     self.homie_controller = config.homie_controller
     self.persistence = true
+    self.database = config.database
 
     assert(self.homie_controller)
 
@@ -65,7 +66,19 @@ function HomieRemoteNode:HandleNodeProperties(topic, payload)
             class = self:GetPropertyClass(prop_id),
         }
 
-        self:AddProperty(opt)
+        local db_entry = table.shallow_copy(opt)
+
+        local property = self:AddProperty(opt)
+
+        if self.database then
+            db_entry.global_id = property:GetGlobalId()
+            db_entry.type = "property"
+            db_entry.component = self:GetId()
+            db_entry.device = self:GetOwnerDeviceId()
+            db_entry.timestamp = os.timestamp()
+            db_entry.history_db = property:GetDatabaseId()
+            self.database:InsertOrReplace({ global_id = db_entry.global_id }, db_entry)
+        end
     end
 
     for _,prop_id in ipairs(Set.values(to_delete)) do

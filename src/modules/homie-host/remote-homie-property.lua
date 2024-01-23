@@ -18,6 +18,7 @@ end
 function HomieRemoteProperty:Init(config)
     HomieRemoteProperty.super.Init(self, config)
     self.persistence = true
+    self.database = config.database
 
     self.mqtt = require("modules/homie-common/homie-mqtt"):New({
         base_topic = config.base_topic,

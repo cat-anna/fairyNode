@@ -28,6 +28,7 @@ function HomieRemoteDevice:Init(config)
     self.state = homie_state.init
     self.fairy_node_mode = config.fairy_node_mode
     self.homie_prefix = config.homie_prefix
+    self.database = config.database
 
     assert(self.fairy_node_mode)
 
@@ -205,15 +206,27 @@ function HomieRemoteDevice:HandleNodes(topic, payload)
     for _,node_id in ipairs(Set.values(to_create)) do
         local proto = {
             id = node_id,
-            global_id = self:GetGlobalId() .. "." .. node_id,
-            homie_controller = self.homie_controller,
+            -- global_id = self:GetGlobalId() .. "." .. node_id,
+
             base_topic = self.mqtt:Topic(node_id),
 
             component_type = "remote", -- TODO
 
             class = self:GetNodeClass(node_id),
         }
-        self:AddComponent(proto)
+        local db_entry = table.shallow_copy(proto)
+
+        proto.homie_controller = self.homie_controller
+        proto.database = self.database
+        local component = self:AddComponent(proto)
+
+        if self.database then
+            db_entry.global_id = component:GetGlobalId()
+            db_entry.type = "component"
+            db_entry.device = self:GetId()
+            db_entry.timestamp = os.timestamp()
+            self.database:InsertOrReplace({ global_id = db_entry.global_id }, db_entry)
+        end
     end
 
     for _,node_id in ipairs(Set.values(to_delete)) do
