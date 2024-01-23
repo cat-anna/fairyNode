@@ -184,8 +184,15 @@ function HomieClient:HandleMqttConnected()
     self.state_machine:MqttConnected()
 end
 
-function HomieClient:ResetStateByEvent()
-    self.state_machine:Reset()
+function HomieClient:ResetStateByEvent(event)
+    local arg = event.argument
+    if not arg.device then
+        return
+    end
+
+    if arg.device.IsLocal() then
+        self.state_machine:Reset()
+    end
 end
 
 -------------------------------------------------------------------------------

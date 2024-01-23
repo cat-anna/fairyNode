@@ -55,14 +55,22 @@ function ComponentManager:CreateComponent(comp_proto)
     assert(self.components_by_id[gid] == nil)
     self.components_by_id[gid] = component
 
-    self:EmitEvent("component", { action="add", component = component })
+    self:EmitEvent("component", {
+        action = "add",
+        device = component:GetOwnerDevice(),
+        component = component,
+    })
 
     return component
 end
 
 function ComponentManager:DeleteCompnent(component)
     print(self, "TODO")
-    self:EmitEvent("component", { action="remove", component = component })
+    self:EmitEvent("component", {
+        action = "remove",
+        device = component:GetOwnerDevice(),
+        component = component,
+     })
     self.components_by_id[component:GetGlobalId()] = nil
 end
 

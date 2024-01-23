@@ -53,14 +53,24 @@ function PropertyManager:CreateProperty(prop_proto)
     assert(self.properties_by_id[gid] == nil)
     self.properties_by_id[gid] = property
 
-    self:EmitEvent("property", { action="add", property = property })
+    self:EmitEvent("property", {
+        action = "add",
+        device = property:GetOwnerDevice(),
+        component = property:GetOwnerComponent(),
+        property = property,
+    })
 
     return property
 end
 
 function PropertyManager:DeleteProperty(property)
     print(self, "TODO")
-    self:EmitEvent("property", { action="remove", property = property })
+    self:EmitEvent("property", {
+        action = "remove",
+        device = property:GetOwnerDevice(),
+        component = property:GetOwnerComponent(),
+        property = property,
+    })
     self.properties_by_id[property:GetGlobalId()] = nil
 end
 

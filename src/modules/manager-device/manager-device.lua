@@ -71,7 +71,10 @@ function DeviceManager:CreateDevice(dev_proto)
     assert(self.devices[dev_proto.id] == nil)
     self.devices[dev_proto.id] = dev
 
-    self:EmitEvent("device", { action = "add", device = dev })
+    self:EmitEvent("device", {
+        action = "add",
+        device = dev,
+    })
 
     return dev
 end

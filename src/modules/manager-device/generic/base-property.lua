@@ -56,6 +56,15 @@ function BaseProperty:GetOwnerComponentName()
     return self.owner_component:GetName()
 end
 
+function BaseProperty:GetOwnerComponent()
+    return self.owner_component
+end
+
+function BaseProperty:GetOwnerDevice()
+    return self.owner_component:GetOwnerDevice()
+end
+
+
 function BaseProperty:WantsPersistence()
     if self.persistence == nil then
         return self.owner_component:WantsPersistence()

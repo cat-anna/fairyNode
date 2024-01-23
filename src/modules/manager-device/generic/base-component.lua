@@ -53,6 +53,11 @@ function BaseComponent:GetOwnerDeviceName()
     return self.owner_device:GetName()
 end
 
+function BaseComponent:GetOwnerDevice()
+    return self.owner_device
+end
+
+
 function BaseComponent:IsReady()
     if not self.ready then
         return false
