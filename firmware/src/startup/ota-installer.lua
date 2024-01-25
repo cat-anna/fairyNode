@@ -143,6 +143,7 @@ local function StartInstall()
         return
     end
     if file.exists(CONFIG_PENDING_FILE) then
+        file.remove("debug.cfg") --TODO, this is a hack
         if not InstallImage(CONFIG_PENDING_FILE, CONFIG_CURRENT_FILE) then
             print("OTA: Installation failed")
             file.remove(CONFIG_PENDING_FILE)
