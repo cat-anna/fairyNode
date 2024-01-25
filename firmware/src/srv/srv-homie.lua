@@ -2,8 +2,15 @@
 local NodeObject = {}
 NodeObject.__index = NodeObject
 
-function NodeObject:SetValue(property, value)
-    self.controller:PublishNodePropertyValue(self.name, property, value)
+function NodeObject:SetValue(property, value, retain)
+    local retain_value = retain
+    if debugMode then
+        retain_value = false
+    end
+    self.controller:PublishNodePropertyValue(self.name, property, value, retain_value and true or false)
+    if retain then
+        self.controller:PublishNodePropertyValue(self.name, property, value, retain_value)
+    end
 end
 
 -------------------------------------------------------------------------------------
@@ -35,13 +42,13 @@ function Module:RestartProtocol()
 end
 
 function Module:SetState(state)
-    return self:Publish("$state", state)
+    return self:PublishInfo("$state", state)
 end
 
 function Module:OnControllerReady()
     self:PublishExtendedInfo()
 
-    self:Publish("$nodes", table.concat(self.nodes, ","))
+    self:PublishInfo("$nodes", table.concat(self.nodes, ","))
     self.nodes = nil
 
     self.mqtt:Subscribe({
@@ -53,40 +60,56 @@ function Module:OnControllerReady()
     self:SetState("ready")
 end
 
+function Module:HandlePropertySet(topic,node_name, prop_name, payload)
+    print("HOMIE: Node set", node_name, prop_name, payload)
+
+    local full_node_name = string.format("%s.%s", node_name, prop_name)
+    local handler = self.settable[full_node_name]
+    if handler then
+        print("HOMIE: Importing value", full_node_name, "=", payload)
+        handler:ImportValue(topic, payload, node_name, prop_name)
+    else
+        print("HOMIE: Cannot import, not a settable value", full_node_name, "=", payload)
+    end
+end
+
 -------------------------------------------------------------------------------------
 
-function Module:PublishBaseInfo()
-    self:Publish("$homie", "4.0.0")
+function Module:PublishInfo(sub_topic, payload)
+    self:Publish(sub_topic, payload, not debugMode)
+end
 
+function Module:PublishBaseInfo()
     self:SetState("init")
+    self:PublishInfo("$homie", "4.0.0")
 
     local sta = wifi.sta
-    self:Publish("$name", sta.gethostname())
-    self:Publish("$localip", sta.getip() or "")
-    self:Publish("$mac", sta.getmac() or "")
+    self:PublishInfo("$name", sta.gethostname())
+    self:PublishInfo("$localip", sta.getip() or "")
+    self:PublishInfo("$mac", sta.getmac() or "")
 
-    self:Publish("$implementation", "FairyNode")
-    self:Publish("$fw/name", "FairyNode")
-    self:Publish("$fw/FairyNode/mode", "esp8266")
-    self:Publish("$fw/FairyNode/debug", debugMode and "true" or "false")
-    self:Publish("$fw/FairyNode/version", "0.1")
+    self:PublishInfo("$implementation", "FairyNode")
+    self:PublishInfo("$fw/name", "FairyNode")
+    self:PublishInfo("$fw/FairyNode/mode", "esp8266")
+    self:PublishInfo("$fw/FairyNode/debug", debugMode and "true" or "false")
+    self:PublishInfo("$fw/FairyNode/version", "0.1")
 
     for k,v in pairs(require "fairy-node-info") do
-        self:Publish("$fw/FairyNode/" .. k, v)
+        self:PublishInfo("$fw/FairyNode/" .. k, v)
     end
     package.loaded["fairy-node-info"] = nil
 
     local lfs_timestamp = require("lfs-timestamp")
-    self:Publish("$fw/FairyNode/lfs/timestamp", lfs_timestamp.timestamp)
-    self:Publish("$fw/FairyNode/lfs/hash", lfs_timestamp.hash)
+    self:PublishInfo("$fw/FairyNode/lfs/timestamp", lfs_timestamp.timestamp)
+    self:PublishInfo("$fw/FairyNode/lfs/hash", lfs_timestamp.hash)
 
     local root_success, root_timestamp = pcall(require, "root-timestamp")
     if not root_success or type(root_timestamp) ~= "table"  then
         root_timestamp = { timestamp = 0, hash = "" }
     end
     package.loaded["root-timestamp"]=nil
-    self:Publish("$fw/FairyNode/root/timestamp", root_timestamp.timestamp)
-    self:Publish("$fw/FairyNode/root/hash", root_timestamp.hash)
+    self:PublishInfo("$fw/FairyNode/root/timestamp", root_timestamp.timestamp)
+    self:PublishInfo("$fw/FairyNode/root/hash", root_timestamp.hash)
 
     local config_timestamp
     if file.exists("config_hash.cfg") then
@@ -97,39 +120,39 @@ function Module:PublishBaseInfo()
     else
         config_timestamp = { timestamp = 0, hash = "" }
     end
-    self:Publish("$fw/FairyNode/config/timestamp", config_timestamp.timestamp)
-    self:Publish("$fw/FairyNode/config/hash", config_timestamp.hash)
+    self:PublishInfo("$fw/FairyNode/config/timestamp", config_timestamp.timestamp)
+    self:PublishInfo("$fw/FairyNode/config/hash", config_timestamp.hash)
 end
 
 function Module:PublishExtendedInfo()
     -- print("HOMIE: Publishing info")
     local info = node.info
     local hw_info = info("hw")
-    self:Publish("$hw/chip_id", string.format("%06X", hw_info.chip_id))
-    self:Publish("$hw/flash_id", string.format("%x", hw_info.flash_id))
-    self:Publish("$hw/flash_size", hw_info.flash_size)
-    self:Publish("$hw/flash_mode", hw_info.flash_mode)
-    self:Publish("$hw/flash_speed", hw_info.flash_speed)
+    self:PublishInfo("$hw/chip_id", string.format("%06X", hw_info.chip_id))
+    self:PublishInfo("$hw/flash_id", string.format("%x", hw_info.flash_id))
+    self:PublishInfo("$hw/flash_size", hw_info.flash_size)
+    self:PublishInfo("$hw/flash_mode", hw_info.flash_mode)
+    self:PublishInfo("$hw/flash_speed", hw_info.flash_speed)
     hw_info=nil
 
     local sw_version = info("sw_version")
-    self:Publish("$fw/NodeMcu/version", string.format("%d.%d.%d", sw_version.node_version_major, sw_version.node_version_minor, sw_version.node_version_revision))
-    self:Publish("$fw/NodeMcu/git_branch", sw_version.git_branch)
-    self:Publish("$fw/NodeMcu/git_commit_id", sw_version.git_commit_id)
-    self:Publish("$fw/NodeMcu/git_release", sw_version.git_release)
-    self:Publish("$fw/NodeMcu/git_commit_dts", sw_version.git_commit_dts)
+    self:PublishInfo("$fw/NodeMcu/version", string.format("%d.%d.%d", sw_version.node_version_major, sw_version.node_version_minor, sw_version.node_version_revision))
+    self:PublishInfo("$fw/NodeMcu/git_branch", sw_version.git_branch)
+    self:PublishInfo("$fw/NodeMcu/git_commit_id", sw_version.git_commit_id)
+    self:PublishInfo("$fw/NodeMcu/git_release", sw_version.git_release)
+    self:PublishInfo("$fw/NodeMcu/git_commit_dts", sw_version.git_commit_dts)
     sw_version=nil
 
     local build_config = info("build_config")
-    self:Publish("$fw/NodeMcu/ssl", build_config.ssl)
-    self:Publish("$fw/NodeMcu/lfs_size", build_config.lfs_size)
-    self:Publish("$fw/NodeMcu/modules", build_config.modules)
-    self:Publish("$fw/NodeMcu/number_type", build_config.number_type)
+    self:PublishInfo("$fw/NodeMcu/ssl", build_config.ssl)
+    self:PublishInfo("$fw/NodeMcu/lfs_size", build_config.lfs_size)
+    self:PublishInfo("$fw/NodeMcu/modules", build_config.modules)
+    self:PublishInfo("$fw/NodeMcu/number_type", build_config.number_type)
     build_config=nil
 
     local lfs = info("lfs")
-    self:Publish("$fw/FairyNode/lfs/size", lfs.lfs_size)
-    self:Publish("$fw/FairyNode/lfs/used", lfs.lfs_used)
+    self:PublishInfo("$fw/FairyNode/lfs/size", lfs.lfs_size)
+    self:PublishInfo("$fw/FairyNode/lfs/used", lfs.lfs_used)
     lfs=nil
 end
 
@@ -150,8 +173,6 @@ function Module:OnMqttMessage(topic, payload)
         return
     end
 
-    print("HOMIE: Recv", prefix, device_name, target)
-
     if target == "$cmd" then
         self:HandleCommand(payload)
         return
@@ -161,39 +182,36 @@ function Module:OnMqttMessage(topic, payload)
     -- end
 
     local node_name, prop_name = target:match("(.-)/(.-)/set")
-    print("HOMIE: Node",node_name, prop_name)
-
-    local full_node_name = string.format("%s.%s", node_name, prop_name)
-    local handler = self.settable[full_node_name]
-    if handler then
-        print(string.format("HOMIE: Importing value %s=%s", full_node_name, payload))
-        handler:ImportValue(topic, payload, node_name, prop_name)
-    else
-        print(string.format("HOMIE: Cannot import, not a settable value: %s=%s", full_node_name, payload))
+    if node_name and prop_name then
+        self:HandlePropertySet(topic, node_name, prop_name, payload)
+        return
     end
+
+    print("HOMIE: Unknown message", topic, payload)
 end
 
 function Module:OnMqttLwt(event, mqtt)
+    print("Homie: Setting up MQTT LWT")
     mqtt:SetLwt(
         self:GetBaseTopic("$state"),  --topic
         "lost", --payload
         0, --qos
-        true --retain
+        (not debugMode) --retain
     )
 end
 
 -------------------------------------------------------------------------------------
 
 function Module:PublishNodePropertyValue(node, property, value)
-    return self:Publish(string.format("%s/%s", node, property), value)
+    return self:Publish(string.format("%s/%s", node, property), value, not debugMode)
 end
 
 function Module:PublishNodeProperty(node, property, sub_topic, payload)
-    return self:Publish(string.format("%s/%s/%s", node, property, sub_topic), payload)
+    return self:Publish(string.format("%s/%s/%s", node, property, sub_topic), payload, not debugMode)
 end
 
 function Module:PublishNode(node, sub_topic, payload)
-    return self:Publish(string.format("%s/%s", node, sub_topic), payload)
+    return self:Publish(string.format("%s/%s", node, sub_topic), payload, not debugMode)
 end
 
 function Module:Publish(sub_topic, payload, retain)
@@ -204,7 +222,7 @@ function Module:Publish(sub_topic, payload, retain)
 
     local topic = self:GetBaseTopic(sub_topic)
     if retain == nil then
-        retain = true
+        retain = false
     end
     self.mqtt:Publish(topic, payload, retain)
 end
@@ -216,6 +234,7 @@ function Module:HandleCommand(payload)
         self:Publish("$cmd/output", line, false)
     end
 
+    print("HOMIE: Command", payload)
     node.task.post(function ()
         pcall(Command, payload, output)
     end)
@@ -279,6 +298,7 @@ function Module:AddNode(node_name, node)
         end
 
         self:PublishNodeProperty(node_name, prop_name, "$settable", values.handler ~= nil)
+        self:PublishNodeProperty(node_name, prop_name, "$retained", values.retained and "true" or "false")
 
         values.handler = nil
         values.retained = nil
@@ -287,7 +307,6 @@ function Module:AddNode(node_name, node)
         for k,v in pairs(values or {}) do
             self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
         end
-        self:PublishNodeProperty(node_name, prop_name, "$retained", "true")
         -- coroutine.yield()
     end
 

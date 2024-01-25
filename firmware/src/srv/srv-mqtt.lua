@@ -44,7 +44,7 @@ function Module:Publish(topic, payload, retain, qos)
     payload = tostring(payload)
 
     if debugMode then
-        print("MQTT: " .. topic .. " <- " .. (payload or "<NIL>"))
+        print("MQTT:", topic, "<-", (payload or "<NIL>"), retain or false, qos or 0)
     end
 
     if not self.is_connected then

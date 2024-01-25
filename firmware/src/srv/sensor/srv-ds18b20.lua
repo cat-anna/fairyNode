@@ -11,7 +11,6 @@ end
 local Sensor = {}
 Sensor.__index = Sensor
 
-
 function Sensor:ReadCallback(temp_list, sensors)
     local dscfg = ReadConfig() or {}
 
@@ -26,7 +25,7 @@ function Sensor:ReadCallback(temp_list, sensors)
             if SetError then
                 SetError("ds18b20." .. addr_str, "Device has no name")
             end
-            print("DS18B20: " .. addr_str .. ": Device has no name")
+            print("DS18B20:", addr_str, ": Device has no name")
             unknown[addr_str] = temp
             name = addr_str
         else
@@ -39,8 +38,8 @@ function Sensor:ReadCallback(temp_list, sensors)
     end
 
     sensors.ds18b20 = values
-    self.node:SetValue("_unknown",  sjson.encode(unknown))
-    self.node:SetValue("_missing",  sjson.encode(dscfg))
+    -- self.node:SetValue("_unknown", sjson.encode(unknown))
+    -- self.node:SetValue("_missing", sjson.encode(dscfg))
 
     for id,name in pairs(dscfg) do
         print("DS18B20: " .. id .. "=" .. name .. ": Device not found")
@@ -52,8 +51,8 @@ end
 
 function Sensor:ContrllerInit(event, ctl)
     local props = {
-        _unknown = { name = "Unkown sensors", datatype = "json" },
-        _missing = { name = "Missing sensors", datatype = "json" },
+        -- _unknown = { name = "Unkown sensors", datatype = "json" },
+        -- _missing = { name = "Missing sensors", datatype = "json" },
     }
     for k,v in pairs(ReadConfig() or {}) do
         props[v] = { name = v, datatype = "float", unit="C", id=k }

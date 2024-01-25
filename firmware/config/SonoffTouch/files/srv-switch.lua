@@ -21,7 +21,12 @@ function Module:ControllerInit(event, ctl)
     self.node = ctl:AddNode("switch", {
         name = "Switch",
         properties = {
-            relay = { datatype = "boolean", name = "Relay", value = false, handler = self, },
+            relay = {
+                datatype = "boolean",
+                name = "Relay",
+                value = false,
+                handler = self,
+            },
         },
     })
 end

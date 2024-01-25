@@ -11,18 +11,18 @@ function Module:HandlePinChange(state, level, pulse)
     if level == state.state then
         return
     end
-    
-    state.state = level    
+
+    state.state = level
     state.pulse = pulse
 
     local value = state.invert and (1-level) or level
     local t = (delta > 1 * 1000 * 1000) and 2 or 1
-    
+
     print("GPIO: state", state.pin, level, delta, value, t)
 
     if Event then
         Event("gpio." .. state.trig, { value = value, level = t })
-    end    
+    end
 
     self.node:SetValue(state.trig, value)
 end
@@ -53,8 +53,8 @@ function Module:ContrllerInit(event, ctl)
         self.node = ctl:AddNode("gpio", {
             name = "gpio",
             properties = props,
-        })    
-    end  
+        })
+    end
 end
 
 function Module:OnOtaStart(id, arg)
@@ -71,10 +71,10 @@ Module.EventHandlers = {
 
 return {
     Init = function()
-        if not hw or not hw.gpio or not gpio then
+        if (not hw) or (not hw.gpio) or (not gpio) then
             return
         end
-        
+
         return setmetatable({}, Module)
     end,
 }
