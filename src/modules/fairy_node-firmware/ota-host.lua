@@ -99,10 +99,10 @@ function FairyNodeOta:CheckDatabaseAsync(delay)
 end
 
 function FairyNodeOta:CheckDatabase()
-    print(self, "Checking database start")
-    self:CheckCommits()
-    self:CheckImages()
-    print(self, "Checking database completed")
+    -- print(self, "Checking database start")
+    -- self:CheckCommits()
+    -- self:CheckImages()
+    -- print(self, "Checking database completed")
 end
 
 -------------------------------------------------------------------------------
@@ -121,7 +121,9 @@ function FairyNodeOta:CheckCommits()
 
     for device,_ in pairs(devices) do
         local all = db:FetchAll({ device_id = device.key })
-        table.sort(all, function (a, b) return a.timestamp < b.timestamp end)
+        table.sort(all, function (a, b)
+            return (a.timestamp or 0) < (b.timestamp or 0)
+        end)
 
         while #all > MAX_COMMITS_PER_DEVICE do
             local item = table.remove(all, 1)
@@ -254,16 +256,22 @@ end
 
 function FairyNodeOta:GetActiveFirmwareImageFileName(device_id, component_id)
     local deviece_info = self:GetDeviceEntry(device_id, false)
-    if not deviece_info or not deviece_info.active_firmware then
+    if (not deviece_info) or (not deviece_info.active_firmware) then
         return
     end
 
     local commit_db = self:GetCommitDatabase()
     local commit =  commit_db:FetchOne({ key = deviece_info.active_firmware, })
+    if not commit then
+        print(self, "invalid commit")
+        return
+    end
+
     print(self, deviece_info.key, commit.device_id, commit.key, deviece_info.active_firmware, "x")
 
     local image_hash = commit.components[component_id]
     if not image_hash then
+        print(self, "no image hash")
         return
     end
 
@@ -271,6 +279,7 @@ function FairyNodeOta:GetActiveFirmwareImageFileName(device_id, component_id)
     local image = image_db:FetchOne({ key = image_hash })
 
     if not image then
+        print(self, "no image")
         return
     end
 
@@ -410,7 +419,7 @@ function FairyNodeOta:AddFirmwareCommit(device_id, request)
 
     self:GetCommitDatabase():InsertOrReplace(key, commit_info)
 
-    printf(self, "Firmware '%s' committed for %s", key, device_id)
+    printf(self, "Firmware '%s' committed for %s", key.key, device_id)
     self:CheckDatabaseAsync()
 
     return key
@@ -530,7 +539,7 @@ function FairyNodeOta:HandleDeviceStateChange(event)
         return
     end
 
-    if not  event.device_handle.GetFirmwareStatus then
+    if not event.device_handle.GetFirmwareStatus then
         return
     end
 

@@ -20,6 +20,10 @@ fairyNode firmware builder
     --package (optional string)        TODO
 ]]
 
+    if args.device then
+        args.device = string.split(args.device, ",")
+    end
+
     -- local r = {}
     -- if args.argfile then
     --     r = dofile(args.argfile)

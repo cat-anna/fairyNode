@@ -69,13 +69,15 @@ function ProjectConfigLoader:AttachConfiguration(config)
     self.attached_configuration = tablex.deepcopy(config)
 
     self.config = { }
-    self.config.current = self.attached_configuration.set
+    self.config.current = self.attached_configuration.current
 
-    self.config.debug =  tablex.deepcopy(self.attached_configuration.set)
+    local dbg_conf = tablex.deepcopy(self.attached_configuration.current)
+    self.config.debug = dbg_conf
+
     for k,v in pairs(self.attached_configuration.debug) do
-        self.config.debug[k] = v
+        dbg_conf[k] = v
     end
-    self.config.debug.debug = 1
+    dbg_conf.debug = 1
 end
 
 function ProjectConfigLoader:AddDevice(entry)
@@ -93,6 +95,7 @@ function ProjectConfigLoader:AddDevice(entry)
     self.chip_id[entry.device_id] = entry
     entry.name = entry.name or entry.project
     entry.project_name = entry.project
+    entry.debug_mode = entry.debug_mode
     entry.project = self.projects[entry.project]
 
     self:GenerateConfig(entry)

@@ -28,6 +28,7 @@ function FirmwareBuilder:Init(opt)
     self.host_connection = opt.host_connection
     self.project_config_loader = opt.project_config_loader
     self.luac_builder = opt.luac_builder
+    self.device_info = opt.device_info
 
     self.ready_images = { }
 end
@@ -36,7 +37,10 @@ end
 
 function FirmwareBuilder:Work()
 
-    self.device_info = self.host_connection:QueryDeviceStatus(self.chip_id)
+    if not self.device_info then
+        self.device_info = self.host_connection:QueryDeviceStatus(self.chip_id)
+    end
+
     if not self.device_info then
         self.device_info = { }
     end
@@ -80,6 +84,7 @@ function FirmwareBuilder:BuildRootImage()
     local image_meta = {
         image = "root",
         payload = image,
+        key = ts["root"].hash,
         timestamp = ts["root"],
         compiler_id = compiler_id,
     }
@@ -96,6 +101,7 @@ function FirmwareBuilder:BuildConfigImage()
     local image_meta = {
         image = "config",
         payload = image,
+        key = ts["config"].hash,
         timestamp = ts["config"],
         compiler_id = compiler_id,
     }
@@ -120,6 +126,7 @@ function FirmwareBuilder:BuildLFS()
         local image_meta = {
             image = "lfs",
             payload = image,
+            key = ts["lfs"].hash,
             timestamp = ts["lfs"],
             compiler_id = compiler_id,
         }
@@ -145,9 +152,28 @@ function FirmwareBuilder:GetNewFwSet()
         if not image.uploaded then
             return
         end
-        fw_set[what] = image.payload_hash
+        fw_set[what] = image.key
     end
     return fw_set
+end
+
+-------------------------------------------------------------------------------------
+
+function FirmwareBuilder:GetFilesToUpload()
+    local r = { }
+
+    for _,what in ipairs({"lfs", "root", "config"}) do
+        local image = self.ready_images[what]
+        r[what .. ".pending.img"] = image.payload
+    end
+
+    for k,v in pairs(self.project:GetOtaInstallFiles()) do
+        r[k] = v
+    end
+
+    r["ota.ready"] = "1"
+
+    return r
 end
 
 -------------------------------------------------------------------------------------

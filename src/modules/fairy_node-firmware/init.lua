@@ -21,6 +21,7 @@ M.submodules = {
 M.exported_config = {
     ["module.rest-server.endpoint.list"] = {
         "fairy_node-firmware/endpoint-firmware",
+        "fairy_node-firmware/endpoint-ota",
     }
 }
 

@@ -1,9 +1,9 @@
 
-local json = require "json"
-local scheduler = require "lib/scheduler"
+local json = require "rapidjson"
+-- local scheduler = require "fairy_node/scheduler"
 local socket = require "socket"
 local copas = require "copas"
-local utils = require "pl.utils"
+-- local utils = require "pl.utils"
 
 -------------------------------------------------------------------------------------
 
@@ -15,27 +15,26 @@ end
 -------------------------------------------------------------------------------------
 
 local DeviceConnection = {}
-DeviceConnection.__index = DeviceConnection
 DeviceConnection.__type = "class"
-
--------------------------------------------------------------------------------------
-
-function DeviceConnection:Tag()
-    return string.format("DeviceConnection")
-end
+DeviceConnection.__tag = "DeviceConnection"
 
 -------------------------------------------------------------------------------------
 
 function DeviceConnection:Init(arg)
-    self.data_slot = require("lib/data-slot").New()
+    DeviceConnection.super.Init(self, arg)
+
+    self.data_slot = require("fairy_node/tools/data-slot").New()
 
     self.owner = arg.owner
-    self.host_client = arg.host_client
-    self.port = arg.port
+    self.port = arg.port:split(":")
     self:Connect()
 end
 
 -------------------------------------------------------------------------------------
+
+function DeviceConnection:IsConnected()
+    return self.connected
+end
 
 function DeviceConnection:Connect()
     if self.connected then
@@ -47,7 +46,7 @@ function DeviceConnection:Connect()
         copas.setsocketname(self:Tag(), sock)
         assert(sock:connect(self.port[2], self.port[3]))
         self.socket = sock
-        self.socket:settimeouts(-1, -1, 5)
+        self.socket:settimeouts(1, 1, 1)
     else
         assert(false)
     end
@@ -143,9 +142,10 @@ function DeviceConnection:ShellCommand(txt)
     assert(self.connected)
 
     self.socket:send("print([[====BEG====]])\n")
+    copas.pause(0.001)
     self.socket:send(txt .. "\n")
     -- print(self, "SEND",  "'" .. txt .. "'")
-    copas.pause(0.005)
+    copas.pause(0.001)
     self.socket:send("print([[====END====]])\n")
 
     local r = self:WaitForResponse()
@@ -161,7 +161,7 @@ function DeviceConnection:ReadHeap()
 end
 
 function DeviceConnection:RemoveAllFiles()
-    self:ShellCommand([[for n,_ in pairs(file.list()) do print("Removing: " .. n); file.remove(n) end]])
+    self:ShellCommand([[]])
 end
 
 -------------------------------------------------------------------------------------
@@ -205,49 +205,111 @@ function DeviceConnection:Upload(filename, data)
 
     local total = #data
     local pos = 0
-    local max_block = 32*3
-    local last_info_pos = -1
 
+    -- local mode = "b64"
+    local mode = "hex"
+    local max_block = 16*2
+
+    -- self:ShellCommand([[node.setcpufreq(node.CPU160MHZ)]])
     self:ShellCommand(string.format([[file.remove("%s")]], filename))
+
     self:ShellCommand([[
-        function __WriteHex(s)
-            for c in s:gmatch('..') do
-                file.write(string.char(tonumber(c, 16)))
-            end
+function __WriteHex(s)
+        local t = { }
+        local insert = table.insert
+        for c in s:gmatch('..') do
+            insert(t, string.char(tonumber(c, 16)))
         end
-    ]])
+        file.write(table.concat(t, ""))
+end
+]])
+    -- self:ShellCommand([[
+    --     function __DecodeB64(data)
+    --         local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    --         data = string.gsub(data, '[^'..b..'=]', '')
+    --         return (data:gsub('.', function(x)
+    --             if (x == '=') then return '' end
+    --             local r,f='',(b:find(x)-1)
+    --             for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
+    --             return r;
+    --         end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
+    --             if (#x ~= 8) then return '' end
+    --             local c=0
+    --             for i=1,8 do c=c+(x:sub(i,i)=='1' and 2^(8-i) or 0) end
+    --                 return string.char(c)
+    --         end))
+    --     end
+    -- ]])
+    -- self:ShellCommand([[
+    --     function __WriteB64(s)
+    --         file.write(__DecodeB64(s))
+    --     end
+    -- ]])
     self:ShellCommand(string.format([[file.open("%s", "w+")]], filename))
 
-    -- self.socket:send("print([[====BEG====]])\n")
-    -- self.socket:send(script .. "\n")
-    -- self.socket:send("\n")
-    -- self.socket:send(string.format([[Uploader("%s", %d, %d)]] .. "\n", filename, 4096, max_block))
-    -- self.socket:send(data)
-
+    local start = os.timestamp()
+    local last_info_time = start
+    local last_info_pos = 0
     while pos < total do
         local info_pos = pos / total
-        if info_pos - last_info_pos > 0.1 then
+
+        local now = os.timestamp()
+        if (info_pos - last_info_pos) > 0.1 or (now - last_info_time) > (10 * 1000) then
             last_info_pos = info_pos
-            print(self, string.format("Uploading %s %d/%d %.1f%%", filename, pos, total, info_pos*100))
+            last_info_time = now
+            local speed = pos / (now - start)
+            print(self, string.format("Uploading %s %d/%d %.1f%% speed=%.2fB/s", filename, pos, total, info_pos*100, speed))
         end
 
         local block_size = math.min(max_block, total - pos)
         local block_str = data:sub(pos + 1, pos + block_size)
-        self:ShellCommand(string.format([[__WriteHex("%s")]], string.tohex(block_str)))
+
+        assert(#block_str == block_size)
+        local cmd
+        -- if mode == "hex" then
+            cmd = string.format([[__WriteHex("%s")]], string.tohex(block_str))
+        -- else
+        --     cmd = string.format([==[__WriteB64([[%s]])]==], string.tobase64(block_str))
+        -- end
+        -- print(self, cmd)
+        self:ShellCommand(cmd)
+
         pos = pos + block_size
         assert(block_size ==  #block_str)
     end
     assert(pos == total)
+
+    local dt = os.timestamp() - start
+    local speed = total / dt
+    print(self, string.format("Upload %s completed, speed=%.2fB/s", filename, speed))
+
+    local hash = self:ShellCommand(string.format([[
+if crypto and encoder then
+    print("SHA256=" .. encoder.toHex(crypto.fhash("SHA256", "%s")))
+end
+    ]], filename))
+
+    for _,v in ipairs(hash or {}) do
+        print(self, "HASHRESP: " .. v)
+    end
+    local mysha = sha256(data)
+    print(self, "SHA256: " .. mysha)
 
     -- self.socket:send("\n")
     -- self.socket:send("Uploader = nil\n")
     -- self.socket:send("print([[====END====]])\n")
 
     self:ShellCommand([[file.close()]])
-    self:ShellCommand([[__WriteHex = nil]])
-    print(self, string.format("Upload %s completed", filename))
+    self:ShellCommand([[
+__WriteHex = nil
+__DecodeB64 = nil
+__WriteB64 = nil
+]])
+
 end
 
 -------------------------------------------------------------------------------------
 
 return DeviceConnection
+
+

@@ -117,7 +117,7 @@ function DeviceConfig:Preprocess()
     self.lfs =    tablex.deepcopy(self.project.components.lfs) -- table.merge(self.firmware.base.lfs, self.project.lfs)
     self.root =   tablex.deepcopy(self.project.components.root) -- table.merge(self.firmware.base.root, self.project.root)
 
-    local is_debug = self.chip.debug
+    local is_debug = self.chip.debug_mode
     self.config = table.merge(
         self.owner.config[is_debug and "debug" or "current"],
         self.project.components.config

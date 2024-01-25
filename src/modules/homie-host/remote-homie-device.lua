@@ -159,7 +159,7 @@ function HomieRemoteDevice:HandleHomieNode(topic, payload)
     end
 
     self.homie_version = payload
-    assert(payload == "3.0.0")
+    -- assert(payload == "3.0.0")
 end
 
 function HomieRemoteDevice:HandleDeviceName(topic, payload)

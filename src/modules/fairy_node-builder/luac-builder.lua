@@ -116,21 +116,24 @@ end
 -------------------------------------------------------------------------------
 
 function LuacBuilder:GetLuacName(commit_hash)
-    if self.debug then
-        commit_hash = uuid()
-    end
+    -- if self.debug then
+    --     commit_hash = uuid()
+    -- end
     return string.format("LuacBuilder.luac.%s", commit_hash)
 end
 
 -------------------------------------------------------------------------------
 
 function LuacBuilder:GetCompiler(worker, dev_info, device_id)
---     local config = self.config[CONFIG_KEY_CONFIG]
+    --     local config = self.config[CONFIG_KEY_CONFIG]
     local git_commit_id = (dev_info.nodeMcu or {}).git_commit_id
+
     if not git_commit_id then
 --         return
         git_commit_id = "master"
     end
+
+    print(worker, "Got request for compiler: git_commit_id=" .. tostring(git_commit_id))
 
     local compiler = self.compiler[git_commit_id]
 
