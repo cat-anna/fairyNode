@@ -24,34 +24,39 @@ function FirmwareBuilderApp:StartModule()
 
     self.devices_to_process = { }
 
+    local config = self.config
+
     self.host_connection = self:CreateSubObject("connection-host", {
-        host = self.config.host,
+        host = config.host,
     })
 
     self.project_config_loader = self:CreateSubObject("project-config-loader", {
-        project_paths = self.config.project_paths,
-        firmware_path = self.config.firmware_path[1],
+        project_paths = config.project_paths,
+        firmware_path = config.firmware_path[1],
     })
 
     self.luac_builder = self:CreateSubObject("luac-builder", {
-        nodemcu_path = self.config.nodemcu_path,
+        nodemcu_path = config.nodemcu_path,
 
         -- project_paths = self.config.project_paths,
         -- firmware_path = self.config.firmware_path[1],
     })
 
     self.steps_list = {
-        self.config.device_port and self.ConnectToLocalDevice,
-        self.config.device_port and self.DetectLocalDevice,
+        config.device_port and self.ConnectToLocalDevice,
+        config.device_port and self.DetectLocalDevice,
 
         self.AddRequestedDevices,
 
-        self.config.all_devices and self.FetchDevicesTask,
+        config.all_devices and self.FetchDevicesTask,
 
         self.ProcessNextDevice,
 
-        self.config.device_port and self.UploadToLocalDevice,
-        self.config.device_port and self.DisconnectLocalDevice,
+        config.device_port and self.UploadToLocalDevice,
+        config.device_port and self.DisconnectLocalDevice,
+
+        config.activate and self.ActivateCommits,
+        config.trigger_ota and self.TriggerOta,
     }
 
     self.steps_list = tablex.filter(self.steps_list, function (a) return a ~= nil end)
@@ -228,7 +233,6 @@ end
 function FirmwareBuilderApp:ProcessNextDevice()
     for k,v in pairs(self.devices_to_process) do
         if not v.builder then
-            print(self, "ProcessNextDevice", k)
             v.builder = self:CreateSubObject("firmware-builder", {
                 chip_id = k,
                 host_connection = self.host_connection,
@@ -237,9 +241,45 @@ function FirmwareBuilderApp:ProcessNextDevice()
                 device_info = v.device_info,
             })
             self:AddTask(
-                string.format("Device %s", k),
+                string.format("%s: build firmware", k),
                 function () v.builder:Work() end
             )
+            if self.debug then
+                return true
+            end
+        end
+    end
+end
+
+-------------------------------------------------------------------------------------
+
+function FirmwareBuilderApp:ActivateCommits()
+    for k,v in pairs(self.devices_to_process) do
+        if not v.activated then
+            assert(v.builder)
+            self:AddTask(
+                string.format("%s: activate commit", k),
+                function ()
+                    self.host_connection:ActivateCommit(k, v.builder:GetCommitKey())
+                end
+            )
+            v.activated = true
+            if self.debug then
+                return true
+            end
+        end
+    end
+end
+
+function FirmwareBuilderApp:TriggerOta()
+    for k,v in pairs(self.devices_to_process) do
+        if not v.ota_triggered then
+            assert(v.builder)
+            self:AddTask(
+                string.format("%s: trigger ota", k),
+                function () self.host_connection:TriggerOta(k) end
+            )
+            v.ota_triggered = true
             if self.debug then
                 return true
             end

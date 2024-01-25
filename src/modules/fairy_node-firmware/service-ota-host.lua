@@ -294,6 +294,19 @@ end
 
 -------------------------------------------------------------------------------
 
+function ServiceOta:TriggerUpdate(request, device_id)
+    device_id = self:GetDeviceHardwareId(device_id)
+    device_id = device_id:upper()
+
+    if self.firmware_host:TriggerUpdate(device_id) then
+        return http.OK, {success = true}
+    end
+
+    return http.BadRequest, {success = false}
+end
+
+-------------------------------------------------------------------------------
+
 -- LEGACY --
 
 function ServiceOta:GetImage(request, device_id, component_id)

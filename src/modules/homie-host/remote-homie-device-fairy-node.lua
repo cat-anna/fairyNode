@@ -116,8 +116,8 @@ function FairyNodeRemoteDevice:SendCommand(cmd, callback)
     end
 
     self.command_pending = callback or function () end
-    print(self, "Sending command: " .. cmd)
-    self.mqtt:Publish(self:Topic("$cmd"), cmd, false)
+    print(self, "Sending command:", cmd)
+    self.mqtt:Publish("$cmd", cmd, false)
 end
 
 function FairyNodeRemoteDevice:HandleCommandOutput(topic, payload)
@@ -144,11 +144,11 @@ function FairyNodeRemoteDevice:ClearError(error_id)
 end
 
 function FairyNodeRemoteDevice:StartOta(use_force)
-    if use_force then
+    -- if use_force then
         self:SendCommand("sys,ota,update", nil)
-    else
-        self:SendCommand("sys,ota,check", nil)
-    end
+    -- else
+    --     self:SendCommand("sys,ota,check", nil)
+    -- end
 end
 
 function FairyNodeRemoteDevice:SendEvent(event)

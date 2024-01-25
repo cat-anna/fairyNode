@@ -58,6 +58,13 @@ return {
             produces = "application/json",
             service_method = "GetDeviceFirmwareCommits",
         },
+        {
+            method = "POST",
+            path = "device/{[A-Z0-9]+}/update",
+            consumes = "application/json",
+            produces = "application/json",
+            service_method = "TriggerUpdate",
+        },
 -------------------------------------------------------------------------------
         {
             method = "POST",

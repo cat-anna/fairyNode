@@ -18,10 +18,17 @@ fairyNode firmware builder
     --all_devices
     --rebuild                          TODO
     --package (optional string)        TODO
+
+    --activate                         TODO
+    --trigger_ota                      TODO
 ]]
 
     if args.device then
         args.device = string.split(args.device, ",")
+    end
+
+    if args.trigger_ota then
+        args.activate = true
     end
 
     -- local r = {}
@@ -64,6 +71,9 @@ local function SetupBaseArgs(base_path)
         ["module.fairy_node-builder.device"] = args.device,
         ["module.fairy_node-builder.all_devices"] = args.all_devices,
         ["module.fairy_node-builder.nodemcu_path"] = args.nodemcu_path,
+
+        ["module.fairy_node-builder.trigger_ota"] = args.trigger_ota,
+        ["module.fairy_node-builder.activate"] = args.activate,
 
         ["module.fairy_node-builder.firmware_path"] = {
             path.normpath(base_path .. "/firmware/src"),

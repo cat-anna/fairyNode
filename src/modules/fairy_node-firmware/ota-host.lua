@@ -53,6 +53,7 @@ FairyNodeOta.__type = "module"
 FairyNodeOta.__deps = {
     storage = "fairy_node/storage",
     mongo_connection = "mongo-client",
+    device_manager = "manager-device",
 }
 
 -------------------------------------------------------------------------------------
@@ -241,15 +242,6 @@ function FairyNodeOta:DeviceOtaRequest(device_id, device_status)
         files = update_files
     }
 
-end
-
--------------------------------------------------------------------------------
-
-function FairyNodeOta:FindHomieDeviceById(device_id)
-    local homie_host = loader_module:GetModule("homie/homie-host")
-    if homie_host then
-        return homie_host:FindDeviceByHardwareId(device_id)
-    end
 end
 
 -------------------------------------------------------------------------------------
@@ -519,6 +511,24 @@ function FairyNodeOta:GeDeviceFirmwareCommitInfo(device_id)
     return
         commit_db:FetchOne({ key = active_firmware }),
         commit_db:FetchOne({ key = current_firmware })
+end
+
+-------------------------------------------------------------------------------------
+
+function FairyNodeOta:TriggerUpdate(device_id)
+    local dev = self.device_manager:FindDeviceByHardwareId(device_id)
+    if not dev then
+        print(self, "Failed to find device", device_id)
+        return
+    end
+
+    if not dev:IsFairyNodeDevice() then
+        print(self, "Not a fairyNode device", device_id)
+        return
+    end
+
+    dev:StartOta()
+    return true
 end
 
 -------------------------------------------------------------------------------------

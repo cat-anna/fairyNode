@@ -68,12 +68,22 @@ function HostConnection:UploadImage(request)
 end
 
 function HostConnection:CommitFwSet(dev_id, fw_set)
-    local url_base = string.format("api/firmware/device/%s", dev_id:upper())
-    local req = self.host_client:PostJson(url_base .. "/commit", {
+    local url = string.format("api/firmware/device/%s/commit", dev_id:upper())
+    return self.host_client:PostJson(url, {
         device_id = dev_id,
         set = fw_set,
         timestamp = os.timestamp(),
     })
+end
+
+function HostConnection:ActivateCommit(dev_id, commit_key)
+    local url = string.format("api/firmware/device/%s/commit/%s/activate", dev_id:upper(), commit_key)
+    return self.host_client:PostJson(url, {})
+end
+
+function HostConnection:TriggerOta(dev_id)
+    local url = string.format("api/firmware/device/%s/update", dev_id:upper())
+    return self.host_client:PostJson(url, {})
 end
 
 -------------------------------------------------------------------------------------

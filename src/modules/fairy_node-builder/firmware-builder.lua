@@ -36,7 +36,6 @@ end
 -------------------------------------------------------------------------------------
 
 function FirmwareBuilder:Work()
-
     if not self.device_info then
         self.device_info = self.host_connection:QueryDeviceStatus(self.chip_id)
     end
@@ -69,7 +68,10 @@ function FirmwareBuilder:Work()
     local fw_set = self:GetNewFwSet()
     if fw_set then
         print(self, "Committing Fw set")
-        self.host_connection:CommitFwSet(self.chip_id, fw_set)
+        local response = self.host_connection:CommitFwSet(self.chip_id, fw_set)
+
+        self.commit_key = response.key
+        assert(self.commit_key)
     end
 end
 
@@ -174,6 +176,12 @@ function FirmwareBuilder:GetFilesToUpload()
     r["ota.ready"] = "1"
 
     return r
+end
+
+-------------------------------------------------------------------------------------
+
+function FirmwareBuilder:GetCommitKey()
+    return self.commit_key
 end
 
 -------------------------------------------------------------------------------------

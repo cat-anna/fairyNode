@@ -17,6 +17,9 @@ M.config = {
     firmware_path = "module.fairy_node-builder.firmware_path",
 
     rebuild = "module.fairy_node-builder.rebuild",
+
+    trigger_ota = "module.fairy_node-builder.trigger_ota",
+    activate = "module.fairy_node-builder.activate",
 }
 
 M.parameters = {
@@ -30,6 +33,9 @@ M.parameters = {
     [M.config.firmware_path] = { mode = "merge", type = "string-table", default = { }, },
 
     [M.config.rebuild] = { type = "boolean", default  = false, },
+
+    [M.config.trigger_ota] = { type = "boolean", default  = false, },
+    [M.config.activate] = { type = "boolean", default  = false, },
 }
 
 M.submodules = {
