@@ -14,32 +14,31 @@ function Module:OnOtaStart()
 end
 
 function Module:OnWifiConnected()
-    if self.post_services then
+    if self.started then
         self:Connect()
     end
 end
 
 -- function Module:OnWifiDisconnected()
-    -- if self.post_services then
+    -- if self.started then
     --     self:Connect()
     -- end
 -- end
 
-function Module:OnPostServices()
-    self.post_services = true
+-- function Module:OnPostServices()
+--     self.started = true
 
+--     if wifi.sta.getip() then
+--         self:Connect()
+--     end
+-- end
+
+function Module:OnInitCompleted()
+    self.started = true
     if wifi.sta.getip() then
         self:Connect()
     end
 end
-
-Module.EventHandlers = {
-    -- ["app.init.completed"] = self.PostInit,
-    ["ota.start"] = Module.OnOtaStart,
-    -- ["wifi.disconnected"] = Module.OnWifiDisconnected,
-    ["wifi.connected"] = Module.OnWifiConnected,
-    ["app.init.post-services"] = Module.OnPostServices,
-}
 
 function Module:Publish(topic, payload, retain, qos)
     payload = tostring(payload)
@@ -81,7 +80,7 @@ function Module:Subscribe(topics, handler)
         print("MQTT: Adding subscription to", v, regex)
 
         if self.handlers[regex] then
-            print("MQTT: " .. regex .. " is already registered, replacing")
+            print("MQTT:", regex, "is already registered, replacing")
             -- self.handlers[regex] = { }
         end
         self.handlers[regex] = handler
@@ -117,9 +116,9 @@ function Module:Unsubscribe(topics)
 end
 
 function Module:ProcessMessage(client, topic, payload)
-    -- local base = "homie/" .. wifi.sta.gethostname()
+    -- local base = HomiePrefix .. "/" .. wifi.sta.gethostname()
     if debugMode then
-        print("MQTT: " .. (topic or "<NIL>") .. " -> " .. (payload or "<NIL>"))
+        print("MQTT:", (topic or "<NIL>"), "->", (payload or "<NIL>"))
     end
 
     for regex, handler in pairs(self.handlers) do
@@ -131,7 +130,7 @@ function Module:ProcessMessage(client, topic, payload)
         end
     end
 
-    print("MQTT: Cannot find handler for ", topic)
+    print("MQTT: Cannot find handler for", topic)
 end
 
 function Module:Disconnected(client)
@@ -149,7 +148,7 @@ function Module:Connected(client)
 
     for _,_ in pairs(self.subscriptions) do
         self.mqttClient:subscribe(self.subscriptions, function(client)
-            print("MQTT: Resubscription successful")
+            print("MQTT: Resubscription successful:")
         end)
         break
     end
@@ -189,32 +188,50 @@ function Module:Close()
 end
 
 function Module:Connect()
-    if self.is_connected then
-        return
-    end
-    print "MQTT: Connecting..."
+    print("MQTT: Connecting...")
 
     local cfg = require("sys-config").JSON("mqtt.cfg")
-    if not cfg or not wifi.sta.gethostname() then
-        print "MQTT: No configuration!"
+    if (not cfg) or (not wifi.sta.gethostname()) then
+        print("MQTT: No configuration!")
         return
     end
 
     self:Close()
-    collectgarbage()
 
     self.mqttClient = mqtt.Client(wifi.sta.gethostname(), 30, cfg.user, cfg.password)
     self.mqttClient:on("offline",  function(...) self:Disconnected(...) end)
     self.mqttClient:on("message", function(...) self:ProcessMessage(...) end)
 
-    --todo:
-    self.mqttClient:lwt("homie/" .. wifi.sta.gethostname() .. "/$state", "lost", 0, 1)
+    Event("mqtt.init-lwt", self)
+    Event("mqtt.start", cfg)
+end
 
-    self.mqttClient:connect(cfg.host, cfg.port or 1883,
+function Module:StartMqtt(event, cfg)
+    if self.is_connected or (not self.mqttClient) then
+        return
+    end
+
+    self.mqttClient:connect(
+        cfg.host,
+        cfg.port or 1883,
         function(...) self:Connected(...) end,
         function(...) self:HandleError(...) end
     )
 end
+
+function Module:SetLwt(topic, payload, qos, retain)
+    if self.mqttClient then
+        self.mqttClient:lwt(topic, payload, qos, retain)
+    end
+end
+
+Module.EventHandlers = {
+    ["ota.start"] = Module.OnOtaStart,
+    -- ["wifi.disconnected"] = Module.OnWifiDisconnected,
+    ["wifi.connected"] = Module.OnWifiConnected,
+    ["app.init.completed"] = Module.OnInitCompleted,
+    ["mqtt.start"] = Module.StartMqtt,
+}
 
 return {
     Init = function()

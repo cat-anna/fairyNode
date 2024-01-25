@@ -46,7 +46,7 @@
         "id": "id",
         "timestamp": "Timestamp",
         "bootSuccessful": "Successful",
-      "current": "Current",
+        "current": "Current",
         "actions": "Actions"
       },
       "activateConfirmationMessage": "Do you really want to activate this software?",

@@ -6,76 +6,54 @@ function NodeObject:SetValue(property, value)
     self.controller:PublishNodePropertyValue(self.name, property, value)
 end
 
-----------------------
+-------------------------------------------------------------------------------------
 
-local function GetHomieBaseTopic(sub_topic)
+local Module = { }
+Module.__index = Module
+
+-------------------------------------------------------------------------------------
+
+function Module:GetBaseTopic(sub_topic)
     local my_name = wifi.sta.gethostname() or string.format("%06x", node.chipid())
-    local t = "homie/" .. my_name
+    local t = self.prefix .. "/" .. my_name
     if sub_topic then
         return t .. "/" .. sub_topic
     end
     return t
 end
 
-----------------------
+-------------------------------------------------------------------------------------
 
-local Module = { }
-Module.__index = Module
-
-function Module:OnOtaStart(id, arg)
-    return self:SetState("ota")
-end
-
-function Module:MqttSubscribe()
-    if self.mqtt then
-        self.mqtt:Subscribe(GetHomieBaseTopic("+/+/set"), self)
-    end
-end
-
-function Module:OnAppStart()
-    self.app_started = true
-    if self.ready_reached then
-        self:SendReady()
-    end
-    self:MqttSubscribe()
-end
-
-function Module:OnMqttConnected(event, mqtt)
-    if self.mqtt and self.app_started then
-        self:OnReady()
+function Module:RestartProtocol()
+    if (not self.mqtt) or (not self.app_started) then
         return
     end
 
-    self.mqtt = mqtt
-    self.ready_reached = nil
-
-    if Event then
-        self:PublishBaseInfo()
-        Event("controller.init", self, 500)
-        Event("controller.ready", self)
-    end
+    self:PublishBaseInfo()
+    Event("controller.init", self, 500)
+    Event("controller.ready", self)
 end
 
-function Module:OnMqttDisconnected()
-    self.mqtt = nil
+function Module:SetState(state)
+    return self:Publish("$state", state)
 end
 
-function Module:OnReady()
+function Module:OnControllerReady()
     self:PublishExtendedInfo()
 
-    if self.app_started then
-        self:SendReady()
-    end
-end
-
-function Module:SendReady()
     self:Publish("$nodes", table.concat(self.nodes, ","))
-    self:SetState("ready")
+    self.nodes = nil
 
-    self.ready_reached = true
-    self.nodes=nil
-    self:MqttSubscribe()
+    self.mqtt:Subscribe({
+        self:GetBaseTopic("+/+/set"),
+        self:GetBaseTopic("$cmd"),
+        -- self:GetBaseTopic("$event"),
+    }, self)
+
+    self:SetState("ready")
 end
+
+-------------------------------------------------------------------------------------
 
 function Module:PublishBaseInfo()
     self:Publish("$homie", "4.0.0")
@@ -155,6 +133,118 @@ function Module:PublishExtendedInfo()
     lfs=nil
 end
 
+-------------------------------------------------------------------------------------
+
+function Module:OnMqttConnected(event, mqtt)
+    self.mqtt = mqtt
+    self:RestartProtocol()
+end
+
+function Module:OnMqttDisconnected()
+    self.mqtt = nil
+end
+
+function Module:OnMqttMessage(topic, payload)
+    local prefix, device_name, target = topic:match("(.-)/(.-)/(.+)")
+    if prefix ~= self.prefix then
+        return
+    end
+
+    print("HOMIE: Recv", prefix, device_name, target)
+
+    if target == "$cmd" then
+        self:HandleCommand(payload)
+        return
+    end
+    -- if target == "$event" then
+    --     self:HandleCommand(payload)
+    -- end
+
+    local node_name, prop_name = target:match("(.-)/(.-)/set")
+    print("HOMIE: Node",node_name, prop_name)
+
+    local full_node_name = string.format("%s.%s", node_name, prop_name)
+    local handler = self.settable[full_node_name]
+    if handler then
+        print(string.format("HOMIE: Importing value %s=%s", full_node_name, payload))
+        handler:ImportValue(topic, payload, node_name, prop_name)
+    else
+        print(string.format("HOMIE: Cannot import, not a settable value: %s=%s", full_node_name, payload))
+    end
+end
+
+function Module:OnMqttLwt(event, mqtt)
+    mqtt:SetLwt(
+        self:GetBaseTopic("$state"),  --topic
+        "lost", --payload
+        0, --qos
+        true --retain
+    )
+end
+
+-------------------------------------------------------------------------------------
+
+function Module:PublishNodePropertyValue(node, property, value)
+    return self:Publish(string.format("%s/%s", node, property), value)
+end
+
+function Module:PublishNodeProperty(node, property, sub_topic, payload)
+    return self:Publish(string.format("%s/%s/%s", node, property, sub_topic), payload)
+end
+
+function Module:PublishNode(node, sub_topic, payload)
+    return self:Publish(string.format("%s/%s", node, sub_topic), payload)
+end
+
+function Module:Publish(sub_topic, payload, retain)
+    if (not self.mqtt) then
+        print("HOMIE: not connected, cannot publish:", sub_topic)
+        return
+    end
+
+    local topic = self:GetBaseTopic(sub_topic)
+    if retain == nil then
+        retain = true
+    end
+    self.mqtt:Publish(topic, payload, retain)
+end
+
+-------------------------------------------------------------------------------------
+
+function Module:HandleCommand(payload)
+    local output = function(line)
+        self:Publish("$cmd/output", line, false)
+    end
+
+    node.task.post(function ()
+        pcall(Command, payload, output)
+    end)
+end
+
+-- function Module:MqttEvent(topic, payload)
+--     local event_name =  nil
+--     local valid_arg = nil
+--     local arg = nil
+
+--     local coma_pos = payload:find(",")
+--     if coma_pos == nil then
+--         event_name = payload
+--     else
+--         event_name = payload:sub(1, coma_pos-1)
+--         arg_string = payload:sub(coma_pos+1)
+--         valid,arg = pcall(sjson.decode, arg_string)
+--         if not valid then
+--             return
+--         end
+--     end
+
+--     if Event then
+--         Event(event_name, arg)
+--     end
+-- end
+
+-------------------------------------------------------------------------------------
+
 function Module:AddNode(node_name, node)
     table.insert(self.nodes, node_name)
     --[[
@@ -210,59 +300,37 @@ function Module:AddNode(node_name, node)
     }, NodeObject)
 end
 
-function Module:PublishNodePropertyValue(node, property, value)
-    return self:Publish(string.format("%s/%s", node, property), value)
+-------------------------------------------------------------------------------------
+
+function Module:OnOtaStart(id, arg)
+    return self:SetState("ota")
 end
 
-function Module:PublishNodeProperty(node, property, sub_topic, payload)
-    return self:Publish(string.format("%s/%s/%s", node, property, sub_topic), payload)
-end
-
-function Module:PublishNode(node, sub_topic, payload)
-    return self:Publish(string.format("%s/%s", node, sub_topic), payload)
-end
-
-function Module:Publish(sub_topic, payload)
-    if not self.mqtt then
-        print("HOMIE: not connected, cannot publish: " .. sub_topic)
-        return
-    end
-    local topic = GetHomieBaseTopic(sub_topic)
-    local retain = true
-    self.mqtt:Publish(topic, payload, retain)
-end
-
-function Module:OnMqttMessage(topic, payload)
-    local node_name,prop_name = topic:match("homie/.-/(.-)/(.-)/set")
-    local full_node_name = string.format("%s.%s", node_name, prop_name)
-    local handler = self.settable[full_node_name]
-    if handler then
-        print(string.format("HOMIE: Importing value %s=%s", full_node_name, payload))
-        handler:ImportValue(topic, payload, node_name, prop_name)
-    else
-        print(string.format("HOMIE: Cannot import, not a settable value: %s=%s", full_node_name, payload))
-    end
-end
-
-function Module:SetState(state)
-    return self:Publish("$state", state)
+function Module:OnAppStart()
+    self.app_started = true
+    self:RestartProtocol()
 end
 
 Module.EventHandlers = {
     ["ota.start"] = Module.OnOtaStart,
     ["app.start"] = Module.OnAppStart,
+
     ["mqtt.connected"] = Module.OnMqttConnected,
+    ["mqtt.init-lwt"] = Module.OnMqttLwt,
     ["mqtt.disconnected"] = Module.OnMqttDisconnected,
-    ["controller.init"] = Module.OnInit,
-    ["controller.ready"] = Module.OnReady,
+
+    -- ["controller.init"] = Module.OnInit,
+    ["controller.ready"] = Module.OnControllerReady,
 }
 
 return {
     Init = function()
+        local cfg = require("sys-config").JSON("homie.cfg") or { }
+
         return setmetatable({
+            prefix = cfg.prefix or "homie",
             nodes = { },
             settable = { }
         }, Module)
     end,
 }
-
