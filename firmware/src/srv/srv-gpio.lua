@@ -4,7 +4,10 @@ Module.__index = Module
 
 function Module:HandlePinChange(state, level, pulse)
     local delta = bit.band((pulse - state.pulse), 0x7fffffff) or 0
+
     if delta < 30 * 1000 then
+        -- debounce
+        -- ignore triggers shorter than 30ms
         return
     end
 
@@ -24,7 +27,25 @@ function Module:HandlePinChange(state, level, pulse)
         Event("gpio." .. state.trig, { value = value, level = t })
     end
 
-    self.node:SetValue(state.trig, value)
+    if self.node then
+        self.node:PublishValue(state.trig, value)
+    end
+end
+
+function Module:Init()
+    for _,v in pairs(hw.gpio) do
+        print("GPIO: Preparing:", v.pin, v.trig)
+
+        v.pulse = tmr.now()
+        v.state = 0
+
+        gpio.mode(v.pin, gpio.INT, v.pullup and gpio.PULLUP or nil)
+        gpio.trig(v.pin, "both", function(...)
+            pcall(self.HandlePinChange, self, v, ...)
+        end)
+
+        v.pullup = nil
+    end
 end
 
 function Module:ContrllerInit(event, ctl)
@@ -32,21 +53,11 @@ function Module:ContrllerInit(event, ctl)
     local any = false
 
     for _,v in pairs(hw.gpio) do
-        print("GPIO: Preparing:", v.pin, v.trig)
-
-        v.pulse = tmr.now()
-        v.state = 0
-
         any = true
         props[v.trig] = {
             datatype = "integer",
             name = "gpio " .. v.trig,
         }
-
-        gpio.mode(v.pin, gpio.INT, v.pullup and gpio.PULLUP or nil)
-        gpio.trig(v.pin, "both", function(...) pcall(self.HandlePinChange, self, v, ...) end)
-
-        v.pullup = nil
     end
 
     if any then
@@ -75,6 +86,8 @@ return {
             return
         end
 
-        return setmetatable({}, Module)
+        local obj = setmetatable({}, Module)
+        obj:Init()
+        return obj
     end,
 }
