@@ -14,30 +14,7 @@ function Module:OnOtaStart()
 end
 
 function Module:OnWifiConnected()
-    if self.started then
-        self:Connect()
-    end
-end
-
--- function Module:OnWifiDisconnected()
-    -- if self.started then
-    --     self:Connect()
-    -- end
--- end
-
--- function Module:OnPostServices()
---     self.started = true
-
---     if wifi.sta.getip() then
---         self:Connect()
---     end
--- end
-
-function Module:OnInitCompleted()
-    self.started = true
-    if wifi.sta.getip() then
-        self:Connect()
-    end
+    self:Connect()
 end
 
 function Module:Publish(topic, payload, retain, qos)
@@ -88,7 +65,9 @@ function Module:Subscribe(topics, handler)
         -- table.insert(self.handlers[regex], handler)
     end
 
-    return self.mqttClient:subscribe(subs, function(client) print("MQTT: Subscription successful") end)
+    return self.mqttClient:subscribe(subs, function(client)
+        print("MQTT: Subscription successful")
+    end)
 end
 
 function Module:Unsubscribe(topics)
@@ -137,7 +116,7 @@ function Module:Disconnected(client)
     print("MQTT: Offline")
     if self.is_connected then
         self.is_connected = nil
-        if Event then Event("mqtt.disconnected") end
+        Event("mqtt.disconnected")
         self:Reconnect()
     end
 end
@@ -145,27 +124,15 @@ end
 function Module:Connected(client)
     print("MQTT: Connected")
     self.is_connected = true
+    self.reconnecting = nil
 
     for _,_ in pairs(self.subscriptions) do
         self.mqttClient:subscribe(self.subscriptions, function(client)
-            print("MQTT: Resubscription successful:")
-        end)
-        break
-    end
-
-    if Event then Event("mqtt.connected", self) end
-end
-
-function Module:Reconnect(client)
-    if not self.is_connected then
-        tmr.create():alarm(10 * 1000, tmr.ALARM_AUTO, function(t)
-            if self.is_connected then
-                t:unregister()
-                return
-            end
-            self:Connect()
+            print("MQTT: Subscriptions restored")
         end)
     end
+
+    Event("mqtt.connected", self)
 end
 
 function Module:HandleError(client, error)
@@ -176,15 +143,26 @@ function Module:HandleError(client, error)
     end)
 end
 
-function Module:Close()
-    if self.mqttClient then
-        print("MQTT: Closing connection")
-        pcall(function()
-            self.mqttClient:close()
-        end)
-        self.mqttClient = nil
-        self.is_connected = nil
+-------------------------------------------------------------------------------------
+
+function Module:Reconnect(client)
+    if not wifi.sta.getip() then
+        self.reconnecting = nil
+        return
     end
+    if self.is_connected or self.reconnecting then
+        self.reconnecting = nil
+        return
+    end
+
+    self.reconnecting = true
+    tmr.create():alarm(30 * 1000, tmr.ALARM_AUTO, function(t)
+        if self.reconnecting then
+            self:Connect()
+            return
+        end
+        t:unregister()
+    end)
 end
 
 function Module:Connect()
@@ -206,6 +184,19 @@ function Module:Connect()
     Event("mqtt.start", cfg)
 end
 
+function Module:Close()
+    if self.mqttClient then
+        print("MQTT: Closing connection")
+        pcall(function()
+            self.mqttClient:close()
+        end)
+        self.mqttClient = nil
+        self.is_connected = nil
+    end
+end
+
+-------------------------------------------------------------------------------------
+
 function Module:StartMqtt(event, cfg)
     if self.is_connected or (not self.mqttClient) then
         return
@@ -219,19 +210,24 @@ function Module:StartMqtt(event, cfg)
     )
 end
 
+-------------------------------------------------------------------------------------
+
 function Module:SetLwt(topic, payload, qos, retain)
     if self.mqttClient then
         self.mqttClient:lwt(topic, payload, qos, retain)
     end
 end
 
+-------------------------------------------------------------------------------------
+
 Module.EventHandlers = {
     ["ota.start"] = Module.OnOtaStart,
     -- ["wifi.disconnected"] = Module.OnWifiDisconnected,
     ["wifi.connected"] = Module.OnWifiConnected,
-    ["app.init.completed"] = Module.OnInitCompleted,
     ["mqtt.start"] = Module.StartMqtt,
 }
+
+-------------------------------------------------------------------------------------
 
 return {
     Init = function()
