@@ -1,68 +1,56 @@
 
-local m = { }
+local Module = { }
 
-local function NTPCheck(t)
-    if not sntp then
-        return
-    end
-    local unix, usec = rtctime.get()
-    if unix < 946684800 then  -- 01/01/2000 @ 12:00am (UTC)
+function Module.OnSync(sec, usec, server, info)
+    if sec < 946684800 then  -- 01/01/2000 @ 12:00am (UTC)
+        Event("ntp.error", "invalid time")
         print("NTP: ERROR: not synced")
-        pcall(m.Sync)
-        t:interval(30 * 1000)
     else
-        t:unregister()
-        if Event then
-            Event("ntp.sync")
-        end
-    end
-end
-
-function m.OnSync(sec, usec, server, info)
-    if not sntp then
-        return
-    end
-    print('NTP: Sync', sec, usec, server, info)
-    if Event then
+        print('NTP: Sync', sec, usec, server, info)
         Event("ntp.sync")
     end
 end
 
-function m.OnError(err, msg)
-    if not sntp then
-        return
-    end
+function Module.OnError(err, msg)
     print("NTP: Error ", err, msg)
-    tmr.create():alarm(10 * 1000, tmr.ALARM_SINGLE, NTPCheck)
-    if Event then
-        Event("ntp.error")
-    end
+    Event("ntp.error", string.format("(%d) %s", err, msg))
 end
 
-function m.Sync()
-    if not sntp then
-        return
-    end
-    local ntpcfg = require("sys-config").JSON("ntp.cfg")
-    if not ntpcfg then
-        print "NTP: No config file"
-        return
-    end
+-------------------------------------------------------------------------------------
 
-    host = ntpcfg.host
-    print("NTP: Will use ntp server: " .. host)
-    sntp.sync(host, m.OnSync,  m.OnError, 1)
+function Module.Sync()
+    local ntpcfg = require("sys-config").JSON("ntp.cfg") or { }
+    local host = ntpcfg.host
+    print("NTP: Will use ntp server:", sjson.encode(host))
+    sntp.sync(host, Module.OnSync, Module.OnError, 1)
 end
 
-function m.Init()
-    if not sntp then
-        return
-    end
-    if Event then
-        Event("ntp.error")
-    end
-    tmr.create():alarm(20 * 1000, tmr.ALARM_SINGLE, m.Sync)
-    tmr.create():alarm(60 * 1000, tmr.ALARM_AUTO, NTPCheck)
+-------------------------------------------------------------------------------------
+
+function Module.OnWifiConnected()
+    Event("ntp.error", "not synchronized")
+    Module.Sync()
 end
 
-return m
+function Module.OnWifiDisconnected()
+    Event("ntp.error", "no wifi")
+end
+
+-------------------------------------------------------------------------------------
+
+Module.EventHandlers = {
+    ["wifi.disconnected"] = Module.OnWifiDisconnected,
+    ["wifi.connected"] = Module.OnWifiConnected,
+    ["ntp.sync"] = function() SetError("ntp.error", nil) end,
+    ["ntp.error"] = function(_, msg) SetError("ntp.error", tostring(msg) or 1) end,
+}
+
+-------------------------------------------------------------------------------------
+
+return {
+    Init = function()
+        if sntp then
+            return Module
+        end
+    end,
+}
