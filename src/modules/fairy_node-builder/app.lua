@@ -55,7 +55,7 @@ function FirmwareBuilderApp:StartModule()
         config.device_port and self.UploadToLocalDevice,
         config.device_port and self.DisconnectLocalDevice,
 
-        config.activate and self.ActivateCommits,
+        (config.device_port or config.activate) and self.ActivateCommits,
         config.trigger_ota and self.TriggerOta,
     }
 
