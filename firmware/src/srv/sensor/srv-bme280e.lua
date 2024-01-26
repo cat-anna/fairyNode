@@ -86,12 +86,12 @@ local function PublishReading(self, reading, sensors)
     local altitude = hw.bme280e.altitude or 0
 
     local fmt = "%.1f"
-    self.node:SetValue("temperature", fmt:format(T))
-    self.node:SetValue("humidity", fmt:format(H))
-    self.node:SetValue("pressure", fmt:format(P))
-    -- self.node:SetValue("pressure_qnh", fmt:format(QNH))
-    self.node:SetValue("dew_point", fmt:format(D))
-    self.node:SetValue("altitude", fmt:format(altitude))
+    self.node:PublishValue("temperature", fmt:format(T))
+    self.node:PublishValue("humidity", fmt:format(H))
+    self.node:PublishValue("pressure", fmt:format(P))
+    -- self.node:PublishValue("pressure_qnh", fmt:format(QNH))
+    self.node:PublishValue("dew_point", fmt:format(D))
+    self.node:PublishValue("altitude", fmt:format(altitude))
 
     sensors.bme280e = {
         temperature = T,

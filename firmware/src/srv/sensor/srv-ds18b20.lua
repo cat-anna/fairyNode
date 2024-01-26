@@ -29,7 +29,7 @@ function Sensor:ReadCallback(temp_list, sensors)
             unknown[addr_str] = temp
             name = addr_str
         else
-            self.node:SetValue(name, tostring(temp))
+            self.node:PublishValue(name, tostring(temp))
         end
         values[name] = temp
         if Event then
@@ -38,8 +38,8 @@ function Sensor:ReadCallback(temp_list, sensors)
     end
 
     sensors.ds18b20 = values
-    -- self.node:SetValue("_unknown", sjson.encode(unknown))
-    -- self.node:SetValue("_missing", sjson.encode(dscfg))
+    -- self.node:PublishValue("_unknown", sjson.encode(unknown))
+    -- self.node:PublishValue("_missing", sjson.encode(dscfg))
 
     for id,name in pairs(dscfg) do
         print("DS18B20: " .. id .. "=" .. name .. ": Device not found")
@@ -83,7 +83,7 @@ function Sensor:UpdateErrors(event, arg)
     -- if not self.node then
     --     return
     -- end
-    -- self.node:SetValue("errors", sjson.encode(arg.errors))
+    -- self.node:PublishValue("errors", sjson.encode(arg.errors))
 end
 
 Sensor.EventHandlers = {

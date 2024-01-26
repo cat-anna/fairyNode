@@ -70,13 +70,13 @@ function Sensor:Readout(event, sensors)
     end
     local flash_remaining = file.fsinfo()
 
-    self.node:SetValue("free_space", tostring(flash_remaining))
-    self.node:SetValue("heap", tostring(node.heap()))
-    self.node:SetValue("uptime", tostring(tmr.time()))
-    self.node:SetValue("wifi", tostring(GetWifiSignalQuality()))
+    self.node:PublishValue("free_space", tostring(flash_remaining))
+    self.node:PublishValue("heap", tostring(node.heap()))
+    self.node:PublishValue("uptime", tostring(tmr.time()))
+    self.node:PublishValue("wifi", tostring(GetWifiSignalQuality()))
 
     if self.vdd then
-        self.node:SetValue("vdd", tostring(adc.readvdd33(0)))
+        self.node:PublishValue("vdd", tostring(adc.readvdd33(0)))
     end
 end
 
@@ -84,7 +84,7 @@ function Sensor:UpdateErrors(event, arg)
     if not self.node then
         return
     end
-    self.node:SetValue("errors", sjson.encode(arg.errors))
+    self.node:PublishValue("errors", sjson.encode(arg.errors))
 end
 
 function Sensor:OnEvent(event, arg)
@@ -94,7 +94,7 @@ function Sensor:OnEvent(event, arg)
     if arg ~= nil and type(arg) ~= "table" then
         event = string.format("%s,%s", event, tostring(arg))
     end
-    self.node:SetValue("event", event)
+    self.node:PublishValue("event", event)
 end
 
 Sensor.EventHandlers = {

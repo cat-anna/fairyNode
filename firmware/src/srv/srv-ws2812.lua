@@ -36,7 +36,7 @@ function Module:ImportValue(topic, payload, node_name, prop_name)
     if self.conf[prop_name] ~= nil then
         if prop_name == "enabled" then
             self.conf.enabled = payload == "true"
-            self.node:SetValue(prop_name, payload)
+            self.node:PublishValue(prop_name, payload)
             self:Reset()
             return
         elseif prop_name == "speed" or prop_name == "brightness" then
@@ -44,7 +44,7 @@ function Module:ImportValue(topic, payload, node_name, prop_name)
         else
             self.conf[prop_name] = payload
         end
-        self.node:SetValue(prop_name, payload)
+        self.node:PublishValue(prop_name, payload)
         if self.conf.enabled then
             self:Reset()
         end

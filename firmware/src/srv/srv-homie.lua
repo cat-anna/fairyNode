@@ -2,15 +2,11 @@
 local NodeObject = {}
 NodeObject.__index = NodeObject
 
-function NodeObject:SetValue(property, value, retain)
-    local retain_value = retain
-    if debugMode then
-        retain_value = false
-    end
-    self.controller:PublishNodePropertyValue(self.name, property, value, retain_value and true or false)
-    if retain then
-        self.controller:PublishNodePropertyValue(self.name, property, value, retain_value)
-    end
+function NodeObject:PublishValue(property, value, retain)
+    self.controller:PublishNodePropertyValue(self.name, property, value, retain)
+end
+function NodeObject:StoreValue(property, value, retain)
+    self.controller:PublishNodeProperty(self.name, property, "set", value)
 end
 
 -------------------------------------------------------------------------------------
@@ -36,6 +32,7 @@ function Module:RestartProtocol()
         return
     end
 
+    self.nodes = { }
     self:PublishBaseInfo()
     Event("controller.init", self, 500)
     Event("controller.ready", self)
@@ -48,7 +45,7 @@ end
 function Module:OnControllerReady()
     self:PublishExtendedInfo()
 
-    self:PublishInfo("$nodes", table.concat(self.nodes, ","))
+    self:PublishInfo("$nodes", table.concat(self.nodes or {}, ","))
     self.nodes = nil
 
     self.mqtt:Subscribe({
@@ -76,7 +73,7 @@ end
 -------------------------------------------------------------------------------------
 
 function Module:PublishInfo(sub_topic, payload)
-    self:Publish(sub_topic, payload, not debugMode)
+    self:Publish(sub_topic, payload, true)
 end
 
 function Module:PublishBaseInfo()
@@ -202,16 +199,16 @@ end
 
 -------------------------------------------------------------------------------------
 
-function Module:PublishNodePropertyValue(node, property, value)
-    return self:Publish(string.format("%s/%s", node, property), value, not debugMode)
+function Module:PublishNodePropertyValue(node, property, value, retain)
+    return self:Publish(string.format("%s/%s", node, property), value, retain)
 end
 
 function Module:PublishNodeProperty(node, property, sub_topic, payload)
-    return self:Publish(string.format("%s/%s/%s", node, property, sub_topic), payload, not debugMode)
+    return self:PublishInfo(string.format("%s/%s/%s", node, property, sub_topic), payload)
 end
 
 function Module:PublishNode(node, sub_topic, payload)
-    return self:Publish(string.format("%s/%s", node, sub_topic), payload, not debugMode)
+    return self:PublishInfo(string.format("%s/%s", node, sub_topic), payload)
 end
 
 function Module:Publish(sub_topic, payload, retain)
@@ -284,8 +281,9 @@ function Module:AddNode(node_name, node)
         table.insert(props, prop_name)
 
         if values.value ~= nil then
-            self:PublishNodePropertyValue(node_name, prop_name, values.value)
+            self:PublishNodePropertyValue(node_name, prop_name, values.value, values.retained)
         end
+        wifi_connected = true
 
         -- print(string.format("HOMIE: %s.%s", node_name or "?", prop_name or "?"))
         if values.handler then
@@ -348,7 +346,6 @@ return {
 
         return setmetatable({
             prefix = cfg.prefix or "homie",
-            nodes = { },
             settable = { }
         }, Module)
     end,

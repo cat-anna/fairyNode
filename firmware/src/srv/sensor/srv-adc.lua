@@ -22,7 +22,7 @@ end
 
 function Sensor:PublishValue(v)
     if self.node then
-        self.node:SetValue("value", string.format("%.3f", v))
+        self.node:PublishValue("value", string.format("%.3f", v))
     end
 end
 
