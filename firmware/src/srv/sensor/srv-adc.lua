@@ -2,15 +2,19 @@ local Sensor = {}
 Sensor.__index = Sensor
 
 function Sensor:ControllerInit(event, ctl)
-    self.node = ctl:AddNode("adc", {
+    self.node = ctl:AddNode(self, "adc", {
         name = "Adc",
         properties = {
-            value = { name = "Value", datatype = "float" },
+            value = {
+                name = "Value",
+                datatype = "float",
+            },
             update_delta = {
                 name = "Update delta",
                 datatype = "float",
                 value = self.update_delta,
-                handler = self
+                settable = true,
+                retained = true,
             }
         }
     })

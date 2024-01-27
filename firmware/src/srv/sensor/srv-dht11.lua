@@ -2,21 +2,21 @@ local Sensor = {}
 Sensor.__index = Sensor
 
 function Sensor:ContrllerInit(event, ctl)
-    self.node = ctl:AddNode("dht11", {
-            name = "dht11",
-            properties = {
-                temperature = {
-                    datatype = "float",
-                    name = "Temperature",
-                    unit = "°C",
-                },
-                humidity = {
-                    datatype = "float",
-                    name = "Humidity",
-                    unit = "%",
-                }
+    self.node = ctl:AddNode(self, "dht11", {
+        name = "dht11",
+        properties = {
+            temperature = {
+                datatype = "float",
+                name = "Temperature",
+                unit = "°C",
+            },
+            humidity = {
+                datatype = "float",
+                name = "Humidity",
+                unit = "%",
             }
-        })
+        }
+    })
 end
 
 function Sensor:Readout(event, sensors)

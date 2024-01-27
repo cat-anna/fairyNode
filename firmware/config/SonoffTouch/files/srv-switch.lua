@@ -18,14 +18,14 @@ function Module:ImportValue(topic, payload, node_name, prop_name)
 end
 
 function Module:ControllerInit(event, ctl)
-    self.node = ctl:AddNode("switch", {
+    self.node = ctl:AddNode(self, "switch", {
         name = "Switch",
         properties = {
             relay = {
                 datatype = "boolean",
                 name = "Relay",
                 value = false,
-                handler = self,
+                settable = true,
             },
         },
     })

@@ -14,7 +14,7 @@ local Sensor = {}
 Sensor.__index = Sensor
 
 function Sensor:ControllerInit(event, ctl)
-    self.node = ctl:AddNode("sysinfo", {
+    self.node = ctl:AddNode(self, "sysinfo", {
         name = "Device state info",
         -- retain = false,
         properties = {

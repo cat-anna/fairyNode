@@ -261,7 +261,17 @@ end
 
 -------------------------------------------------------------------------------------
 
-function Module:AddNode(node_name, node)
+local function CheckOwnerFlag(name, owner, parent, default)
+    if owner[name] == nil then
+        if parent[name] ~= nil then
+            owner[name] = parent[name]
+        else
+            owner[name] = default
+        end
+    end
+end
+
+function Module:AddNode(node_owner, node_name, node_info)
     table.insert(self.nodes, node_name)
     --[[
     node = {
@@ -277,43 +287,38 @@ function Module:AddNode(node_name, node)
     }
     ]]
     local props = { }
-    for prop_name,values in pairs(node.properties or {}) do
+    for prop_name,prop_info in pairs(node_info.properties or {}) do
         table.insert(props, prop_name)
 
-        if values.value ~= nil then
-            self:PublishNodePropertyValue(node_name, prop_name, values.value, values.retained)
+        CheckOwnerFlag("settable", prop_info, node_info, false)
+        CheckOwnerFlag("retained", prop_info, node_info, false)
+
+        if prop_info.value ~= nil then
+            self:PublishNodePropertyValue(node_name, prop_name, prop_info.value, prop_info.retained)
+            if node_owner[prop_name] == nil then
+                node_owner[prop_name] = prop_info.value
+            end
+            prop_info.value = nil
         end
-        wifi_connected = true
 
-        -- print(string.format("HOMIE: %s.%s", node_name or "?", prop_name or "?"))
-        if values.handler then
-            -- local mqtt = self.mqtt
-            local handler = values.handler
-
+        if prop_info.settable then
             local full_node_name = string.format("%s.%s", node_name, prop_name)
             print("HOMIE: Settable node:", full_node_name)
-            self.settable[full_node_name] = handler
+            self.settable[full_node_name] = node_owner
         end
 
-        self:PublishNodeProperty(node_name, prop_name, "$settable", values.handler ~= nil)
-        self:PublishNodeProperty(node_name, prop_name, "$retained", values.retained and "true" or "false")
-
-        values.handler = nil
-        values.retained = nil
-        values.value = nil
-
-        for k,v in pairs(values or {}) do
-            self:PublishNodeProperty(node_name, prop_name, "$" .. k, v)
+        for k,v in pairs(prop_info) do
+            self:PublishNodeProperty(node_name, prop_name, "$" .. k, tostring(v))
         end
-        -- coroutine.yield()
     end
 
-    self:PublishNode(node_name, "$name", node.name)
+    self:PublishNode(node_name, "$name", node_info.name)
     self:PublishNode(node_name, "$properties", table.concat(props, ","))
 
     return setmetatable({
         name = node_name,
         controller = self,
+        -- node_owner = node_owner,
     }, NodeObject)
 end
 
@@ -343,7 +348,6 @@ Module.EventHandlers = {
 return {
     Init = function()
         local cfg = require("sys-config").JSON("homie.cfg") or { }
-
         return setmetatable({
             prefix = cfg.prefix or "homie",
             settable = { }

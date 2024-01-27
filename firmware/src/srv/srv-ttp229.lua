@@ -24,7 +24,7 @@ function Module:ContrllerInit(event, ctl)
   -- end
 
   -- if any then
-  --     self.node = ctl:AddNode("gpio", {
+  --     self.node = ctl:AddNode(self, "gpio", {
   --         name = "gpio",
   --         properties = props,
   --     })

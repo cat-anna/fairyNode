@@ -15,7 +15,7 @@ local function SensorSetup()
 end
 
 function Sensor:ControllerInit(event, ctl)
-    self.node = ctl:AddNode("bme280e", {
+    self.node = ctl:AddNode(self, "bme280e", {
         name = "bme280e",
         properties = {
             temperature = {

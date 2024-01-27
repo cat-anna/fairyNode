@@ -52,14 +52,15 @@ function Module:ImportValue(topic, payload, node_name, prop_name)
 end
 
 function Module:ControllerInit(event, ctl)
-    self.node = ctl:AddNode("ws2812", {
+    self.node = ctl:AddNode(self, "ws2812", {
         name = "RGB LED",
+        retained = true,
+        settable = true,
         properties = {
             enabled = {
                 datatype = "boolean",
                 name = "Enabled",
                 value = self.conf.enabled,
-                handler = self
             },
 
             speed = {
@@ -67,14 +68,12 @@ function Module:ControllerInit(event, ctl)
                 name = "Speed",
                 value = self.conf.speed,
                 format = "0:255",
-                handler = self
             },
             brightness = {
                 datatype = "integer",
                 name = "Brightness",
                 value = self.conf.brightness,
                 format = "0:255",
-                handler = self
             },
 
             color = {
@@ -82,20 +81,17 @@ function Module:ControllerInit(event, ctl)
                 name = "Color",
                 value = self.conf.color,
                 unit = "rgb",
-                handler = self
             },
             mode = {
                 datatype = "enum",
                 name = "Mode",
                 value = self.conf.mode,
                 format = [==[["static","blink","gradient","gradient_rgb","random_color","rainbow","rainbow_cycle","flicker","fire","fire_soft","fire_intense","halloween","circus_combustus","larson_scanner","cycle","color_wipe","random_dot"]]==],
-                handler = self
             },
             mode_argument = {
                 datatype = "string",
                 name = "Mode argument",
                 value = self.conf.mode_argument,
-                handler = self
             }
         }
     })

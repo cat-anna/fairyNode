@@ -58,7 +58,7 @@ function Sensor:ContrllerInit(event, ctl)
         props[v] = { name = v, datatype = "float", unit="C", id=k }
     end
 
-    self.node = ctl:AddNode("ds18b20", {
+    self.node = ctl:AddNode(self, "ds18b20", {
         name = "Temperature sensors",
         properties = props
     })
