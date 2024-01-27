@@ -9,10 +9,12 @@ return {
     },
     config = {
         hw = {
-            gpio = {{pin = 3, trig = "button", state = 0}},
+            gpio = {
+                { pin = 3, trig = "button", state = 0, },
+            },
             led = {
-                relay = {pin = 6, initial = false},
-                blue = {pin = 7, invert = true},
+                relay = { pin = 6, initial = false, },
+                blue = { pin = 7, invert = true, },
             }
         },
     }

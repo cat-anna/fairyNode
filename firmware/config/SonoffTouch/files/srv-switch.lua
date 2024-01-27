@@ -13,7 +13,6 @@ end
 function Module:ImportValue(topic, payload, node_name, prop_name)
     if prop_name == "relay" then
         self:SetValue(prop_name, payload == "true")
-        self:Reset()
     end
 end
 
@@ -26,6 +25,7 @@ function Module:ControllerInit(event, ctl)
                 name = "Relay",
                 value = false,
                 settable = true,
+                retained = true,
             },
         },
     })
@@ -34,17 +34,19 @@ end
 function Module:HandleButton(id, arg)
     if arg.value == 1 then
         self:SetValue("relay", not self.relay)
-        self:Reset()
     end
 end
 
 function Module:SetValue(name, value)
     print("SWITCH: Set value", name, value)
+    self.node:PublishValue(name, value, true)
 
     if self[name] ~= value then
-        self.node:SetValue(name, tostring(value))
         self[name] = value
+        self.node:StoreValue(name, value, true)
     end
+
+    self:Reset()
 end
 
 Module.EventHandlers = {
