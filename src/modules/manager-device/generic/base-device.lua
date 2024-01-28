@@ -7,7 +7,17 @@ BaseDevice.__base = "manager-device/generic/base-object"
 BaseDevice.__type = "interface"
 BaseDevice.__name = "BaseDevice"
 BaseDevice.__deps = {
+    device_manager = "manager-device",
     component_manager = "manager-device/manager-component",
+}
+
+-------------------------------------------------------------------------------------
+
+BaseDevice.DeviceStateEnum = {
+    unknown = "unknown",
+    init = "init",
+    ready = "ready",
+    ota = "ota",
 }
 
 -------------------------------------------------------------------------------------
@@ -17,6 +27,10 @@ function BaseDevice:Init(config)
 
     self.group = config.group
     assert(self.group)
+    self.state = self.DeviceStateEnum.unknown
+    if config.state then
+        self:EnterState(config.state)
+    end
 
     self.components = { }
     self.start_time = os.timestamp()
@@ -77,8 +91,25 @@ end
 -------------------------------------------------------------------------------------
 
 function BaseDevice:GetState()
-    return self:IsReady() and "ready" or "init"
+    return self.state
 end
+
+function BaseDevice:EnterState(new_state)
+    if self.state == new_state then
+        return
+    end
+    local prev_state = self.state
+    self.state = new_state
+    printf(self, "State changed %s->%s", prev_state, new_state)
+
+    self:EmitEvent({
+        action = "state-change",
+        old_state = prev_state,
+        new_state = new_state,
+    })
+end
+
+-------------------------------------------------------------------------------------
 
 function BaseDevice:IsLocal()
     AbstractMethod()
@@ -121,6 +152,15 @@ end
 
 function BaseDevice:GetComponent(key)
     return self.components[key]
+end
+
+-------------------------------------------------------------------------------------
+
+function BaseDevice:EmitEvent(arg)
+    assert(arg.action)
+    arg.device = self
+    local event = string.format("device.%s", arg.action)
+    self.device_manager:EmitEvent(event, arg)
 end
 
 -------------------------------------------------------------------------------------

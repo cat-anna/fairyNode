@@ -16,6 +16,7 @@ LocalDevice.__deps = { }
 
 function LocalDevice:Init(config)
     LocalDevice.super.Init(self, config)
+    self:EnterState(self.DeviceStateEnum.init)
 
     self.sensors = table.weak_values()
 end
@@ -39,6 +40,7 @@ function LocalDevice:StartDevice()
 
     LocalDevice.super.StartDevice(self)
     self:SetReady(true)
+    self:EnterState(self.DeviceStateEnum.ready)
 end
 
 function LocalDevice:StopDevice()

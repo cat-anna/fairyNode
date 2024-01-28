@@ -153,7 +153,9 @@ end
 
 function ModuleLoader:EnumerateModules(functor)
     for k, v in pairs(self.loaded_modules) do
-        SafeCall(functor, k, v.instance)
+        if v.instance then
+            SafeCall(functor, k, v.instance)
+        end
     end
 end
 
@@ -254,7 +256,7 @@ function ModuleLoader:LoadSubModule(name, mod_name, sub_name)
     local mod_def = self:InitModule(name)
     mod_def.definition = definition
     mod_def.submodule = true
-    mod_def.class_name = "" .. name
+    mod_def.class_name = name
     mod_def.parent = parent
     mod_def.configuration = parent.configuration
     mod_def.base_module_name = parent.name
@@ -327,19 +329,25 @@ function ModuleLoader:UpdateTask(task)
 end
 
 function ModuleLoader:LoadModuleDefinitions()
-    print(self, "Loading module definitions")
+    if self.verbose then
+        print(self, "Loading module definitions")
+    end
     local defs = require("modules").LoadModuleDefs(self.config[CONFIG_KEY_PATHS])
     self.known_modules = defs
 end
 
 function ModuleLoader:LoadModules()
-    print(self, "Loading mandatory modules")
+    if self.verbose then
+        print(self, "Loading mandatory modules")
+    end
     for k,v in pairs(self.known_modules) do
         if v.mandatory then
             self:LoadModule(k)
         end
     end
-    print(self, "Loading modules")
+    if self.verbose then
+        print(self, "Loading modules")
+    end
     for _,v in pairs(self.config[CONFIG_KEY_LIST]) do
         self:LoadModule(v)
     end

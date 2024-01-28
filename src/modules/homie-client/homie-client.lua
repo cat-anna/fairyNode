@@ -172,13 +172,12 @@ end
 
 function HomieClient:ResetStateByEvent(event)
     local arg = event.argument
-    if not arg.device then
+    assert(arg.device)
+    if not arg.device.IsLocal() then
         return
     end
 
-    if arg.device.IsLocal() then
-        self.state_machine:Reset()
-    end
+    self.state_machine:Reset()
 end
 
 -------------------------------------------------------------------------------
@@ -187,9 +186,12 @@ HomieClient.EventTable = {
     ["module.mqtt-client.disconnected"] = HomieClient.HandleMqttDisconnected,
     ["module.mqtt-client.connected"] = HomieClient.HandleMqttConnected,
 
-    ["module.manager-device.device"] = HomieClient.ResetStateByEvent,
-    ["module.manager-device.component"] = HomieClient.ResetStateByEvent,
-    ["module.manager-device.property"] = HomieClient.ResetStateByEvent,
+    ["module.manager-device.device.add"] = HomieClient.ResetStateByEvent,
+    ["module.manager-device.device.remove"] = HomieClient.ResetStateByEvent,
+    ["module.manager-device.component.add"] = HomieClient.ResetStateByEvent,
+    ["module.manager-device.component.remove"] = HomieClient.ResetStateByEvent,
+    ["module.manager-device.property.add"] = HomieClient.ResetStateByEvent,
+    ["module.manager-device.property.remove"] = HomieClient.ResetStateByEvent,
 }
 
 -------------------------------------------------------------------------------

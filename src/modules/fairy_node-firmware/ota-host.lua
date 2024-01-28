@@ -534,41 +534,40 @@ end
 -------------------------------------------------------------------------------------
 
 function FairyNodeOta:HandleDeviceStateChange(event)
-    if not event.device_handle.GetHardwareId then
+    local arg = event.argument
+    local device = arg.device
+    assert(device)
+    if not device:IsFairyNodeDevice() then
         return
     end
 
-    local device_id = event.device_handle:GetHardwareId()
-    if not device_id then
+    local new_state = arg.new_state
+    if new_state:lower() ~= device.DeviceStateEnum.ready then
         return
     end
 
+    local device_id = device:GetHardwareId()
+    assert(device_id)
     device_id = device_id:upper()
 
-    if event.state:lower() ~= "ready" then
-        return
-    end
-
-    if not event.device_handle.GetFirmwareStatus then
-        return
-    end
-
-    local fw_status = event.device_handle:GetFirmwareStatus()
+    local fw_status = device:GetFirmwareStatus()
     local fw_set = { }
     for _,v in ipairs(OTA_COMPONENTS) do
         if fw_status[v].hash then
             fw_set[v] = fw_status[v].hash:lower()
         else
-            printf(self, "Debice %s is missing firmware hash for %s component", device_id, v)
+            printf(self, "Device %s is missing firmware hash for %s component", device_id, v)
             return
         end
     end
 
-    scheduler.Delay(1, function() self:MarkDeviceBootSuccess(device_id, fw_set) end)
+    self:MarkDeviceBootSuccess(device_id, fw_set)
 end
 
+-------------------------------------------------------------------------------------
+
 FairyNodeOta.EventTable = {
-    ["homie.device.event.state-change"] = FairyNodeOta.HandleDeviceStateChange,
+    ["module.manager-device.device.state-change"] = FairyNodeOta.HandleDeviceStateChange,
 }
 
 -------------------------------------------------------------------------------------

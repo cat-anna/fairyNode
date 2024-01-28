@@ -6,6 +6,9 @@ local BaseProperty = { }
 BaseProperty.__base = "manager-device/generic/base-object"
 BaseProperty.__type = "interface"
 BaseProperty.__name = "BaseProperty"
+BaseProperty.__deps = {
+    property_manager = "manager-device/manager-property",
+}
 
 -------------------------------------------------------------------------------------
 
@@ -120,6 +123,17 @@ function BaseProperty:GetLegacyDatabaseId()
     return {
         string.format("property.value.%s", self:GetGlobalId()),
     }
+end
+
+-------------------------------------------------------------------------------------
+
+function BaseProperty:EmitEvent(arg)
+    assert(arg.action)
+    arg.device = self:GetOwnerDevice()
+    arg.component = self:GetOwnerComponent()
+    arg.property = self
+    local event = string.format("property.%s", arg.action)
+    self.property_manager:EmitEvent(event, arg)
 end
 
 -------------------------------------------------------------------------------------

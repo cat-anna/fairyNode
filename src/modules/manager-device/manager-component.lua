@@ -1,4 +1,3 @@
-
 local loader_class = require "fairy_node/loader-class"
 
 -------------------------------------------------------------------------------
@@ -11,8 +10,8 @@ local ipairs = ipairs
 local ComponentManager = {}
 ComponentManager.__tag = "ComponentManager"
 ComponentManager.__type = "module"
-ComponentManager.__deps = { }
-ComponentManager.__config = { }
+ComponentManager.__deps = {}
+ComponentManager.__config = {}
 
 -------------------------------------------------------------------------------
 
@@ -55,22 +54,14 @@ function ComponentManager:CreateComponent(comp_proto)
     assert(self.components_by_id[gid] == nil)
     self.components_by_id[gid] = component
 
-    self:EmitEvent("component", {
-        action = "add",
-        device = component:GetOwnerDevice(),
-        component = component,
-    })
+    component:EmitEvent({ action = "add" })
 
     return component
 end
 
 function ComponentManager:DeleteCompnent(component)
     print(self, "TODO")
-    self:EmitEvent("component", {
-        action = "remove",
-        device = component:GetOwnerDevice(),
-        component = component,
-     })
+    component:EmitEvent({ action = "remove" })
     self.components_by_id[component:GetGlobalId()] = nil
 end
 
@@ -78,7 +69,7 @@ function ComponentManager:AreComponentsReady()
     local all_started = true
     local all_ready = true
 
-    for k,v in pairs(self.components_by_id) do
+    for k, v in pairs(self.components_by_id) do
         all_started = all_started and not v:IsStarted()
         all_ready = all_ready and not v:IsReady()
     end
@@ -116,7 +107,7 @@ function ComponentManager:GetDebugTable()
         "properties",
     }
 
-    local r = { }
+    local r = {}
     local function check(v)
         if v == nil then
             return ""
@@ -124,8 +115,8 @@ function ComponentManager:GetDebugTable()
         return tostring(v)
     end
 
-    for _,id in ipairs(self:ComponentKeys()) do
-    --     -- print(self, id)
+    for _, id in ipairs(self:ComponentKeys()) do
+        --     -- print(self, id)
         local p = self.components_by_id[id]
         table.insert(r, {
             p:GetGlobalId(),

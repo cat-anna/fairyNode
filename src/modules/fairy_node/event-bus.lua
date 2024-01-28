@@ -42,7 +42,6 @@ end
 
 function EventBus:AfterReload()
     loader_module:RegisterWatcher(self:Tag(), self)
-    loader_class:RegisterWatcher(self:Tag(), self)
 end
 
 function EventBus:Init(opt)
@@ -50,7 +49,6 @@ function EventBus:Init(opt)
 
     self.event_queue = {}
     self.handler_cache = {}
-    self.subscriptions = table.weak()
 
     if self.config.debug then
         self.stats = { }
@@ -88,11 +86,6 @@ function EventBus:ModuleReloaded(module_name, module)
         event = "module.reloaded",
         name = module_name,
     })
-end
-
-function EventBus:OnObjectCreated(class_name, object)
-    self:InvalidateHandlerCache()
-    self.subscriptions[object.uuid] = object
 end
 
 function EventBus:PushEvent(event_info)
@@ -142,14 +135,10 @@ function EventBus:ProcessEvent(event_info)
                 self:ApplyEvent(name, module, event_info, run_stats, entry)
             end
         )
-
-        for uuid,v in pairs(self.subscriptions) do
-            self:ApplyEvent(uuid, v, event_info, run_stats, entry)
-        end
     end
 
     local finish = gettime()
-    local processing_time = finish-start
+    local processing_time = finish - start
     if processing_time > 0.1 then
         printf(self, "Processing of event %s(%s) took too long (%f)", event_info.event, event_info.uuid, processing_time)
     end
@@ -202,7 +191,9 @@ function EventBus:ApplyEvent(name, instance, event_info, run_stats, cache_entry)
                 return
             end
 
-            -- print(self, "Apply event " .. event_info.event .. " to " .. name)
+            if self.verbose then
+                print(self, "Apply event", event_info.event, "to", name)
+            end
 
             run_stats.active_handlers = run_stats.active_handlers + 1
             table.insert(cache_entry, table.weak {

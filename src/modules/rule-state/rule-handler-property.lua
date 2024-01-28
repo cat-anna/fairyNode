@@ -30,7 +30,6 @@ end
 -------------------------------------------------------------------------------------
 
 function RuleHandlerProperty:OnStateChanged(sender, event, arg)
-    print(self, "OnStateChanged", event)
     self:NotifyValueChanged(true)
 end
 

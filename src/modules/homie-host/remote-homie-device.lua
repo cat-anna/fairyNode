@@ -87,17 +87,6 @@ end
 
 ------------------------------------------------------------------------------
 
-function HomieRemoteDevice:EnterState(state)
-    self.state = state
-    -- self.event_bus:PushEvent({
-    --     event = "homie.device.event.state-change",
-    --     id = self:GetId(),
-    --     state = state,
-    --     device_handle = self,
-    -- })
-    printf(self, "Entered state %s", self.state)
-end
-
 -- function HomieRemoteDevice:DeleteDevice()
 --     if self.deleting then
 --         return

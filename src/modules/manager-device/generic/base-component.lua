@@ -7,6 +7,7 @@ BaseComponent.__base = "manager-device/generic/base-object"
 BaseComponent.__type = "interface"
 BaseComponent.__name = "BaseComponent"
 BaseComponent.__deps = {
+    component_manager = "manager-device/manager-component",
     property_manager = "manager-device/manager-property",
 }
 
@@ -89,6 +90,16 @@ end
 
 function BaseComponent:HasProperties()
     return #table.keys(self.properties) > 0
+end
+
+-------------------------------------------------------------------------------------
+
+function BaseComponent:EmitEvent(arg)
+    assert(arg.action)
+    arg.device = self:GetOwnerDevice()
+    arg.component = self
+    local event = string.format("component.%s", arg.action)
+    self.component_manager:EmitEvent(event, arg)
 end
 
 -------------------------------------------------------------------------------------
