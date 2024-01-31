@@ -90,6 +90,15 @@ end
 local base_path = path.abspath(path.normpath(path.dirname(arg[0]) .. "/../../"))
 SetupPath(base_path)
 
+function assert(v, message, ...)
+    if v then
+        return
+    end
+    print(message or "ASSERT!")
+    print(debug.traceback())
+    os.exit(1)
+end
+
 require("fairy_node/stdlib")
 require("fairy_node/logger"):Init()
 SetupBaseArgs(base_path)
