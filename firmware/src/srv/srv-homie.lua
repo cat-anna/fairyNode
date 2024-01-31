@@ -17,7 +17,7 @@ Module.__index = Module
 -------------------------------------------------------------------------------------
 
 function Module:GetBaseTopic(sub_topic)
-    local my_name = wifi.sta.gethostname() or string.format("%06x", node.chipid())
+    local my_name = wifi.sta.gethostname() or string.format("%06X", node.chipid())
     local t = self.prefix .. "/" .. my_name
     if sub_topic then
         return t .. "/" .. sub_topic
@@ -80,10 +80,8 @@ function Module:PublishBaseInfo()
     self:SetState("init")
     self:PublishInfo("$homie", "4.0.0")
 
-    local sta = wifi.sta
-    self:PublishInfo("$name", sta.gethostname())
-    self:PublishInfo("$localip", sta.getip() or "")
-    self:PublishInfo("$mac", sta.getmac() or "")
+    local cfg = require("sys-config").JSON("homie.cfg") or { }
+    self:PublishInfo("$name", cfg.display_name or wifi.sta.gethostname())
 
     self:PublishInfo("$implementation", "FairyNode")
     self:PublishInfo("$fw/name", "FairyNode")
@@ -151,6 +149,12 @@ function Module:PublishExtendedInfo()
     self:PublishInfo("$fw/FairyNode/lfs/size", lfs.lfs_size)
     self:PublishInfo("$fw/FairyNode/lfs/used", lfs.lfs_used)
     lfs=nil
+
+    local sta = wifi.sta
+    self:PublishInfo("$hostname", sta.gethostname())
+    self:PublishInfo("$localip", sta.getip() or "")
+    self:PublishInfo("$mac", sta.getmac() or "")
+    sta = nil
 end
 
 -------------------------------------------------------------------------------------

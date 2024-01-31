@@ -44,7 +44,8 @@ function Sensor:ControllerInit(event, ctl)
             } or nil,
             errors = {
                 name = "Active errors",
-                datatype = "string"
+                datatype = "string",
+                value = "{}",
             },
             free_space = {
                 name = "Free flash space",
@@ -81,10 +82,9 @@ function Sensor:Readout(event, sensors)
 end
 
 function Sensor:UpdateErrors(event, arg)
-    if not self.node then
-        return
+    if self.node then
+        self.node:PublishValue("errors", sjson.encode(arg.errors))
     end
-    self.node:PublishValue("errors", sjson.encode(arg.errors))
 end
 
 function Sensor:OnEvent(event, arg)

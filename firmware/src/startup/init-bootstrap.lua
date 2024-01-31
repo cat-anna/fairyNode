@@ -1,28 +1,28 @@
 local function PrintHwInfo()
-    print("INIT: bootreason: ", node.bootreason())
+    print("INIT: bootreason:", node.bootreason())
 
     local hw_info = node.info("hw")
-    print("INIT: Chip id: ", string.format("%06X", hw_info.chip_id))
-    print("INIT: Flash id: ", string.format("%X", hw_info.flash_id))
-    print("INIT: Flash size: ", hw_info.flash_size)
-    print("INIT: Flash mode: ", hw_info.flash_mode)
-    print("INIT: Flash speed: ", hw_info.flash_speed)
+    print("INIT: Chip id:", string.format("%06X", hw_info.chip_id))
+    print("INIT: Flash id:", string.format("%X", hw_info.flash_id))
+    print("INIT: Flash size:", hw_info.flash_size)
+    print("INIT: Flash mode:", hw_info.flash_mode)
+    print("INIT: Flash speed:", hw_info.flash_speed)
 
     local sw_version = node.info("sw_version")
-    print("INIT: Node git branch: ", sw_version.git_branch)
-    print("INIT: Node git commit id: ", sw_version.git_commit_id)
-    print("INIT: Node release: ", sw_version.git_release)
-    print("INIT: Node commit dts: ", sw_version.git_commit_dts)
+    print("INIT: Node git branch:", sw_version.git_branch)
+    print("INIT: Node git commit id:", sw_version.git_commit_id)
+    print("INIT: Node release:", sw_version.git_release)
+    print("INIT: Node commit dts:", sw_version.git_commit_dts)
     print(string.format("INIT: Node version: %d.%d.%d",
                         sw_version.node_version_major,
                         sw_version.node_version_minor,
                         sw_version.node_version_revision))
 
     local build_config = node.info("build_config")
-    print("INIT: ssl: ", build_config.ssl)
+    print("INIT: ssl:", build_config.ssl)
     print(string.format("INIT: LFS size: %x", build_config.lfs_size))
-    print("INIT: modules: ", build_config.modules)
-    print("INIT: numbers: ", build_config.number_type)
+    print("INIT: modules:", build_config.modules)
+    print("INIT: numbers:", build_config.number_type)
 
     local lfs = node.info("lfs")
     print(string.format("INIT: LFS %d/%d (%.1f%%)", lfs.lfs_used, lfs.lfs_size,  (lfs.lfs_used / lfs.lfs_size)*100))
@@ -37,7 +37,7 @@ local function PrintTimestamp(id)
     package.loaded[id]=nil
 end
 
-print "INIT: Entering bootstrap..."
+print("INIT: Entering bootstrap...")
 
 -- require("init-log")
 if file.exists("ota.ready") then
@@ -56,7 +56,7 @@ if file.exists("ota.ready") then
     return
 end
 
-if file.exists("debug.cfg") then
+if (debugMode == nil) and file.exists("debug.cfg") then
     debugMode = true
     print("INIT: Debug mode is enabled")
 else
@@ -115,7 +115,9 @@ local function CheckFailSafeMode()
     return true
 end
 
-if CheckFailSafeMode() then pcall(node.flashindex("init-lfs")) end
+if CheckFailSafeMode() then
+    pcall(node.flashindex("init-lfs"))
+end
 
 pcall(require, "init-hw")
 pcall(require, "init-error")

@@ -69,16 +69,17 @@ local function InstallImage(image_name, installed_name)
             tmr.wdclr()
             local block_size = math.min(256, file_info.file_size - position)
             local block = input:read(block_size)
-            if not block or block:len() ~= block_size then
+            if (not block) or (block:len() ~= block_size) then
                 tmp:close()
                 return cleanup("Failed to read file content")
             end
             tmp:write(block)
             position = position + block_size
+            -- print("OTA: unpack", file_name, position, file_info.file_size)
         end
         tmp:close()
 
-        if file_info.temp_name ~= "pending.init.lua" and file_info.temp_name:match("%.lua$") then
+        if (file_info.temp_name ~= "pending.init.lua") and file_info.temp_name:match("%.lua$") then
             print("OTA: Compiling file " .. file_info.temp_name)
             tmr.wdclr()
             local success = pcall(node.compile, file_info.temp_name)
