@@ -25,11 +25,12 @@ function MongoCollection:Tag()
     return string.format("MongoCollection(%s)", self.name)
 end
 
-function MongoCollection:Init(config)
-    MongoCollection.super.Init(self, config)
+function MongoCollection:Init(opt)
+    MongoCollection.super.Init(self, opt)
     -- self.database = config.database
-    self.collection_handle = config.collection_handle
-    self.name = config.name
+    self.collection_handle = opt.collection_handle
+    self.name = opt.name
+    self.local_id = opt.flags.local_id
 end
 
 function MongoCollection:PostInit()
@@ -39,6 +40,15 @@ end
 
 function MongoCollection:GetName()
     return self.name
+end
+
+-------------------------------------------------------------------------------------
+
+function MongoCollection:EnsureId(data)
+    if (not data._id) and (self.local_id) then
+        data._id = mongo.ObjectID()
+    end
+    return data._id
 end
 
 -------------------------------------------------------------------------------------
@@ -63,10 +73,13 @@ function MongoCollection:UpdateOne(condition, data)
 end
 
 function MongoCollection:Insert(data)
+    self:EnsureId(data)
+
     local success, err_msg = self.collection_handle:insertOne(data)
     if not success then
         print(self, "Insert: ", success, err_msg)
     end
+    return success, data._id
 end
 
 function MongoCollection:InsertOrReplace(condition, data)
@@ -103,8 +116,10 @@ function MongoCollection:InsertOrUpdate(condition, data)
     local insert = { }
     for k,v in pairs(data) do insert[k] = v end
     for k,v in pairs(condition) do insert[k] = v end
+    data._id = self:EnsureId(insert)
 
     local success, err_msg = self.collection_handle:insertOne(insert)
+    return success, data._id
 end
 
 function MongoCollection:Replace(condition, data)
