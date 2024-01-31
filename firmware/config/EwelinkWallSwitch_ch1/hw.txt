@@ -1,0 +1,17 @@
+
+
+[io03]gpio00 -
+[io10]gpio01 - TxD; Blue Led - RF
+[io04]gpio02 -
+[io09]gpio03 - RxD
+[io02]gpio04 -
+[io01]gpio05 - Button1
+[io11]gpio09 -
+[io12]gpio10 -
+[io06]gpio12 - Relay1
+[io07]gpio13 -
+[io05]gpio14 -
+[io08]gpio15 -
+[io00]gpio16 -
+
+https://www.elektroda.pl/rtvforum/topic3941452.html
