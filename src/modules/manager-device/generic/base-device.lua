@@ -90,6 +90,16 @@ end
 
 -------------------------------------------------------------------------------------
 
+function BaseDevice:SetError(id, message)
+    return self:GetErrorManager():SetDeviceError(self, id, message)
+end
+
+function BaseDevice:ClearError(id)
+    return self:GetErrorManager():ClearDeviceError(self, id)
+end
+
+-------------------------------------------------------------------------------------
+
 function BaseDevice:GetState()
     return self.state
 end

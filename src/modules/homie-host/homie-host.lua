@@ -139,14 +139,13 @@ function HomieHost:CreateDevice(constructor)
     device_mode = device_mode:lower()
 
     local mode_class = {
-        client      = "homie-host/remote-homie-device-fairy-node",
-        esp8266     = "homie-host/remote-homie-device-fairy-node",
-        esp         = "homie-host/remote-homie-device-fairy-node",
+        client      = "homie-host/fairy-node/device",
+        esp8266     = "homie-host/fairy-node/device",
+        esp         = "homie-host/fairy-node/device",
 
         generic     = "homie-host/remote-homie-device",
     }
 
-    local db = self:GetDatabase()
 
     local proto = {
         group = "homie",
@@ -157,6 +156,7 @@ function HomieHost:CreateDevice(constructor)
         class = mode_class[device_mode] or mode_class.generic,
     }
 
+    local db = self:GetDatabase()
     local db_entry = table.shallow_copy(proto)
     proto.homie_controller = self
     proto.database = db

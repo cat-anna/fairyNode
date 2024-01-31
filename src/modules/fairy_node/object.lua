@@ -195,26 +195,39 @@ end
 
 function Object:GetErrorManager()
     if not self.error_manager then
-        self.error_manager = loader_module:LoadModule("fairy_node/error-manager")
+        self.error_manager = loader_module:GetModule("fairy_node/error-manager")
     end
     return self.error_manager
 end
 
 function Object:SetError(id, message)
-    return self:GetErrorManager():SetError(self, id, message)
+    local em = self:GetErrorManager()
+    if not em then
+        assert(false, id .. ": " .. message)
+        return
+    end
+    return em:SetError(self, id, message)
 end
 
 function Object:ClearError(id)
-    return self:GetErrorManager():ClearError(self, id)
+    local em = self:GetErrorManager()
+    if not em then
+        return
+    end
+    return em:ClearError(self, id)
 end
 
 function Object:ClearAllErrors()
-    return self:GetErrorManager():ClearAllErrors(self)
+    local em = self:GetErrorManager()
+    if not em then
+        return
+    end
+    return em:ClearAllErrors(self)
 end
 
 function Object:TestError(test, id, message)
     if test then
-        return self:GetErrorManager():SetError(self, id, message)
+        return self:SetError(id, message)
     end
 end
 

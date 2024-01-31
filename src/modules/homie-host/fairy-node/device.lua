@@ -28,6 +28,13 @@ function FairyNodeRemoteDevice:IsFairyNodeDevice()
     return true
 end
 
+function FairyNodeRemoteDevice:GetNodeClass(node_id)
+    if node_id == "sysinfo" then
+        return "homie-host/fairy-node/node-sysinfo"
+    end
+    return FairyNodeRemoteDevice.super.GetNodeClass(self, node_id)
+end
+
 -------------------------------------------------------------------------------------
 
 function FairyNodeRemoteDevice:GetHardwareId()

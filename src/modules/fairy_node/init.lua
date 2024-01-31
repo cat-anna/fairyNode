@@ -13,7 +13,8 @@ M.parameters = config.parameters
 
 M.submodules = {
     ["event-bus"] = { mandatory = true, },
-    ["error-manager"] = { mandatory = true, },
+
+    ["error-manager"] = { mandatory = false, },
 
     ["storage"] = { mandatory = false, }
 }

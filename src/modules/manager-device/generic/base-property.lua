@@ -100,11 +100,15 @@ function BaseProperty:SetValue(value, timestamp)
     self.value = value
     self.timestamp = timestamp
     self:NotifyValueChanged(changed)
+    self:ValueUpdated()
     return changed
 end
 
 function BaseProperty:NotifyValueChanged(changed)
     self:CallSubscribers("SetValue", { changed = changed })
+end
+
+function BaseProperty:ValueUpdated()
 end
 
 function BaseProperty:GetDatatype()
