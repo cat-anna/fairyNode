@@ -12,10 +12,6 @@ HomieRemoteNode.__deps = { }
 
 -------------------------------------------------------------------------------------
 
-function HomieRemoteNode:Tag()
-    return string.format("%s(%s)", self.__name, self.id)
-end
-
 function HomieRemoteNode:Init(config)
     HomieRemoteNode.super.Init(self, config)
     self.homie_controller = config.homie_controller

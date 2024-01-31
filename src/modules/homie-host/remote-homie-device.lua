@@ -16,10 +16,6 @@ HomieRemoteDevice.__deps = {
 
 -------------------------------------------------------------------------------------
 
-function HomieRemoteDevice:Tag()
-    return string.format("%s(%s)", self.__name, self.id)
-end
-
 function HomieRemoteDevice:Init(config)
     HomieRemoteDevice.super.Init(self, config)
     self.variables = { }

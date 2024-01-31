@@ -13,10 +13,6 @@ PropertySysInfoErrors.__deps = { }
 
 -------------------------------------------------------------------------------------
 
--- function PropertySysInfoErrors:Tag()
---     return string.format("%s(%s)", self.__name, self.id)
--- end
-
 function PropertySysInfoErrors:Init(config)
     PropertySysInfoErrors.super.Init(self, config)
     self.current_errors = { }

@@ -15,7 +15,6 @@ function BaseObject:Init(config)
     self.persistence = config.persistence
     self.volatile = config.volatile
 
-
     self.id = config.id
     self.global_id = config.global_id
 
@@ -23,9 +22,8 @@ function BaseObject:Init(config)
 end
 
 function BaseObject:Tag()
-    return self:GetGlobalId() or BaseObject.super.Tag(self)
+    return string.format("%s(%s)", self.__name, self:GetGlobalId())
 end
-
 -------------------------------------------------------------------------------------
 
 function BaseObject:WantsPersistence()

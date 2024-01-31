@@ -11,10 +11,6 @@ HomieRemoteProperty.__deps = { }
 
 -------------------------------------------------------------------------------------
 
-function HomieRemoteProperty:Tag()
-    return string.format("%s(%s)", self.__name, self.id)
-end
-
 function HomieRemoteProperty:Init(config)
     HomieRemoteProperty.super.Init(self, config)
     self.persistence = true
