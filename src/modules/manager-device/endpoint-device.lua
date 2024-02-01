@@ -34,6 +34,7 @@ local device = {
     endpoints = {
         rest.GET_JSON("/", "GetDeviceList"),
 
+        rest.GET_JSON("/{[^/]+}/status", "GetDeviceStatus"),
         rest.GET_JSON("/{[^/]+}/summary", "GetDeviceNodesSummary"),
         rest.GET_JSON("/{[^/]+}/variables", "GetDeviceVariables"),
         rest.GET_JSON("/{[^/]+}/software", "GetDeviceSoftwareInfo"),

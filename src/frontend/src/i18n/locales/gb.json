@@ -18,6 +18,8 @@
   },
   "deviceInfo": {
     "title": "Device info",
+    "fairyNodeDevice": "FairyNode device",
+    "status": "Status",
     "nodes": {
       "setFailure": "Failed to set property value",
       "setSuccess": "Property value is updated",
@@ -41,7 +43,8 @@
         "commitIsActive": "This commit is active",
         "commitIsCurrent": "This commit is running on device",
         "commitBootSuccessful": "This commit booted successfully on device ",
-        "activateCommit": "Click to activate this commit"
+        "activateCommit": "Click to activate this commit",
+        "deleteCommit": "Click to remove this commit"
       },
       "commit": {
         "active": "Active",

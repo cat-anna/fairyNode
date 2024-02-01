@@ -25,6 +25,7 @@ function DeviceService:GetDevicesSummary()
             status = dev:GetState(),
             uptime = dev:GetUptime(),
             errors = dev:GetErrorCount(),
+            is_fairy_node = dev:IsFairyNodeDevice()
         })
     end
     return http.OK, r
@@ -44,8 +45,27 @@ function DeviceService:GetDeviceList()
     return http.OK, r
 end
 
+function DeviceService:GetDeviceStatus(request, dev_name)
+    local device = self.device_manager:GetDevice(dev_name)
+    if not device then
+        return http.NotFound
+    end
+
+    local result = {
+        device_id = device:GetId(),
+        hardware_id = device:GetHardwareId(),
+        name = device:GetName(),
+        protocol = device:GetConnectionProtocol(),
+        status = device:GetState(),
+        uptime = device:GetUptime(),
+        errors = device:GetErrorCount(),
+        is_fairy_node = device:IsFairyNodeDevice(),
+    }
+    return http.OK, result
+end
+
 function DeviceService:GetDeviceVariables(request, dev_name)
-    local device = self.device_manager.devices[dev_name]
+    local device = self.device_manager:GetDevice(dev_name)
     if not device then
         return http.NotFound
     end
@@ -63,7 +83,7 @@ function DeviceService:GetDeviceVariables(request, dev_name)
 end
 
 function DeviceService:GetDeviceSoftwareInfo(request, dev_name)
-    local device = self.device_manager.devices[dev_name]
+    local device = self.device_manager:GetDevice(dev_name)
     if not device then
         return http.NotFound
     end
@@ -76,7 +96,7 @@ function DeviceService:GetDeviceSoftwareInfo(request, dev_name)
 end
 
 function DeviceService:GetDeviceNodesSummary(request, dev_name)
-    local device = self.device_manager.devices[dev_name]
+    local device = self.device_manager:GetDevice(dev_name)
     if not device then
         return http.NotFound
     end
@@ -156,7 +176,6 @@ function DeviceService:RestartDevice(request, dev_id)
         success = success and true or false
     }
 end
-
 
 -------------------------------------------------------------------------------------
 
