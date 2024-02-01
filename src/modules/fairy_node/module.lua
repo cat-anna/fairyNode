@@ -80,15 +80,23 @@ end
 
 function Module:SetupDatabase(opt)
     assert(opt.name)
-    assert(opt.index)
-
     if not self.mongo_collections then
         self.mongo_collections = { }
     end
 
+    local mongo = self:GetMongoClient()
+    if not mongo then
+        print(self, "Cannot setup database, mongo client is not running")
+        return
+    end
+
+    local flags = {
+        local_id = opt.local_id
+    }
+
     local id = self:GetFullMongoCollectionName(opt.name)
     local entry = {
-        handle = self:GetMongoClient():CreateCollection(id, opt.index),
+        handle = self:GetMongoClient():CreateCollection(id, opt.index, flags),
         collection_id = id
     }
     self.mongo_collections[opt.name] = entry

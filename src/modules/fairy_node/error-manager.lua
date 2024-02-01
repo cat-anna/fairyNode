@@ -1,6 +1,7 @@
 
 local copas = require "copas"
 local coxpcall = require "coxpcall"
+local uuid = require "uuid"
 
 -------------------------------------------------------------------------------
 
@@ -29,15 +30,80 @@ function ErrorManager:Init(opt)
     SetErrorReporter(self)
 end
 
--------------------------------------------------------------------------------
+function ErrorManager:PostInit()
+    ErrorManager.super.PostInit(self)
 
-function ErrorManager:SetError()
+    self:SetupDatabase({
+        default = true,
+        name = "errors",
+        local_id = true,
+        -- index = "timestamp",
+    })
 end
 
-function ErrorManager:ClearError()
+function ErrorManager:StartModule()
+    ErrorManager.super.StartModule(self)
+end
+
+-------------------------------------------------------------------------------
+
+function ErrorManager:SetError(source, error_id, message)
+end
+
+function ErrorManager:ClearError(source, error_id)
 end
 
 function ErrorManager:ClearAllErrors()
+end
+
+-------------------------------------------------------------------------------
+
+function ErrorManager:SetDeviceError(device, error_id, message)
+    self:ReportError {
+        -- uuid = uuid(),
+        source_mode = "device",
+        source = {
+            hardware_id = device:GetHardwareId(),
+            name = device:GetName(),
+        },
+        id = error_id,
+        message = message
+    }
+end
+
+function ErrorManager:ClearDeviceError(device, error_id)
+    self:ResetError{
+        source_mode = "device",
+        source = device,
+        id = error_id,
+    }
+end
+
+-------------------------------------------------------------------------------
+
+function ErrorManager:ReportError(details)
+    details.timestamp = os.timestamp()
+
+    local db_entry = {
+        timestamp = details.timestamp,
+
+        source_mode = details.source_mode,
+        source = details.source,
+
+        id = details.id,
+        message = details.message,
+
+        stacktrace = details.stacktrace,
+
+        acknowledged = false,
+    }
+
+    local db = self:GetDatabase()
+    local s, db_id = db:Insert(db_entry)
+
+    details.entry_id = db_id
+
+    -- if not self.reported_errors[43]
 end
 
 -------------------------------------------------------------------------------

@@ -191,7 +191,7 @@
             .listCommitsForDevice(this.deviceId)
             .then((data) => {
               data.commits.sort(function (a, b) {
-                return a.timestamp - b.timestamp
+                return b.timestamp - a.timestamp
               })
               this.softwareData = data
             })
