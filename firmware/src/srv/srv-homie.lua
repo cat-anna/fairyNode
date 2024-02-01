@@ -155,6 +155,10 @@ function Module:PublishExtendedInfo()
     self:PublishInfo("$localip", sta.getip() or "")
     self:PublishInfo("$mac", sta.getmac() or "")
     sta = nil
+
+    if file.exists("rest.cfg") then
+        self:PublishInfo("$config/rest", require("sys-config").JSON("rest.cfg"))
+    end
 end
 
 -------------------------------------------------------------------------------------
@@ -197,7 +201,7 @@ function Module:OnMqttLwt(event, mqtt)
         self:GetBaseTopic("$state"),  --topic
         "lost", --payload
         0, --qos
-        (not debugMode) --retain
+        true --retain
     )
 end
 
