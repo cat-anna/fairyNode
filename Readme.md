@@ -3,7 +3,7 @@
 Framework for ESP8266 on top of [nodemcu](https://github.com/nodemcu/nodemcu-firmware/) firmware
 
 ## Requirements
-* [LFS](https://nodemcu.readthedocs.io/en/master/lfs/) 
+* [LFS](https://nodemcu.readthedocs.io/en/master/lfs/)
 * nodemcu modules: sjson,net,wifi,mqtt and more
 
 ## Features

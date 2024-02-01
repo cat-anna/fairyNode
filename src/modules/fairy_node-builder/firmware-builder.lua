@@ -154,6 +154,7 @@ function FirmwareBuilder:GetNewFwSet()
     local fw_set = {}
     for _,what in ipairs({"lfs", "root", "config"}) do
         local image = self.ready_images[what]
+        assert(image)
         if not image.uploaded then
             return
         end

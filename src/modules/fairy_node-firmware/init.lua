@@ -4,6 +4,7 @@ local M = { }
 M.name = "FairyNode firmware"
 -- M.description = ""
 M.depends = {
+    "server-rest",
 }
 M.config = {
     public_address = "module.rest-server.public.adress",

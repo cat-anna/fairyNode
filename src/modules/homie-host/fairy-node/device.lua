@@ -166,6 +166,9 @@ end
 -------------------------------------------------------------------------------------
 
 function FairyNodeRemoteDevice:Restart()
+    if not self:IsReady() then
+        return false
+    end
     local r = self:SendCommand("sys,restart", nil)
     return true, r
 end

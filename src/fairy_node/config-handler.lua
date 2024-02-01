@@ -100,7 +100,7 @@ function ConfigHandler:QueryConfigItem(config_item, query_args)
     if type(query_args) == "string" then
         config_item = query_args
         local def = self.parameter_definitions[query_args]
-        assert(type(def) == "table")
+        assert(type(def) == "table", "Failed for config item: " .. query_args)
         query_args = def
     end
 

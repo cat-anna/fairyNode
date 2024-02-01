@@ -14,7 +14,7 @@
   </va-card>
   <va-separator />
   <device-info-nodes v-if="activeTabName == 'DeviceInfoNodesTab'" :device-id="deviceId" />
-  <device-info-software v-if="activeTabName == 'DeviceInfoSoftwareTab'" :device-id="deviceId" />
+  <device-info-software v-if="activeTabName == 'DeviceInfoSoftwareTab'" :device-id="deviceId" :supported="true" />
   <device-info-details v-if="activeTabName == 'DeviceInfoDetails'" :device-id="deviceId" />
 </template>
 

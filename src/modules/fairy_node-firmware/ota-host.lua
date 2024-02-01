@@ -4,8 +4,6 @@ local scheduler = require "fairy_node/scheduler"
 
 -------------------------------------------------------------------------------------
 
-local MAX_COMMITS_PER_DEVICE = 10
-
 local OTA_COMPONENTS = {
     "root",
     "lfs",
@@ -100,36 +98,43 @@ function FairyNodeOta:CheckDatabaseAsync(delay)
 end
 
 function FairyNodeOta:CheckDatabase()
-    -- print(self, "Checking database start")
-    -- self:CheckCommits()
-    -- self:CheckImages()
-    -- print(self, "Checking database completed")
+    print(self, "Checking database start")
+    self:CheckCommits()
+    self:CheckImages()
+    print(self, "Checking database completed")
 end
 
 -------------------------------------------------------------------------------
 
 function FairyNodeOta:CheckCommits()
     print(self, "Checking commits")
-    local devices = table.list_to_sparse(self:GetAllDeviceIds())
-
     local db = self:GetCommitDatabase()
-    for _,commit in ipairs(db:FetchAll()) do
+
+    local devices = table.list_to_sparse(self:GetAllDeviceIds())
+    local locked_commits = table.list_to_sparse(self:GetLockedCommitKeys())
+    local images = table.list_to_sparse(self:GetAllImages())
+
+    local function test_commit(commit)
         if not devices[commit.device_id] then
-            printf(self, "Deleting commit %s - device %s does not exists", commit.key, commit.device_id)
-            db:DeleteOne({ key = commit.key })
+            return string.format("device %s does not exists", commit.device_id)
+        end
+
+        for k,v in pairs(commit.components) do
+            if not images[v] then
+                return string.format("missing image %s for component %s", v, k)
+            end
         end
     end
 
-    for device,_ in pairs(devices) do
-        local all = db:FetchAll({ device_id = device.key })
-        table.sort(all, function (a, b)
-            return (a.timestamp or 0) < (b.timestamp or 0)
-        end)
-
-        while #all > MAX_COMMITS_PER_DEVICE do
-            local item = table.remove(all, 1)
-            db:DeleteOne(item)
-            printf(self, "Deleting commit %s:%s", item.device_id, item.key)
+    for _,commit in ipairs(db:FetchAll()) do
+        local reason test_commit(commit)
+        if reason then
+            if locked_commits[commit.id] then
+                --TODO
+            else
+                printf(self, "Deleting commit %s - %s", commit.key, reason)
+                db:DeleteOne({ key = commit.key })
+            end
         end
     end
 end
@@ -146,12 +151,34 @@ function FairyNodeOta:CheckImages()
 
     local image_db = self:GetImageDatabase()
     for _,image in ipairs(image_db:FetchAll()) do
-        if not needed_images[image.key] then
+        if (not needed_images[image.key]) or (not self.storage:StorageFileExists(image.file_id)) then
             printf(self, "Deleting image %s:%s", image.key, image.file_id)
             image_db:DeleteOne(image)
             self.storage:RemoveFromStorage(image.file_id)
         end
     end
+end
+
+function FairyNodeOta:GetAllImages()
+    local image_db = self:GetImageDatabase()
+    local r = { }
+    for _,image in ipairs(image_db:FetchAll()) do
+        table.insert(r, image.key)
+    end
+    return r
+end
+
+function FairyNodeOta:GetLockedCommitKeys()
+    local r = { }
+    for _,v in ipairs(self:GetDeviceDatabase():FetchAll()) do
+        if v.active_firmware then
+            r[v.active_firmware] = true
+        end
+        if v.current_firmware then
+            r[v.current_firmware] = true
+        end
+    end
+    return table.keys(r)
 end
 
 -------------------------------------------------------------------------------
@@ -505,12 +532,12 @@ function FairyNodeOta:GetActiveDeviceFirmwareCommit(device_id)
     return dev.active_firmware, dev.current_firmware
 end
 
-function FairyNodeOta:GeDeviceFirmwareCommitInfo(device_id)
+function FairyNodeOta:GetDeviceFirmwareCommitInfo(device_id)
     local active_firmware, current_firmware = self:GetActiveDeviceFirmwareCommit(device_id)
     local commit_db = self:GetCommitDatabase()
     return
-        commit_db:FetchOne({ key = active_firmware }),
-        commit_db:FetchOne({ key = current_firmware })
+        active_firmware and commit_db:FetchOne({ key = active_firmware }) or nil,
+        current_firmware and commit_db:FetchOne({ key = current_firmware }) or nil
 end
 
 -------------------------------------------------------------------------------------

@@ -122,12 +122,6 @@ end
 
 -------------------------------------------------------------------------------------
 
-local CommandTable = {
-    restart = {
-        func_name = "Restart"
-    }
-}
-
 function DeviceService:TriggerDeviceCommand(request, dev_id)
     -- local dev = self.device_manager:GetDevice(dev_id)
 
@@ -147,6 +141,22 @@ function DeviceService:TriggerDeviceCommand(request, dev_id)
     -- func(dev)
     -- return http.OK, { success = true }
 end
+
+function DeviceService:RestartDevice(request, dev_id)
+    local dev = self.device_manager:GetDevice(dev_id)
+    if not dev then
+        return http.BadRequest, { success = false }
+    end
+
+    local success, response = dev:Restart()
+    if success == nil then
+        return http.Forbidden, { success = false }
+    end
+    return http.OK, {
+        success = success and true or false
+    }
+end
+
 
 -------------------------------------------------------------------------------------
 

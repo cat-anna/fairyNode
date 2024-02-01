@@ -37,9 +37,6 @@ function FirmwareBuilderApp:StartModule()
 
     self.luac_builder = self:CreateSubObject("luac-builder", {
         nodemcu_path = config.nodemcu_path,
-
-        -- project_paths = self.config.project_paths,
-        -- firmware_path = self.config.firmware_path[1],
     })
 
     self.steps_list = {

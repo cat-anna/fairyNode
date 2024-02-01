@@ -34,6 +34,8 @@
       "tabTitle": "Software",
       "commits": "Commits",
       "activate": "Activate",
+      "deleteCommit": "Delete",
+      "status": "Status",
       "notSupported": "This device does not run fairyNode",
       "help": {
         "commitIsActive": "This commit is active",
@@ -51,7 +53,20 @@
       },
       "activateConfirmationMessage": "Do you really want to activate this software?",
       "activateSuccess": "Software activated",
-      "activateFailure": "Software activation failed"
+      "activateFailure": "Software activation failed",
+      "deleteConfirmationMessage": "Do you want to delete this commit",
+      "commitDeleteSuccess": "Commit removed",
+      "commitDeleteFailed": "Failed to remove commit ",
+      "actions": {
+        "title": "Actions",
+        "busy": "Device is busy with previous action",
+        "confirm": "Do you really want to execute this action?",
+        "command_send": "Action executed",
+        "command_failed": "Failed to execute action",
+
+        "restart": "Restart",
+        "triggerOTA": "Trigger update"
+      }
     },
     "details": {
       "tabTitle": "Details",
