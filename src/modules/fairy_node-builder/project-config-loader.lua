@@ -94,6 +94,7 @@ function ProjectConfigLoader:AddDevice(entry)
 
     self.chip_id[entry.device_id] = entry
     entry.name = entry.name or entry.project
+    entry.display_name = entry.display_name or entry.name
     entry.project_name = entry.project
     entry.debug_mode = entry.debug_mode
     entry.project = self.projects[entry.project]
@@ -103,14 +104,28 @@ end
 
 function ProjectConfigLoader:AddMultipleDevices(entry)
     assert(entry.project)
-    local prefix = entry.prefix or ""
+    local name = entry.name or ""
+    local display_name = entry.display_name
+    if not display_name then
+        display_name = ""
+    else
+        display_name = display_name .. " "
+    end
 
     for k,v in pairs(entry.chips or {}) do
-        self:AddDevice({
-            project = entry.project,
-            name = prefix .. v,
-            device_id = k,
-        })
+        local req = { }
+        if type(v) == "string" then
+            req.name = name .. v
+            req.display_name = display_name .. v
+        else
+            req = v
+            req.name = name .. v.name
+            req.display_name = display_name .. v.display_name
+        end
+        req.project = entry.project
+        req.device_id = k
+        req.debug_mode = req.debug_mode or entry.debug_mode
+        self:AddDevice(req)
     end
 end
 
@@ -177,6 +192,7 @@ function ProjectModule:LoadProjectForChip(chip_id)
     local chip_config = self.project_config.chip_id[chip_id]
     if not chip_config then --
         error("ERROR: Unknown chip " .. chip_id)
+        os.exit(1)
     end
 
     assert(chip_config.project)

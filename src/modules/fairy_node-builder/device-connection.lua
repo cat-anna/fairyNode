@@ -43,7 +43,7 @@ function DeviceConnection:Connect()
 
     if self.port[1] == "tcp" then
         local sock = copas.wrap(socket.tcp())
-        copas.setsocketname(self:Tag(), sock)
+        -- copas.setsocketname(self:Tag(), sock)
         assert(sock:connect(self.port[2], self.port[3]))
         self.socket = sock
         self.socket:settimeouts(1, 1, 1)
@@ -82,13 +82,15 @@ function DeviceConnection:ReceiveThread()
 
     while self.socket do
         local data, err, part = self.socket:receive("*l")
+        -- print(self, "RECV RAW", "[", data, err, part, "]")
 
         if err then
             if err == "timeout" then
                 -- print(self, "TIMEOUT")
-                if self.timeout_waiting_thread then
-                    local th = self.timeout_waiting_thread
-                    self.timeout_waiting_thread = nil
+                if self.waiting_thread then
+                    local th = self.waiting_thread
+                    self.waiting_thread = nil
+                    self.current_response = { nil, err }
                     copas.wakeup(th)
                 end
             else
@@ -106,7 +108,7 @@ function DeviceConnection:ReceiveThread()
                 self.pending_lines = { }
             elseif data:find("====END====") then
                 -- print(self, "END")
-                self.current_response = self.pending_lines
+                self.current_response = { self.pending_lines }
                 self.pending_lines = { }
                 if self.waiting_thread then
                     local th = self.waiting_thread
@@ -129,12 +131,12 @@ function DeviceConnection:WaitForResponse()
     copas.pauseforever()
     local response = self.current_response
     self.current_response = nil
-    return response
+    return table.unpack(response)
 end
 
 function DeviceConnection:Flush()
-    assert(self.timeout_waiting_thread == nil)
-    self.timeout_waiting_thread = coroutine.running()
+    assert(self.waiting_thread == nil)
+    self.waiting_thread = coroutine.running()
     copas.pauseforever()
 end
 
@@ -148,8 +150,7 @@ function DeviceConnection:ShellCommand(txt)
     copas.pause(0.001)
     self.socket:send("print([[====END====]])\n")
 
-    local r = self:WaitForResponse()
-    return r
+    return self:WaitForResponse()
 end
 
 function DeviceConnection:ReadHeap()
@@ -208,7 +209,8 @@ function DeviceConnection:Upload(filename, data)
 
     -- local mode = "b64"
     local mode = "hex"
-    local max_block = 16*2
+    local max_block = 16
+    local full_success = true
 
     -- self:ShellCommand([[node.setcpufreq(node.CPU160MHZ)]])
     self:ShellCommand(string.format([[file.remove("%s")]], filename))
@@ -250,7 +252,7 @@ end
     local start = os.timestamp()
     local last_info_time = start
     local last_info_pos = 0
-    while pos < total do
+    while (pos < total) and full_success do
         local info_pos = pos / total
 
         local now = os.timestamp()
@@ -272,11 +274,32 @@ end
         --     cmd = string.format([==[__WriteB64([[%s]])]==], string.tobase64(block_str))
         -- end
         -- print(self, cmd)
-        self:ShellCommand(cmd)
+        -- print("POS", pos, total, block_size, #block_str, "[["..cmd.."]]")
+        local retries = 5
+        local success = false
+        for i=1,5 do
+            local r = self:ShellCommand(cmd)
+            if r then
+                success = true
+                break
+            else
+                printf(self, "Upload command failed attempt %d/%d", i, retries)
+                self:Flush()
+                self:ShellCommand("=node.heap()")
+                self:Flush()
+            end
+        end
+        if not success then
+            print(self, "Upload command failed")
+            full_success = false
+            break
+        end
 
         pos = pos + block_size
         assert(block_size ==  #block_str)
     end
+    self:ShellCommand([[file.close()]])
+
     assert(pos == total)
 
     local dt = os.timestamp() - start
@@ -286,14 +309,30 @@ end
     local hash = self:ShellCommand(string.format([[
 if crypto and encoder then
     print("SHA256=" .. encoder.toHex(crypto.fhash("SHA256", "%s")))
+else
+    print("SHA256=")
 end
     ]], filename))
 
+    local result_hash
     for _,v in ipairs(hash or {}) do
-        print(self, "HASHRESP: " .. v)
+        local m = v:match([[SHA256=(.*)]])
+        -- print(self, "HASHRESP: '" .. v .."'", m, "|")
+        if m then
+            result_hash = m:lower()
+            print(self, "Uploaded hash=" .. result_hash)
+            break
+        end
     end
     local mysha = sha256(data)
-    print(self, "SHA256: " .. mysha)
+    print(self, "Target hash=" .. mysha)
+
+    if result_hash and result_hash ~= "" then
+        if result_hash ~= mysha then
+            print(self, "upload failed")
+            full_success = false
+        end
+    end
 
     -- self.socket:send("\n")
     -- self.socket:send("Uploader = nil\n")
@@ -306,6 +345,7 @@ __DecodeB64 = nil
 __WriteB64 = nil
 ]])
 
+    return full_success
 end
 
 -------------------------------------------------------------------------------------

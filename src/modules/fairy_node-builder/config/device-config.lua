@@ -38,18 +38,10 @@ function DeviceConfig:Init(arg)
 
     self.firmware = arg.firmware
 
-    self:Preprocess()
 end
 
 function DeviceConfig:GetLfsSize()
-    --TODO
-    return 128*1024
-    -- local poject_image = self.project.image
-    -- if poject_image and poject_image.lfs_size then
-    --     return poject_image.lfs_size
-    -- end
-
-    -- return self.firmware.image.lfs_size
+    return self.lfs_size
 end
 
 local function GenerateFileLists(storage, fileList)
@@ -104,10 +96,16 @@ local function FilterFiles(source, fileList, generateList)
     end
 end
 
-function DeviceConfig:Preprocess()
+function DeviceConfig:Preprocess(opts)
     if self.ready then
         return
     end
+
+    assert(opts)
+    assert(opts.lfs_size)
+    assert(opts.git_commit_id)
+    self.lfs_size = opts.lfs_size
+    self.git_commit_id = opts.git_commit_id
 
     print("Preprocessing", self.chip.name)
     self.project:Preprocess()
@@ -125,7 +123,10 @@ function DeviceConfig:Preprocess()
 
     self.ota_install = tablex.deepcopy(self.project.components.ota_install)
 
-    self.config["hostname"] = self.chip.name
+    self.config.hostname = self.chip.name
+    if self.config.homie then
+        self.config.homie.display_name = self.chip.display_name
+    end
 
     self.ready = true
 end
@@ -136,8 +137,8 @@ function DeviceConfig:Timestamps()
     end
 
     print(self, "Preparing timestamps")
-    local function process(lst)
-        local content = {}
+    local function process(lst, token)
+        local content = { token }
         local max = 0
         for _, v in ipairs(lst) do
             if type(v) == "string" then
@@ -168,7 +169,7 @@ function DeviceConfig:Timestamps()
     end
 
     self.__timestamps = {
-        lfs = process(self.lfs),
+        lfs = process(self.lfs, self.git_commit_id),
         root = process(self.root),
         config = json.decode(self:GenerateConfigFiles()[CONFIG_HASH_NAME])
     }

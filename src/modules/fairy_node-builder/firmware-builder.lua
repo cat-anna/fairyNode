@@ -50,6 +50,8 @@ function FirmwareBuilder:Work()
 
     self.project = self.project_config_loader:LoadProjectForChip(self.chip_id)
 
+    self.project:Preprocess(self.device_info.nodeMcu)
+
     local actions = {
         root = self.BuildRootImage,
         lfs = self.BuildLFS,
@@ -113,7 +115,8 @@ end
 function FirmwareBuilder:BuildLFS()
     print(self, "Building LFS image")
     local ts = self.project:Timestamps()
-    local compiler_path, compiler_id = self.luac_builder:GetCompiler(self, self.device_info)
+    local git_commit_id = (self.device_info.nodeMcu or {}).git_commit_id
+    local compiler_path, compiler_id = self.luac_builder:GetCompiler(self, git_commit_id)
     if not compiler_path then
         print(self, "Cannot build lfs for", self.chip_id, "failed to get compiler")
     else
@@ -164,8 +167,9 @@ end
 function FirmwareBuilder:GetFilesToUpload()
     local r = { }
 
-    for _,what in ipairs({"lfs", "root", "config"}) do
+    for _,what in ipairs({"root", "config"}) do
         local image = self.ready_images[what]
+        assert(image)
         r[what .. ".pending.img"] = image.payload
     end
 
@@ -174,6 +178,8 @@ function FirmwareBuilder:GetFilesToUpload()
     end
 
     r["ota.ready"] = "1"
+
+    -- r["init.lua"] = nil
 
     return r
 end

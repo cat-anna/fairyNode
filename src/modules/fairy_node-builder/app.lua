@@ -209,10 +209,26 @@ function FirmwareBuilderApp:UploadToLocalDevice()
 
     local files = image_builder:GetFilesToUpload()
     assert(files)
+    local retries = 5
 
     for k,v in pairs(files) do
         printf(self, "Uploading '%s' -> bytes=%d", k, v:len())
-        self.device_connection:Upload(k, v)
+
+        local success
+        for i=1,retries do
+            success = self.device_connection:Upload(k, v)
+            if success then
+                break
+            else
+                printf(self, "Upload attempt %d/%d failed", i, retries)
+            end
+        end
+
+        if not success then
+            printf(self, "Upload failed. Removing all files from device")
+            self.device_connection:RemoveAllFiles()
+            break
+        end
     end
 end
 

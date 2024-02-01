@@ -124,13 +124,15 @@ end
 
 -------------------------------------------------------------------------------
 
-function LuacBuilder:GetCompiler(worker, dev_info, device_id)
+function LuacBuilder:GetCompiler(worker, git_commit_id, device_id)
     --     local config = self.config[CONFIG_KEY_CONFIG]
-    local git_commit_id = (dev_info.nodeMcu or {}).git_commit_id
 
     if not git_commit_id then
+        print(self, "Refusing to use default 'release' branch for building luac")
+        os.exit(1)
+
 --         return
-        git_commit_id = "master"
+        git_commit_id = "release"
     end
 
     print(worker, "Got request for compiler: git_commit_id=" .. tostring(git_commit_id))
