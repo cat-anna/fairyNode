@@ -6,12 +6,15 @@ M.name = "Device manager"
 M.depends = { }
 M.config = {
     hostname = "hostname",
+    local_device_name = "module.manager-device.local.name"
 }
 
 local SENSOR_LIST_CONFIG = "module.manager-device.local.sensors"
 
 M.parameters = {
     [SENSOR_LIST_CONFIG]  = { mode = "merge", type = "string-table", default = { } },
+
+    [M.config.local_device_name]  = { type = "string", required = false, default = nil, },
 }
 
 M.submodules = {

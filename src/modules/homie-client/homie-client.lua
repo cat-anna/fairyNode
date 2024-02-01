@@ -26,18 +26,14 @@ HomieClient.__config = { }
 function HomieClient:Init(opt)
     HomieClient.super.Init(self, opt)
 
-    self.client_name = self.config.hostname
-    self.global_id = self.client_name
-
     self.client_mode = "client"
-
     self.node_proxies = { }
 
     self.state_machine = require("modules/homie-client/client-fsm")
     self.state_machine.homie_client = self
 
     self.mqtt = require("modules/homie-common/homie-mqtt"):New({
-        base_topic = { self.config.homie_prefix, self.client_name },
+        base_topic = { self.config.homie_prefix, self.config.hostname },
         owner = self,
     })
 
@@ -91,8 +87,12 @@ function HomieClient:SendProtocolState(protocol_state)
 end
 
 function HomieClient:SendInfoMessages()
+    local dev = self.device_manager:GetLocalDevice()
+
     local q = { }
-    self:PushMessage(q, "$name", self.client_name)
+    self:PushMessage(q, "$name", dev:GetId())
+    self:PushMessage(q, "$hostname", self.config.hostname)
+    self:PushMessage(q, "$homie", "3.0.0")
     self:PushMessage(q, "$implementation", "FairyNode")
     self:PushMessage(q, "$fw/name", "FairyNode")
     self:PushMessage(q, "$fw/FairyNode/version", "0.1.0")

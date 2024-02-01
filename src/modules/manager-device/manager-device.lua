@@ -50,7 +50,7 @@ function DeviceManager:InitializeLocalDevice()
         class = "manager-device/local/local-device",
         id = self.config.hostname,
         global_id = "local",
-        name = self.config.hostname,
+        name = self.config.local_device_name or self.config.hostname,
         group = "local",
     }
 end
