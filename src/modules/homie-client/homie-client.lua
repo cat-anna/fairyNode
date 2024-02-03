@@ -40,7 +40,7 @@ function HomieClient:Init(opt)
     self.mqtt_client:SetLastWill{
         topic = self.mqtt:Topic("$state"),
         payload = homie_state.lost,
-        retain = self.retained,
+        retain = true,
         qos = self.qos,
     }
 end
@@ -90,9 +90,9 @@ function HomieClient:SendInfoMessages()
     local dev = self.device_manager:GetLocalDevice()
 
     local q = { }
-    self:PushMessage(q, "$name", dev:GetId())
-    self:PushMessage(q, "$hostname", self.config.hostname)
     self:PushMessage(q, "$homie", "3.0.0")
+    self:PushMessage(q, "$name", dev:GetName())
+    self:PushMessage(q, "$hostname", self.config.hostname)
     self:PushMessage(q, "$implementation", "FairyNode")
     self:PushMessage(q, "$fw/name", "FairyNode")
     self:PushMessage(q, "$fw/FairyNode/version", "0.1.0")

@@ -10,6 +10,7 @@ export interface SummaryDeviceEntry extends DeviceEntry {
   status: string
   errors: number
   uptime: number
+  is_fairy_node: boolean
 }
 
 export interface DeviceNodeProperty {
@@ -68,6 +69,9 @@ export class DeviceService extends RestServiceBase {
 
   list(): Promise<DeviceEntry[]> {
     return this.get_json('')
+  }
+  deviceStatus(device_id: string): Promise<SummaryDeviceEntry> {
+    return this.get_json('/' + device_id + '/status')
   }
   nodesSummary(device_id: string): Promise<DeviceSummary> {
     return this.get_json('/' + device_id + '/summary')

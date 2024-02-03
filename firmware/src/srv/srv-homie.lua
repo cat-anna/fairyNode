@@ -157,7 +157,7 @@ function Module:PublishExtendedInfo()
     sta = nil
 
     if file.exists("rest.cfg") then
-        self:PublishInfo("$config/rest", require("sys-config").JSON("rest.cfg"))
+        self:PublishInfo("$fw/FairyNode/config/rest", require("sys-config").Read("rest.cfg"))
     end
 end
 

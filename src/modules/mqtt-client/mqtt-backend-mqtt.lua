@@ -156,6 +156,9 @@ function MqttBackend:PublishMessage(msg)
     end
     self.mqtt_client:publish(msg)
     copas.sleep(0)
+    if msg.qos == 0 then
+        self.target:OnMqttPublished(self, msg)
+    end
 end
 
 function MqttBackend:OnPublishConfirmed(msg)
