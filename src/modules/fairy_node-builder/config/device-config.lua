@@ -98,7 +98,7 @@ end
 
 function DeviceConfig:Preprocess(opts)
     if self.ready then
-        return
+        return true
     end
 
     assert(opts)
@@ -129,6 +129,8 @@ function DeviceConfig:Preprocess(opts)
     end
 
     self.ready = true
+
+    return true
 end
 
 function DeviceConfig:Timestamps()

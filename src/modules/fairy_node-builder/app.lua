@@ -102,6 +102,7 @@ function FirmwareBuilderApp:OnSystemTick()
     end
 
     print(self, "All steps completed")
+    self:PrintResult()
     os.exit(0) -- TODO
 end
 
@@ -252,6 +253,7 @@ function FirmwareBuilderApp:ProcessNextDevice()
                 project_config_loader = self.project_config_loader,
                 luac_builder = self.luac_builder,
                 device_info = v.device_info,
+                app = self,
             })
             self:AddTask(
                 string.format("%s: build firmware", k),
@@ -260,6 +262,39 @@ function FirmwareBuilderApp:ProcessNextDevice()
             if self.debug then
                 return true
             end
+        end
+    end
+end
+
+function FirmwareBuilderApp:SetBuilderCompleteStatus(builder, success, message)
+    local entry = self.devices_to_process[builder.chip_id]
+    assert(entry)
+
+    if not entry.result then
+        entry.result = {
+            success = success,
+            messages = { },
+        }
+        if message then
+            table.insert(entry.result.messages, message)
+        end
+        return
+    end
+
+    local result = entry.result
+    if message then
+        table.insert(result.messages, message)
+    end
+    result.success = result.success and success
+end
+
+function FirmwareBuilderApp:PrintResult()
+    for k,v in pairs(self.devices_to_process) do
+        local result = v.result or {}
+        local success = result.success or false
+        printf(self, "chip=%s success=%s", k, tostring(success))
+        for i,m in ipairs(result.messages or {}) do
+            printf(self, "\t\t%s", m)
         end
     end
 end
