@@ -10,6 +10,7 @@ export interface SummaryDeviceEntry extends DeviceEntry {
   status: string
   errors: number
   uptime: number
+  is_fairy_node: boolean
 }
 
 export interface DeviceNodeProperty {

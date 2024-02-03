@@ -82,7 +82,12 @@
       },
 
       getData() {
-        dashboardService.summary().then((data) => (this.deviceData = data))
+        dashboardService.summary().then((data) => {
+          data.sort(function (a, b){
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+          })
+          this.deviceData = data
+        })
       },
     },
   })
