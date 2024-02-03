@@ -5,7 +5,7 @@ NodeObject.__index = NodeObject
 function NodeObject:PublishValue(property, value, retain)
     self.controller:PublishNodePropertyValue(self.name, property, value, retain)
 end
-function NodeObject:StoreValue(property, value, retain)
+function NodeObject:StoreValue(property, value)
     self.controller:PublishNodeProperty(self.name, property, "set", value)
 end
 
@@ -119,6 +119,22 @@ function Module:PublishBaseInfo()
     self:PublishInfo("$fw/FairyNode/config/hash", config_timestamp.hash)
 end
 
+local function ReadFileContent(fname)
+    if not file.exists(fname) then
+      return ""
+    end
+
+    local fd = file.open(fname, "r")
+    if not fd then
+        return ""
+    end
+    local data = fd:read()
+    fd:close()
+
+    return data
+  end
+
+
 function Module:PublishExtendedInfo()
     -- print("HOMIE: Publishing info")
     local info = node.info
@@ -156,9 +172,8 @@ function Module:PublishExtendedInfo()
     self:PublishInfo("$mac", sta.getmac() or "")
     sta = nil
 
-    if file.exists("rest.cfg") then
-        self:PublishInfo("$fw/FairyNode/config/rest", require("sys-config").Read("rest.cfg"))
-    end
+    self:PublishInfo("$fw/config/rest", ReadFileContent("rest.cfg"))
+    self:PublishInfo("$fw/config/homie", ReadFileContent("homie.cfg"))
 end
 
 -------------------------------------------------------------------------------------
@@ -196,12 +211,12 @@ function Module:OnMqttMessage(topic, payload)
 end
 
 function Module:OnMqttLwt(event, mqtt)
-    print("Homie: Setting up MQTT LWT")
+    print("HOMIE: Setting up MQTT LWT")
     mqtt:SetLwt(
-        self:GetBaseTopic("$state"),  --topic
-        "lost", --payload
-        0, --qos
-        true --retain
+        self:GetBaseTopic("$state"),    --topic
+        "lost",                         --payload
+        0,                              --qos
+        true                            --retain
     )
 end
 

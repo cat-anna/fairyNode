@@ -117,7 +117,7 @@ Module.EventHandlers = {
 
 return {
     Init = function()
-        if not hw or not hw.ws2812 or not ws2812 or not ws2812_effects then
+        if (not hw) or (not hw.ws2812) or (not ws2812) or (not ws2812_effects) then
             return
         end
 
@@ -128,7 +128,7 @@ return {
             enabled = hw_conf.enabled or false,
             speed = hw_conf.speed or 100,
             brightness = hw_conf.brightness or 50,
-            color = hw_conf.color or "0,0,0",
+            color = hw_conf.color or "255,255,255",
             mode = hw_conf.mode or "static",
             mode_argument = hw_conf.mode_argument or ""
         }
