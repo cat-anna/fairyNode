@@ -56,18 +56,11 @@ if file.exists("ota.ready") then
     return
 end
 
-if (debugMode == nil) and file.exists("debug.cfg") then
-    debugMode = true
-    print("INIT: Debug mode is enabled")
-else
-    print("INIT: Debug mode is disabled")
-    print = function() end
-end
-
 local function EnterFailSafeMode()
     print("INIT: Reboot threshold exceeded.")
     print("INIT: Starting in failsafe mode.")
     failsafe = true
+    debugMode = true
 
     local state = false
     tmr.create():alarm(500, tmr.ALARM_AUTO, function()
@@ -85,6 +78,16 @@ local function OnSystemStable(t)
     print("INIT: System is stable for 10min. Clearing reboot counter.")
     rtcmem.write32(120, 0)
     t:unregister()
+end
+
+local function CheckDebugMode()
+    if debugMode or file.exists("debug.cfg") then
+        debugMode = true
+        print("INIT: Debug mode is enabled")
+    else
+        print("INIT: Debug mode is disabled")
+        print = function() end
+    end
 end
 
 local function CheckFailSafeMode()
@@ -115,7 +118,9 @@ local function CheckFailSafeMode()
     return true
 end
 
+
 if CheckFailSafeMode() then
+    CheckDebugMode()
     pcall(node.flashindex("init-lfs"))
 end
 
